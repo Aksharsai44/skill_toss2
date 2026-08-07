@@ -1,11 +1,29 @@
-export type Role = 'product-admin' | 'super-admin' | 'admin' | 'teacher' | 'student';
+export type UserRole =
+  | 'product_admin'
+  | 'super_admin'
+  | 'admin'
+  | 'teacher'
+  | 'student'
+  | 'parent';
 
-export const ROLES: { id: Role; label: string; description: string }[] = [
-  { id: 'product-admin', label: 'Product Admin', description: 'Manage clients, plans, feature toggles & demo requests' },
-  { id: 'super-admin', label: 'Super Admin', description: 'Group-wide revenue, branches, leads & consolidated reports' },
+export type Role = UserRole;
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  role: UserRole;
+  institutionId: string | null;
+  avatarUrl?: string | null;
+  isActive: boolean;
+}
+
+export const ROLES: { id: UserRole; label: string; description: string }[] = [
+  { id: 'product_admin', label: 'Product Admin', description: 'Manage clients, plans, feature toggles & demo requests' },
+  { id: 'super_admin', label: 'Super Admin', description: 'Group-wide revenue, branches, leads & consolidated reports' },
   { id: 'admin', label: 'Admin', description: 'Batches, students, fees, salary, attendance & integrations' },
   { id: 'teacher', label: 'Teacher', description: 'Classes, exams, assignments, community & reports' },
-  { id: 'student', label: 'Student / Parent', description: 'Classes, notes, fees, diary, reports & AI hub' },
+  { id: 'student', label: 'Student', description: 'Classes, notes, fees, diary, reports & AI hub' },
+  { id: 'parent', label: 'Parent', description: 'Student progress, attendance, fee payments & announcements' },
 ];
 
 export type NavItem = {
@@ -13,7 +31,27 @@ export type NavItem = {
   path: string;
   icon: string;
   badge?: string;
+  allowedRoles?: UserRole[];
+  permission?: keyof StudentPortalPermissions;
 };
+
+export type StudentViewerRole = 'student' | 'parent';
+
+export interface StudentPortalPermissions {
+  canJoinClass: boolean;
+  canSubmitAssignment: boolean;
+  canTakeExam: boolean;
+  canEditPersonalNotes: boolean;
+  canParticipateInCommunity: boolean;
+  canRequestLeave: boolean;
+  canUseAiStudyHub: boolean;
+  canViewAttendance: boolean;
+  canViewResults: boolean;
+  canViewAssignments: boolean;
+  canViewFees: boolean;
+  canPayFees: boolean;
+  canViewCertificates: boolean;
+}
 
 export type Student = {
   id: string;
@@ -172,4 +210,43 @@ export type ForumPost = {
   comments: number;
   time: string;
   tags: string[];
+};
+
+export type ParentStudentLink = {
+  id: string;
+  parentId: string;
+  studentId: string;
+  studentName: string;
+  studentBatch: string;
+  relationship: 'father' | 'mother' | 'guardian' | 'other';
+  isPrimary: boolean;
+  avatar: string;
+};
+
+export type AttendanceSubject = {
+  code: string;
+  subject: string;
+  attended: number;
+  total: number;
+  percentage: number;
+  status: 'safe' | 'warning' | 'risk';
+};
+
+export type SubjectGrade = {
+  code: string;
+  subject: string;
+  score: number;
+  total: number;
+  percentage: number;
+  grade: string;
+};
+
+export type WeeklyDigest = {
+  weekPeriod: string;
+  attendancePercentage: number;
+  completedAssignments: number;
+  pendingAssignments: number;
+  recentTestScore: string;
+  teacherRemarks: string;
+  upcomingEvents: string[];
 };

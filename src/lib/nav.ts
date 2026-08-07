@@ -1,7 +1,7 @@
 import type { Role, NavItem } from '@/lib/types';
 
 export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
-  'product-admin': [
+  'product_admin': [
     {
       group: 'Overview',
       items: [
@@ -24,7 +24,7 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       ],
     },
   ],
-  'super-admin': [
+  'super_admin': [
     {
       group: 'Overview',
       items: [
@@ -123,43 +123,69 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
     {
       group: 'Learning',
       items: [
+        { label: 'My Courses', path: '/student/courses', icon: 'PlayCircle', allowedRoles: ['student'] },
         { label: 'Classes', path: '/student/classes', icon: 'Video' },
-        { label: 'Recordings', path: '/student/recordings', icon: 'PlayCircle' },
-        { label: 'Notes & Resources', path: '/student/resources', icon: 'FolderOpen' },
-        { label: 'My Notes', path: '/student/my-notes', icon: 'NotebookPen' },
-        { label: 'Assignments', path: '/student/assignments', icon: 'ClipboardList' },
+        { label: 'Assignments', path: '/student/assignments', icon: 'ClipboardList', permission: 'canViewAssignments' },
         { label: 'Exams', path: '/student/exams', icon: 'FileQuestion' },
+        { label: 'Resources', path: '/student/resources', icon: 'FolderOpen' },
+        { label: 'Recordings', path: '/student/recordings', icon: 'PlayCircle' },
+      ],
+    },
+    {
+      group: 'Academics',
+      items: [
+        { label: 'Attendance', path: '/student/classes', icon: 'CheckSquare', permission: 'canViewAttendance' },
+        { label: 'Results', path: '/student/reports', icon: 'FileBarChart', permission: 'canViewResults' },
         { label: 'Timetable', path: '/student/timetable', icon: 'CalendarDays' },
-        { label: 'Diary', path: '/student/diary', icon: 'BookOpen' },
-        { label: 'Courses', path: '/student/courses', icon: 'PlayCircle' },
-        { label: 'Leave Request', path: '/student/leaves', icon: 'CalendarOff' },
+        { label: 'Calendar', path: '/student/calendar', icon: 'Calendar' },
+      ],
+    },
+    {
+      group: 'AI & Tools',
+      items: [
+        { label: 'AI Study Hub', path: '/student/ai-hub', icon: 'Sparkles', permission: 'canUseAiStudyHub' },
+        { label: 'My Notes', path: '/student/my-notes', icon: 'NotebookPen', permission: 'canEditPersonalNotes' },
       ],
     },
     {
       group: 'Engagement',
       items: [
-        { label: 'Community', path: '/student/community', icon: 'Users' },
-        { label: 'Discussion Forum', path: '/student/forum', icon: 'MessagesSquare' },
-        { label: 'Calendar', path: '/student/calendar', icon: 'Calendar' },
+        { label: 'Community', path: '/student/community', icon: 'Users', permission: 'canParticipateInCommunity' },
+        { label: 'Discussion Forum', path: '/student/forum', icon: 'MessagesSquare', permission: 'canParticipateInCommunity' },
       ],
     },
     {
       group: 'Personal',
       items: [
-        { label: 'Fees & Payments', path: '/student/fees', icon: 'CreditCard' },
+        { label: 'Fees & Payments', path: '/student/fees', icon: 'CreditCard', permission: 'canViewFees' },
         { label: 'Reports', path: '/student/reports', icon: 'FileBarChart' },
-        { label: 'Certifications', path: '/student/certifications', icon: 'Award' },
-        { label: 'AI Hub', path: '/student/ai-hub', icon: 'Sparkles' },
+        { label: 'Certifications', path: '/student/certifications', icon: 'Award', permission: 'canViewCertificates' },
+        { label: 'Leave Requests', path: '/student/leaves', icon: 'CalendarOff', permission: 'canRequestLeave' },
         { label: 'My Profile', path: '/student/profile', icon: 'UserCircle' },
       ],
     },
   ],
+  'parent': [],
 };
 
+export function getNavigationForRole(role: Role, permissions?: import('@/lib/types').StudentPortalPermissions) {
+  if (role !== 'student' && role !== 'parent') return navConfig[role] || [];
+
+  return navConfig.student
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        (!item.allowedRoles || item.allowedRoles.includes(role)) &&
+        (!item.permission || permissions?.[item.permission] === true)),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
 export const roleLabels: Record<Role, string> = {
-  'product-admin': 'Product Admin',
-  'super-admin': 'Super Admin',
+  'product_admin': 'Product Admin',
+  'super_admin': 'Super Admin',
   'admin': 'Admin',
   'teacher': 'Teacher',
   'student': 'Student',
+  'parent': 'Parent',
 };

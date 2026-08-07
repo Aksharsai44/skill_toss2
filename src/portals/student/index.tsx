@@ -1,90 +1,389 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Video, PlayCircle, FolderOpen, NotebookPen, ClipboardList, FileQuestion, CalendarDays,
-  BookOpen, Users, MessagesSquare, Calendar, CreditCard, FileBarChart, Award, Sparkles,
-  UserCircle, Download, Clock, CheckCircle, Play, FileText, Image, Send, Heart,
-  Bookmark, MessageCircle, Plus, TrendingUp, Target, Mic, FileSearch, Code2,
-  CalendarCheck, ChevronRight, Mail, Phone, Edit, Trash2, Save, X, Check, CalendarOff,
+  Video, PlayCircle, NotebookPen, ClipboardList, FileQuestion,
+  BookOpen, CreditCard, FileBarChart, Award, Sparkles,
+  Download, Play, FileText, Send, Heart,
+  Bookmark, MessageCircle, Plus, TrendingUp, Mic, FileSearch, Code2,
+  CalendarCheck, ChevronRight, Mail, Phone, Edit, Trash2, Save, CalendarOff,
+  GraduationCap, AlertTriangle, CheckCircle2, ArrowUpRight, ShieldAlert, Activity,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';
-import { StatCard } from '@/components/ui/StatCard';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Tabs, Select } from '@/components/ui/Tabs';
-import { AttendanceBarChart } from '@/components/ui/Charts';
+import { Select } from '@/components/ui/Tabs';
 import { recordings, assignments, events, students, forumPosts, aiTools, timetable } from '@/lib/mockData';
 import { cn } from '@/lib/cn';
+import { useAuth } from '@/lib/auth';
+import { useNavigate } from 'react-router-dom';
+import { useStudentPortal } from '@/lib/studentPortal';
 
 export function StudentDashboard() {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const { viewerRole, linkedStudents, selectedStudentId, selectedStudent: currentChild, permissions, selectStudent } = useStudentPortal();
+  const isParent = viewerRole === 'parent';
+
+  if (!currentChild) {
+    return <EmptyState icon={GraduationCap} title="No linked students found" description="Ask your institution to link a student to this parent account." />;
+  }
+
+  const studentName = isParent ? currentChild.name : profile?.fullName || 'Arjun Verma';
+  const attendanceVal = isParent ? currentChild.attendance : 92;
+  const isAttendanceAtRisk = attendanceVal < 75;
+  const quickAccessItems = [
+    { label: 'Assignments', path: '/student/assignments', icon: ClipboardList, cardClass: 'bg-primary-50 border-primary-100', iconClass: 'text-primary-600' },
+    { label: 'Exams', path: '/student/exams', icon: FileQuestion, cardClass: 'bg-error-50 border-error-100', iconClass: 'text-error-600' },
+    { label: 'Recordings', path: '/student/recordings', icon: PlayCircle, cardClass: 'bg-accent-50 border-accent-100', iconClass: 'text-accent-600' },
+    { label: 'Attendance', path: '/student/classes', icon: CheckCircle2, cardClass: 'bg-success-50 border-success-100', iconClass: 'text-success-600' },
+    { label: 'Fees', path: '/student/fees', icon: CreditCard, cardClass: 'bg-warning-50 border-warning-100', iconClass: 'text-warning-600' },
+    { label: 'Calendar', path: '/student/calendar', icon: CalendarCheck, cardClass: 'bg-accent-50 border-accent-100', iconClass: 'text-accent-600' },
+  ];
+
   return (
-    <div>
-      <PageHeader title="Student Dashboard" subtitle="Welcome back, Arjun — here's your learning overview" />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Attendance" value="92%" icon={CheckCircle} color="success" />
-        <StatCard label="Pending Fees" value="₹15k" icon={CreditCard} color="warning" />
-        <StatCard label="Assignments" value={3} icon={ClipboardList} color="primary" />
-        <StatCard label="Upcoming Exams" value={2} icon={FileQuestion} color="error" />
+    <div className="space-y-6">
+      {/* Role-Aware Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-ink-100">
+        <div>
+          <h1 className="text-2xl font-bold font-display text-ink-900">
+            Student Dashboard
+          </h1>
+          <p className="text-sm text-ink-500 mt-1">
+            {isParent ? `Viewing ${currentChild.name}'s learning overview` : `Welcome back, ${studentName} — here's your learning overview`}
+          </p>
+        </div>
+
+        {/* Parent Child Selector Dropdown */}
+        {isParent && (
+          <div className="relative bg-white border border-ink-200 rounded-xl p-1.5 px-3 shadow-sm flex items-center gap-3">
+            <GraduationCap className="w-5 h-5 text-primary-600" />
+            <div className="text-left">
+              <p className="text-[10px] uppercase font-semibold text-ink-400">Viewing Child</p>
+              {linkedStudents.length > 1 ? <select
+                value={selectedStudentId ?? ''}
+                onChange={(e) => selectStudent(e.target.value)}
+                className="text-sm font-bold text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-4"
+              >
+                {linkedStudents.map((child) => (
+                  <option key={child.id} value={child.id}>
+                    {child.name} ({child.batch})
+                  </option>
+                ))}
+              </select> : <p className="text-sm font-bold text-ink-900">{currentChild.name}</p>}
+            </div>
+          </div>
+        )}
       </div>
-      <div className="grid lg:grid-cols-3 gap-4 mb-6">
-        <Card className="lg:col-span-2">
-          <CardHeader title="Today's Classes" subtitle="Friday, July 24, 2026" />
-          <div className="p-4 space-y-2">
-            {[
-              { time: '09:00', title: 'Data Structures — Linked Lists', teacher: 'Sneha Kapoor', status: 'live' },
-              { time: '11:00', title: 'Algorithms — Sorting', teacher: 'Sneha Kapoor', status: 'upcoming' },
-              { time: '14:00', title: 'Doubt Session', teacher: 'Sneha Kapoor', status: 'upcoming' },
-            ].map((s, i) => (
-              <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-ink-50">
-                <div className="text-sm font-semibold text-primary-600 w-12">{s.time}</div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-ink-800">{s.title}</p>
-                  <p className="text-xs text-ink-400">{s.teacher}</p>
+
+      {/* 4 Actionable KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Attendance Card */}
+        <div className={cn('card p-5 border-l-4', isAttendanceAtRisk ? 'border-l-error-500 bg-error-50/20' : 'border-l-success-500')}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">Attendance</span>
+            {isAttendanceAtRisk ? (
+              <Badge variant="error" className="flex items-center gap-1">
+                <ShieldAlert className="w-3 h-3" /> At Risk
+              </Badge>
+            ) : (
+              <Badge variant="success" className="flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Safe
+              </Badge>
+            )}
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-bold font-display text-ink-900">{attendanceVal}%</span>
+            <span className="text-xs text-ink-500">Req: 75%</span>
+          </div>
+          <p className="text-xs text-ink-500 mt-1">
+            {isAttendanceAtRisk
+              ? `1% below minimum threshold`
+              : `${attendanceVal - 75}% above minimum requirement`}
+          </p>
+          <button onClick={() => navigate('/student/classes')} className="mt-3 text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1">
+            View Details <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Pending Fees Card */}
+        <div className="card p-5 border-l-4 border-l-warning-500">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">Pending Fees</span>
+            <CreditCard className="w-4 h-4 text-warning-600" />
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-bold font-display text-ink-900">₹{currentChild.feePending.toLocaleString('en-IN')}</span>
+          </div>
+          <p className="text-xs text-ink-500 mt-1">{currentChild.feePending > 0 ? 'Due: 12 Aug 2026 (Semester 7)' : 'No payment currently due'}</p>
+          <button onClick={() => navigate('/student/fees')} className="mt-3 btn-primary text-xs py-1 px-3 inline-flex items-center gap-1">
+            Pay Now <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Assignments Card */}
+        <div className="card p-5 border-l-4 border-l-primary-500">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">Assignments</span>
+            <ClipboardList className="w-4 h-4 text-primary-600" />
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-bold font-display text-ink-900">{currentChild.assignmentsPending}</span>
+            <span className="text-xs text-error-600 font-semibold">1 Due Today</span>
+          </div>
+          <p className="text-xs text-ink-500 mt-1">DBMS Normalization Assignment</p>
+          <button onClick={() => navigate('/student/assignments')} className="mt-3 text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1">
+            View Assignments <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Upcoming Exams Card */}
+        <div className="card p-5 border-l-4 border-l-accent-500">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">Upcoming Exams</span>
+            <FileQuestion className="w-4 h-4 text-accent-600" />
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-bold font-display text-ink-900">{currentChild.upcomingExams}</span>
+          </div>
+          <p className="text-xs text-ink-500 mt-1">Next: Operating Systems (14 Aug)</p>
+          <button onClick={() => navigate('/student/exams')} className="mt-3 text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1">
+            View Exams <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Main Left Column (2 Cols) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Today Timeline */}
+          <Card>
+            <CardHeader title="Today's Schedule & Tasks" subtitle="Friday, 7 August 2026" />
+            <div className="p-5 space-y-3">
+              {[
+                { time: '09:00 AM', title: 'Data Structures — Linked Lists', detail: 'Sneha Kapoor · CS-2024-A', type: 'class', status: 'live' },
+                { time: '11:00 AM', title: 'Algorithms — Sorting Techniques', detail: 'Sneha Kapoor · CS-2024-A', type: 'class', status: 'upcoming' },
+                { time: '02:00 PM', title: 'Doubt Clearing Session', detail: 'Sneha Kapoor · Online Meet', type: 'session', status: 'upcoming' },
+                { time: '11:59 PM', title: 'DBMS Assignment 3 (Normalization)', detail: 'Submit before midnight', type: 'assignment', status: 'due' },
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center gap-4 p-3.5 rounded-xl bg-ink-50 border border-ink-100 hover:bg-white hover:shadow-sm transition">
+                  <div className="text-xs font-bold text-primary-700 w-16 shrink-0">{item.time}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink-900 truncate">{item.title}</p>
+                    <p className="text-xs text-ink-400 mt-0.5 truncate">{item.detail}</p>
+                  </div>
+                  {item.status === 'live' && <Badge variant="error" className="animate-pulse">LIVE</Badge>}
+                  {item.status === 'due' && <Badge variant="warning">Due Today</Badge>}
+                  {item.status === 'upcoming' && <Badge variant="primary">Upcoming</Badge>}
+
+                  {item.status === 'live' && permissions.canJoinClass ? (
+                       <button className="btn-danger text-xs px-3 py-1.5 shrink-0">Join Class</button>
+                    ) : item.status === 'due' && permissions.canSubmitAssignment ? (
+                       <button onClick={() => navigate('/student/assignments')} className="btn-primary text-xs px-3 py-1.5 shrink-0">Submit</button>
+                    ) : !isParent ? (
+                       <button className="btn-secondary text-xs px-3 py-1.5 shrink-0">Reminder</button>
+                    ) : <button onClick={() => navigate(item.type === 'assignment' ? '/student/assignments' : '/student/classes')} className="btn-secondary text-xs px-3 py-1.5 shrink-0">View Details</button>}
                 </div>
-                {s.status === 'live' ? <Badge variant="error">LIVE</Badge> : <Badge variant="primary">Upcoming</Badge>}
-                <button className={cn('text-xs px-3 py-1.5', s.status === 'live' ? 'btn-danger' : 'btn-primary')}>{s.status === 'live' ? 'Join Now' : 'Set Reminder'}</button>
+              ))}
+            </div>
+          </Card>
+
+          {/* Action Required Widget */}
+          <Card>
+            <CardHeader title="Action Required" subtitle="High-priority items requiring attention" />
+            <div className="p-5 space-y-3">
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-warning-50/50 border border-warning-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-warning-100 flex items-center justify-center text-warning-700 font-bold shrink-0">
+                    ₹
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-ink-900">Semester 7 Fee Due</p>
+                    <p className="text-xs text-ink-500">₹15,000 pending due on 12 August 2026</p>
+                  </div>
+                </div>
+                <button onClick={() => navigate('/student/fees')} className="btn-primary text-xs px-3 py-1.5 shrink-0">
+                  {permissions.canPayFees ? 'Pay Now' : 'View Bill'}
+                </button>
               </div>
-            ))}
-          </div>
-        </Card>
-        <Card>
-          <CardHeader title="Quick Access" />
-          <div className="p-4 grid grid-cols-2 gap-2">
-            {[
-              { icon: PlayCircle, label: 'Recordings', color: 'primary' },
-              { icon: FolderOpen, label: 'Notes', color: 'accent' },
-              { icon: CreditCard, label: 'Pay Fees', color: 'success' },
-              { icon: Sparkles, label: 'AI Hub', color: 'warning' },
-              { icon: ClipboardList, label: 'Assignments', color: 'primary' },
-              { icon: FileQuestion, label: 'Exams', color: 'error' },
-            ].map((a) => (
-              <button key={a.label} className="card card-hover p-4 text-center">
-                <div className={cn('w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center', a.color === 'primary' ? 'bg-primary-50' : a.color === 'accent' ? 'bg-accent-50' : a.color === 'success' ? 'bg-success-50' : a.color === 'error' ? 'bg-error-50' : 'bg-warning-50')}>
-                  <a.icon className={cn('w-5 h-5', a.color === 'primary' ? 'text-primary-600' : a.color === 'accent' ? 'text-accent-600' : a.color === 'success' ? 'text-success-600' : a.color === 'error' ? 'text-error-600' : 'text-warning-600')} />
+
+              {isAttendanceAtRisk && (
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-error-50/50 border border-error-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-error-100 flex items-center justify-center text-error-700 shrink-0">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-ink-900">Operating Systems Attendance Low</p>
+                      <p className="text-xs text-ink-500">74% attendance (1% below requirement). Attend next 2 classes.</p>
+                    </div>
+                  </div>
+                  <button onClick={() => navigate('/student/classes')} className="btn-secondary text-xs px-3 py-1.5 shrink-0">
+                    View Alert
+                  </button>
                 </div>
-                <p className="text-xs font-medium text-ink-700">{a.label}</p>
-              </button>
-            ))}
-          </div>
-        </Card>
+              )}
+            </div>
+          </Card>
+
+          <Card>
+              <CardHeader title="Course Progress" subtitle={`Current learning progress for ${studentName}`} />
+              <div className="p-5 space-y-4">
+                <div className="p-4 rounded-xl bg-gradient-to-r from-primary-900 to-ink-900 text-white flex items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-accent-400">Video Recording</span>
+                    <h4 className="font-bold text-base mt-0.5">Data Structures — Linked Lists (Lecture 8)</h4>
+                    <p className="text-xs text-ink-300 mt-1">Progress: 68% (32 mins remaining)</p>
+                  </div>
+                  {permissions.canJoinClass ? <button onClick={() => navigate('/student/recordings')} className="btn-primary text-xs px-4 py-2 shrink-0 flex items-center gap-1.5">
+                    <Play className="w-4 h-4 fill-current" /> Resume
+                  </button> : <button onClick={() => navigate('/student/recordings')} className="btn-secondary text-xs px-4 py-2 shrink-0">View Progress</button>}
+                </div>
+              </div>
+          </Card>
+          <Card>
+              <CardHeader title="Academic Progress" subtitle={`Performance overview for ${studentName}`} />
+              <div className="p-5 grid sm:grid-cols-4 gap-4">
+                <div className="p-3 bg-ink-50 rounded-xl border border-ink-100 text-center">
+                  <p className="text-xs text-ink-500">Overall Grade</p>
+                   <p className="text-2xl font-bold text-primary-600 font-display mt-1">{currentChild.overallPerformance}%</p>
+                  <span className="text-[10px] text-success-600 font-semibold">Grade A</span>
+                </div>
+                <div className="p-3 bg-ink-50 rounded-xl border border-ink-100 text-center">
+                  <p className="text-xs text-ink-500">Strongest Subject</p>
+                   <p className="text-base font-bold text-ink-900 mt-1 truncate">{currentChild.strongestSubject}</p>
+                  <span className="text-[10px] text-success-600 font-semibold">89% Score</span>
+                </div>
+                <div className="p-3 bg-ink-50 rounded-xl border border-ink-100 text-center">
+                  <p className="text-xs text-ink-500">Needs Attention</p>
+                   <p className="text-base font-bold text-error-600 mt-1 truncate">{currentChild.needsAttention}</p>
+                  <span className="text-[10px] text-error-600 font-semibold">72% Score</span>
+                </div>
+                <div className="p-3 bg-ink-50 rounded-xl border border-ink-100 text-center">
+                  <p className="text-xs text-ink-500">Semester Trend</p>
+                  <p className="text-base font-bold text-success-600 mt-1 flex items-center justify-center gap-1">
+                     <TrendingUp className="w-4 h-4" /> +{currentChild.semesterTrend}%
+                  </p>
+                  <span className="text-[10px] text-ink-400">Improving</span>
+                </div>
+              </div>
+          </Card>
+
+          {/* Attendance Intelligence Widget */}
+          <Card>
+            <CardHeader title="Attendance Intelligence" subtitle="Subject-level breakdown & risk assessment" />
+            <div className="p-5 space-y-3">
+              {[
+                { subject: 'Data Structures', attended: 24, total: 25, percent: 96, status: 'safe' },
+                { subject: 'Algorithms', attended: 20, total: 22, percent: 91, status: 'safe' },
+                { subject: 'DBMS', attended: 22, total: 25, percent: 88, status: 'safe' },
+                { subject: 'Operating Systems', attended: 17, total: 23, percent: 74, status: 'risk' },
+              ].map((sub) => (
+                <div key={sub.subject} className="p-3 rounded-xl bg-ink-50/50 border border-ink-100 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-ink-800">{sub.subject}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-ink-500">{sub.attended}/{sub.total} classes</span>
+                      <span className={cn('font-bold', sub.status === 'risk' ? 'text-error-600' : 'text-success-600')}>{sub.percent}%</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-ink-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={cn('h-full rounded-full transition-all', sub.status === 'risk' ? 'bg-error-500' : 'bg-success-500')}
+                      style={{ width: `${sub.percent}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="p-3 rounded-xl bg-primary-50 border border-primary-100 text-xs text-primary-800 flex items-start gap-2">
+                <Activity className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" />
+                <span>
+                  {isParent
+                    ? `Attendance Alert: ${studentName}'s Operating Systems attendance is 74%. 2 absences recorded recently.`
+                    : `Insight: Attend your next 2 Operating Systems classes to raise attendance above 75%.`}
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Sidebar Column (1 Col) */}
+        <div className="space-y-6">
+          {/* Quick Access Widget */}
+          <Card>
+            <CardHeader title="Quick Shortcuts" />
+            <div className="p-4 grid grid-cols-2 gap-2.5">
+              {quickAccessItems.map((item) => {
+                const Icon = item.icon;
+                return <button key={item.path} onClick={() => navigate(item.path)} className={cn('p-3 rounded-xl border text-center hover:shadow-sm transition', item.cardClass)}>
+                  <Icon className={cn('w-5 h-5 mx-auto mb-1', item.iconClass)} />
+                  <span className="text-xs font-semibold text-ink-800">{item.label}</span>
+                </button>;
+              })}
+            </div>
+          </Card>
+
+          {/* Upcoming Deadlines */}
+          <Card>
+            <CardHeader title="Upcoming Deadlines" />
+            <div className="p-4 space-y-3">
+              {[
+                { date: 'TODAY', title: 'DBMS Assignment 3', tag: '11:59 PM', variant: 'error' },
+                { date: '12 AUG', title: 'Semester 7 Fee Due', tag: '₹15,000', variant: 'warning' },
+                { date: '14 AUG', title: 'Operating Systems Exam', tag: '10:00 AM', variant: 'primary' },
+              ].map((d, i) => (
+                <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-ink-50 text-xs">
+                  <div>
+                    <span className="font-bold text-ink-900 block">{d.title}</span>
+                    <span className="text-[10px] text-ink-400">{d.date}</span>
+                  </div>
+                  <Badge variant={d.variant as 'error' | 'warning' | 'primary'}>{d.tag}</Badge>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-primary-900 to-ink-900 text-white">
+              <div className="p-5 space-y-3">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <h3 className="font-bold text-sm font-display text-white">Weekly Summary</h3>
+                  <span className="text-[10px] text-primary-200">1 Aug – 7 Aug</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-ink-300">Attendance Rate:</span>
+                    <span className="font-bold text-white">91%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-300">Assignments Completed:</span>
+                    <span className="font-bold text-white">4 / 5</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-300">Latest DBMS Quiz:</span>
+                    <span className="font-bold text-success-400">18 / 20</span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-[11px] text-ink-300 italic">
+                    {`“Sneha Kapoor: ${studentName} is performing well in practical labs. Continue revising ${currentChild.needsAttention}.”`}
+                  </p>
+                </div>
+                <button onClick={() => navigate('/student/reports')} className="w-full btn-secondary text-xs py-2 mt-2">
+                  View Full Report
+                </button>
+              </div>
+          </Card>
+        </div>
       </div>
-      <Card>
-        <CardHeader title="My Attendance" subtitle="Weekly overview" />
-        <div className="p-5"><AttendanceBarChart data={[
-          { day: 'Mon', present: 1, absent: 0 }, { day: 'Tue', present: 1, absent: 0 },
-          { day: 'Wed', present: 1, absent: 0 }, { day: 'Thu', present: 0, absent: 1 },
-          { day: 'Fri', present: 1, absent: 0 },
-        ]} /></div>
-      </Card>
     </div>
   );
 }
 
 export function StudentClasses() {
+  const { viewerRole, permissions, selectedStudent } = useStudentPortal();
   return (
     <div>
-      <PageHeader title="Live Classes" subtitle="Join your scheduled classes & view upcoming sessions" />
+      <PageHeader title="Live Classes" subtitle={viewerRole === 'parent' ? `Class schedule for ${selectedStudent?.name ?? 'selected student'}` : 'Join your scheduled classes & view upcoming sessions'} />
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Live Now" subtitle="Class in progress" />
@@ -97,9 +396,9 @@ export function StudentClasses() {
               </div>
               <h3 className="text-lg font-bold">Data Structures — Linked Lists</h3>
               <p className="text-sm text-primary-100 mt-1">Sneha Kapoor · CS-2024-A</p>
-              <button className="mt-4 w-full bg-white text-primary-700 font-semibold py-2.5 rounded-xl hover:bg-primary-50 transition flex items-center justify-center gap-2">
+              {permissions.canJoinClass ? <button className="mt-4 w-full bg-white text-primary-700 font-semibold py-2.5 rounded-xl hover:bg-primary-50 transition flex items-center justify-center gap-2">
                 <Video className="w-5 h-5" /> Join Class
-              </button>
+              </button> : <div className="mt-4 rounded-xl bg-white/15 px-3 py-2 text-center text-sm font-medium">Live class in progress · View only</div>}
             </div>
           </div>
         </Card>
@@ -114,7 +413,7 @@ export function StudentClasses() {
               <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50">
                 <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center"><Video className="w-5 h-5 text-primary-600" /></div>
                 <div className="flex-1"><p className="text-sm font-medium text-ink-800">{c.title}</p><p className="text-xs text-ink-400">{c.time} · {c.platform}</p></div>
-                <button className="btn-secondary text-xs px-3 py-1.5">Remind Me</button>
+                {permissions.canJoinClass ? <button className="btn-secondary text-xs px-3 py-1.5">Remind Me</button> : <button className="btn-secondary text-xs px-3 py-1.5">View Details</button>}
               </div>
             ))}
           </div>
@@ -367,11 +666,28 @@ export function StudentLeaves() {
 }
 
 export function StudentAssignments() {
+  const { viewerRole, permissions, selectedStudent } = useStudentPortal();
+  const isParent = viewerRole === 'parent';
+  const [tab, setTab] = useState('All');
+  const visibleAssignments = assignments.filter((assignment) => {
+    if (tab === 'Due Soon') return assignment.status === 'open';
+    if (tab === 'Submitted' || tab === 'Graded') return assignment.status === 'closed';
+    return true;
+  });
+
   return (
     <div>
-      <PageHeader title="Assignments" subtitle="View, submit & track your assignments" />
+      <PageHeader
+        title="Assignments"
+        subtitle={isParent ? `Read-only assignment progress for ${selectedStudent?.name ?? 'your child'}` : 'View, submit & track your assignments'}
+      />
+      <div className="flex gap-2 mb-4 overflow-x-auto" role="tablist" aria-label="Assignment filters">
+        {['All', 'Due Soon', 'Submitted', 'Graded'].map((label) => (
+          <button key={label} role="tab" aria-selected={tab === label} onClick={() => setTab(label)} className={cn('btn-secondary whitespace-nowrap', tab === label && 'border-primary-500 bg-primary-50 text-primary-700')}>{label}</button>
+        ))}
+      </div>
       <div className="grid sm:grid-cols-2 gap-4">
-        {assignments.map((a) => (
+        {visibleAssignments.map((a) => (
           <Card key={a.id} hover className="p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 rounded-xl bg-accent-50 flex items-center justify-center"><ClipboardList className="w-5 h-5 text-accent-600" /></div>
@@ -385,8 +701,8 @@ export function StudentAssignments() {
               </div>
               <span className="text-xs text-ink-500">{a.status === 'closed' ? 'Submitted' : 'Pending'}</span>
             </div>
-            <button className={cn('w-full mt-3 text-sm', a.status === 'closed' ? 'btn-secondary' : 'btn-primary')}>
-              {a.status === 'closed' ? 'View Submission' : 'Submit Assignment'}
+            <button className={cn('w-full mt-3 text-sm', a.status === 'closed' || !permissions.canSubmitAssignment ? 'btn-secondary' : 'btn-primary')}>
+              {!permissions.canSubmitAssignment ? 'View Details' : a.status === 'closed' ? 'View Feedback' : 'Continue Assignment'}
             </button>
           </Card>
         ))}
@@ -396,9 +712,11 @@ export function StudentAssignments() {
 }
 
 export function StudentExams() {
+  const { viewerRole, permissions, selectedStudent } = useStudentPortal();
+  const isParent = viewerRole === 'parent';
   return (
     <div>
-      <PageHeader title="Exams" subtitle="AI-generated exams with instant results" />
+      <PageHeader title="Exams" subtitle={isParent ? `Exam schedule and results for ${selectedStudent?.name ?? 'your child'}` : 'Upcoming, practice and completed exams'} />
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Upcoming Exams" />
@@ -418,7 +736,10 @@ export function StudentExams() {
                   <div><p className="text-ink-400">Marks</p><p className="font-medium text-ink-700">{e.marks}</p></div>
                   <div><p className="text-ink-400">Time</p><p className="font-medium text-ink-700">{e.time}m</p></div>
                 </div>
-                <button className="btn-primary w-full mt-3 text-sm">Start Exam</button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                  <button className="btn-secondary text-sm">View Syllabus</button>
+                  {permissions.canTakeExam && <button className="btn-primary text-sm">Start Practice Quiz</button>}
+                </div>
               </div>
             ))}
           </div>
@@ -679,6 +1000,7 @@ export function StudentCalendar() {
 }
 
 export function StudentFees() {
+  const { viewerRole, permissions, selectedStudent } = useStudentPortal();
   const [showPay, setShowPay] = useState(false);
   const fee = { total: 45000, paid: 30000, pending: 15000, term: 'Term 2', dueDate: 'Aug 05, 2026' };
   const history = [
@@ -687,7 +1009,7 @@ export function StudentFees() {
   ];
   return (
     <div>
-      <PageHeader title="Fees & Payments" subtitle="View fee structure, pay pending dues & download invoices" />
+      <PageHeader title="Fees & Payments" subtitle={viewerRole === 'parent' ? `Fee ledger for ${selectedStudent?.name ?? 'selected student'}` : 'View fee structure, pending dues & download invoices'} />
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         <Card className="p-6">
           <p className="text-sm text-ink-500">Total Fee</p>
@@ -706,7 +1028,7 @@ export function StudentFees() {
           <p className="text-sm text-ink-500">Pending</p>
           <p className="text-3xl font-bold font-display text-warning-600 mt-1">₹{fee.pending.toLocaleString()}</p>
           <p className="text-xs text-ink-400 mt-2">{fee.term} · Due {fee.dueDate}</p>
-          <button onClick={() => setShowPay(true)} className="btn-primary w-full mt-3 text-sm"><CreditCard className="w-4 h-4" /> Pay Now</button>
+          {permissions.canPayFees ? <button onClick={() => setShowPay(true)} className="btn-primary w-full mt-3 text-sm"><CreditCard className="w-4 h-4" /> Pay Now</button> : <button className="btn-secondary w-full mt-3 text-sm">View Details</button>}
         </Card>
       </div>
       <Card>

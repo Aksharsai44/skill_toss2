@@ -10,19 +10,20 @@ import { ROLES } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 export function LandingPage() {
-  const [showLogin, setShowLogin] = useState(false);
+  const navigate = useNavigate();
+  const handleLogin = () => navigate('/login');
+
   return (
     <div className="min-h-screen bg-white">
-      <Nav onLogin={() => setShowLogin(true)} />
-      <Hero onLogin={() => setShowLogin(true)} />
+      <Nav onLogin={handleLogin} />
+      <Hero onLogin={handleLogin} />
       <TrustBar />
       <Features />
-      <RolesSection onLogin={() => setShowLogin(true)} />
+      <RolesSection onLogin={handleLogin} />
       <AutomationSection />
       <StatsSection />
-      <CTASection onLogin={() => setShowLogin(true)} />
+      <CTASection onLogin={handleLogin} />
       <Footer />
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     </div>
   );
 }
@@ -304,61 +305,5 @@ function Footer() {
         <p className="text-sm">AI-Powered LMS for Schools, Colleges & Training Institutes</p>
       </div>
     </footer>
-  );
-}
-
-function LoginModal({ onClose }: { onClose: () => void }) {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const [selectedRole, setSelectedRole] = useState<typeof ROLES[number] | null>(null);
-
-  const handleLogin = (roleId: typeof ROLES[number]['id']) => {
-    login(roleId);
-    navigate(`/${roleId === 'product-admin' ? 'product-admin' : roleId}`);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="absolute inset-0 bg-ink-950/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-pop animate-scale-in max-h-[90vh] overflow-y-auto scrollbar-thin">
-        <div className="px-6 py-5 border-b border-ink-100">
-          <h2 className="text-xl font-bold font-display text-ink-900">Sign in to Skill Toss</h2>
-          <p className="text-sm text-ink-500 mt-1">Choose your role to explore the demo portal</p>
-        </div>
-        <div className="p-6 space-y-3">
-          {ROLES.map((role) => (
-            <button
-              key={role.id}
-              onClick={() => setSelectedRole(role)}
-              className={cn(
-                'w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left',
-                selectedRole?.id === role.id
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-ink-200 hover:border-ink-300 hover:bg-ink-50',
-              )}
-            >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-accent-600 flex items-center justify-center text-white font-bold font-display shrink-0">
-                {ROLES.indexOf(role) + 1}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-ink-900">{role.label}</p>
-                <p className="text-xs text-ink-500 mt-0.5">{role.description}</p>
-              </div>
-              {selectedRole?.id === role.id && <Check className="w-5 h-5 text-primary-600 shrink-0" />}
-            </button>
-          ))}
-        </div>
-        <div className="px-6 pb-6 flex gap-3">
-          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-          <button
-            onClick={() => selectedRole && handleLogin(selectedRole.id)}
-            disabled={!selectedRole}
-            className="btn-primary flex-1"
-          >
-            Continue <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
