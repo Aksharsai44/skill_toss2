@@ -1,6 +1,7 @@
 import type {
   Student, Teacher, Batch, ClassRecording, FeeRecord, LeaveRequest,
   Assignment, EventItem, Client, DemoRequest, Branch, Message, SalaryRecord, ForumPost,
+  Ticket, Institution, AdminUser,
 } from './types';
 
 const avatar = (seed: string) => `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&backgroundColor=2563eb,0891b2,16a34a,d97706,db2777&textColor=ffffff`;
@@ -110,7 +111,7 @@ export const demoRequests: DemoRequest[] = [
   { id: 'd1', organization: 'Delhi Public School', type: 'School', contact: 'Anita Desai', email: 'anita@dps.edu', phone: '+91 98100 12345', date: '2026-07-22', status: 'new', notes: 'Wants AI exam + fee management' },
   { id: 'd2', organization: 'TechMinds Institute', type: 'Training Institute', contact: 'Karan Malhotra', email: 'karan@techminds.in', phone: '+91 98100 67890', date: '2026-07-20', status: 'contacted', notes: 'Interested in Zoom + certification' },
   { id: 'd3', organization: 'St. Xavier College', type: 'College', contact: 'Father Thomas', email: 'thomas@stxavier.edu', phone: '+91 98100 11111', date: '2026-07-18', status: 'demo-scheduled', notes: 'Demo on 28th July, full LMS' },
-  { id: 'd4', organization: 'LearnMax Tutorials', type: 'Training Institute', contact: 'Pooja Bhat', email: 'pooja@learnmax.in', phone: '+91 98100 22222', date: '2026-07-15', status: 'closed', notes: 'Went with competitor' },
+  { id: 'd4', organization: 'LearnMax Tutorials', type: 'Training Institute', contact: 'Pooja Bhat', email: 'pooja@learnmax.in', phone: '+91 98100 22222', date: '2026-07-15', status: 'converted', notes: 'Went with competitor' },
 ];
 
 export const branches: Branch[] = [
@@ -206,3 +207,57 @@ export const channelIcon: Record<string, string> = {
   email: 'Mail',
   sms: 'Smartphone',
 };
+
+export const institutions: Institution[] = [
+  { id: 'i1', name: 'Bright Future Group', type: 'College', location: 'Delhi', status: 'active', joinedDate: '2024-01-15' },
+  { id: 'i2', name: 'Greenwood Trust', type: 'School', location: 'Mumbai', status: 'active', joinedDate: '2025-06-20' },
+  { id: 'i3', name: 'CodeCraft Institute', type: 'Training', location: 'Bangalore', status: 'inactive', joinedDate: '2026-02-10' },
+];
+
+export const adminUsers: AdminUser[] = [
+  { id: 'u1', name: 'Priya Nair', email: 'priya@skilltoss.demo', role: 'super_admin', institution: 'All', status: 'active' },
+  { id: 'u2', name: 'Rahul Sharma', email: 'rahul@brightfuture.edu', role: 'admin', institution: 'Bright Future Group', status: 'active' },
+  { id: 'u3', name: 'Aarav Mehta', email: 'aarav@skilltoss.demo', role: 'product_admin', institution: 'Skill Toss', status: 'active' },
+  { id: 'u4', name: 'Neha Gupta', email: 'neha@greenwood.edu', role: 'admin', institution: 'Greenwood Trust', status: 'inactive' },
+];
+
+export const supportTickets: Ticket[] = [
+  {
+    id: 'TICK-1029',
+    clientId: 'inst-1',
+    clientName: 'Bright Future College',
+    subject: 'Biometric device sync failing since yesterday',
+    status: 'In Progress',
+    priority: 'High',
+    createdAt: '2026-08-08T09:30:00Z',
+    messages: [
+      { id: 'm1', sender: 'client', name: 'Admin (Bright Future)', message: 'Hello, our campus biometric machines are no longer pushing data to Skill Toss.', timestamp: '2026-08-08T09:30:00Z' },
+      { id: 'm2', sender: 'support', name: 'John Doe', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', message: 'Hi, we are looking into this. Have there been any network changes on your end?', timestamp: '2026-08-08T10:15:00Z' }
+    ]
+  },
+  {
+    id: 'TICK-1030',
+    clientId: 'inst-2',
+    clientName: 'Global Tech Academy',
+    subject: 'Need help setting up custom domain',
+    status: 'Open',
+    priority: 'Medium',
+    createdAt: '2026-08-09T14:20:00Z',
+    messages: [
+      { id: 'm3', sender: 'client', name: 'IT Dept (Global Tech)', message: 'We want to point our domain academy.globaltech.com to our portal. Can you provide the CNAME records?', timestamp: '2026-08-09T14:20:00Z' }
+    ]
+  },
+  {
+    id: 'TICK-1031',
+    clientId: 'inst-3',
+    clientName: 'Sunrise High School',
+    subject: 'Billing discrepancy on recent invoice',
+    status: 'Resolved',
+    priority: 'Low',
+    createdAt: '2026-08-05T11:10:00Z',
+    messages: [
+      { id: 'm4', sender: 'client', name: 'Principal (Sunrise)', message: 'We were billed for 500 students, but we only have 450 active.', timestamp: '2026-08-05T11:10:00Z' },
+      { id: 'm5', sender: 'support', name: 'Sarah Billing', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026702d', message: 'Apologies, we have issued a credit note to your account.', timestamp: '2026-08-05T13:00:00Z' }
+    ]
+  }
+];

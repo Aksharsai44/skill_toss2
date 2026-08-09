@@ -6,6 +6,7 @@ import {
   CalendarOff, CalendarDays, Plug, Award, Calendar, Video, PlayCircle, CheckSquare,
   ClipboardList, FileQuestion, FolderOpen, MessagesSquare, UserCircle, NotebookPen,
   BookOpen, Sparkles, LogOut, Menu, X, Search, Bell, ChevronDown, Settings,
+  LifeBuoy, Building, ShieldCheck,
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '@/lib/auth';
@@ -19,7 +20,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Target, FileBarChart, GraduationCap, Users, Layers, CreditCard, Wallet, Fingerprint,
   CalendarOff, CalendarDays, Plug, Award, Calendar, Video, PlayCircle, CheckSquare,
   ClipboardList, FileQuestion, FolderOpen, MessagesSquare, UserCircle, NotebookPen,
-  BookOpen, Sparkles, Settings,
+  BookOpen, Sparkles, Settings, LifeBuoy, Building, ShieldCheck,
 };
 
 export function DashboardLayout({ children }: { children: ReactNode }) {

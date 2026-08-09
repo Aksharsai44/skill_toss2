@@ -143,6 +143,14 @@ export type EventItem = {
   batch?: string;
 };
 
+export type Invoice = {
+  id: string;
+  date: string;
+  amount: number;
+  status: 'paid' | 'pending' | 'failed';
+  plan: string;
+};
+
 export type Client = {
   id: string;
   name: string;
@@ -155,6 +163,22 @@ export type Client = {
   logo: string;
   features: Record<string, boolean>;
   joinedDate: string;
+  renewalDate?: string;
+  billingHistory?: Invoice[];
+};
+
+export type FollowUp = {
+  id: string;
+  date: string;
+  note: string;
+  author: string;
+};
+
+export type SalesRep = {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
 };
 
 export type DemoRequest = {
@@ -165,8 +189,11 @@ export type DemoRequest = {
   email: string;
   phone: string;
   date: string;
-  status: 'new' | 'contacted' | 'demo-scheduled' | 'closed';
+  status: 'new' | 'contacted' | 'demo-scheduled' | 'converted';
   notes: string;
+  assignedTo?: string;
+  scheduledDate?: string;
+  followUps?: FollowUp[];
 };
 
 export type Branch = {
@@ -177,6 +204,9 @@ export type Branch = {
   teachers: number;
   revenue: number;
   growth: number;
+  revenueHistory?: { month: string; revenue: number; students: number }[];
+  attendanceHistory?: { day: string; present: number; absent: number }[];
+  topTeachers?: { name: string; subject: string; rating: number; avatar: string }[];
 };
 
 export type Message = {
@@ -249,4 +279,51 @@ export type WeeklyDigest = {
   recentTestScore: string;
   teacherRemarks: string;
   upcomingEvents: string[];
+};
+
+export type SupportTicket = {
+  id: string;
+  clientName: string;
+  subject: string;
+  status: 'open' | 'in-progress' | 'resolved';
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+};
+
+export type Institution = {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  status: 'active' | 'inactive';
+  joinedDate: string;
+};
+
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: 'super_admin' | 'product_admin' | 'admin';
+  institution: string;
+  status: 'active' | 'inactive';
+};
+
+export type TicketMessage = {
+  id: string;
+  sender: 'client' | 'support';
+  name: string;
+  avatar?: string;
+  message: string;
+  timestamp: string;
+};
+
+export type Ticket = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  subject: string;
+  status: 'Open' | 'In Progress' | 'Resolved';
+  priority: 'High' | 'Medium' | 'Low';
+  createdAt: string;
+  messages: TicketMessage[];
 };

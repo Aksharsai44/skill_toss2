@@ -1,15 +1,17 @@
 import {
-  TrendingUp, Users, Building2, Wallet, Network, Target, FileBarChart,
-  MapPin, ArrowUpRight, ArrowDownRight, Download, Calendar, Filter,
+  TrendingUp, Users, Building2, Wallet, Network, Target,
+  MapPin, ArrowUpRight, ArrowDownRight, Download, Filter, Star,
 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader, Card, CardHeader } from '@/components/ui/Layout';
 import { StatCard } from '@/components/ui/StatCard';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import { RevenueAreaChart, DepartmentPieChart, AttendanceBarChart } from '@/components/ui/Charts';
 import { Select } from '@/components/ui/Tabs';
-import { branches, revenueData, departmentData, attendanceData, students, teachers } from '@/lib/mockData';
+import { branches, revenueData, departmentData, attendanceData, students, teachers, institutions, adminUsers } from '@/lib/mockData';
+import type { Institution, AdminUser, Branch } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 export function SuperAdminDashboard() {
@@ -71,12 +73,14 @@ export function SuperAdminDashboard() {
 }
 
 export function Branches() {
+  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+
   return (
     <div>
       <PageHeader title="Branches" subtitle="All campuses under the institution group" />
       <div className="grid sm:grid-cols-2 gap-4">
         {branches.map((b) => (
-          <Card key={b.id} hover className="p-5">
+          <button key={b.id} onClick={() => setSelectedBranch(b)} className="card card-hover p-5 text-left w-full relative">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white">
@@ -106,9 +110,92 @@ export function Branches() {
                 <p className="text-[10px] text-ink-400">Revenue</p>
               </div>
             </div>
-          </Card>
+            <div className="mt-4 flex items-center justify-end">
+              <span className="text-xs text-primary-600 font-medium flex items-center gap-1">View Analytics <ArrowUpRight className="w-3 h-3" /></span>
+            </div>
+          </button>
         ))}
       </div>
+
+      <Modal open={!!selectedBranch} onClose={() => setSelectedBranch(null)} title="Branch Analytics" size="xl">
+        {selectedBranch && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white shrink-0">
+                  <Building2 className="w-7 h-7" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-ink-900">{selectedBranch.name}</h2>
+                  <p className="text-sm text-ink-500 flex items-center gap-1"><MapPin className="w-4 h-4" /> {selectedBranch.location}</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="text-right">
+                  <p className="text-xs text-ink-400 mb-1">Monthly Revenue</p>
+                  <p className="text-xl font-bold text-ink-900">₹{(selectedBranch.revenue / 1000).toFixed(0)}k</p>
+                </div>
+                <div className="w-px h-10 bg-ink-200"></div>
+                <div className="text-right">
+                  <p className="text-xs text-ink-400 mb-1">Growth</p>
+                  <p className={cn('text-xl font-bold flex items-center gap-1 justify-end', selectedBranch.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
+                    {selectedBranch.growth >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                    {Math.abs(selectedBranch.growth)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <Card className="shadow-none border-ink-100">
+                <CardHeader title="Revenue Trend" subtitle="Last 6 months performance" />
+                <div className="p-4 h-[250px]">
+                  {selectedBranch.revenueHistory ? (
+                    <RevenueAreaChart data={selectedBranch.revenueHistory} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-ink-400 text-sm">No historical data available</div>
+                  )}
+                </div>
+              </Card>
+              <Card className="shadow-none border-ink-100">
+                <CardHeader title="Attendance Overview" subtitle="Daily present vs absent" />
+                <div className="p-4 h-[250px]">
+                  {selectedBranch.attendanceHistory ? (
+                    <AttendanceBarChart data={selectedBranch.attendanceHistory} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-ink-400 text-sm">No attendance data available</div>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            <Card className="shadow-none border-ink-100">
+              <CardHeader title="Top Performing Teachers" subtitle="Highest rated faculty this term" />
+              {selectedBranch.topTeachers ? (
+                <div className="p-2 space-y-2">
+                  {selectedBranch.topTeachers.map((t, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-ink-50 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-lg" />
+                        <div>
+                          <p className="font-semibold text-ink-900">{t.name}</p>
+                          <p className="text-xs text-ink-500">{t.subject}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-warning-500 bg-warning-50 px-3 py-1 rounded-lg">
+                        <Star className="w-4 h-4 fill-current" />
+                        <span className="font-bold">{t.rating}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 text-center text-ink-400 text-sm">No teacher data available</div>
+              )}
+            </Card>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -261,6 +348,72 @@ export function ConsolidatedReports() {
           <StatCard label="Net Profit" value="₹1.20L" icon={TrendingUp} trend={18} color="accent" />
         </div>
       )}
+    </div>
+  );
+}
+
+export function InstitutionManagement() {
+  return (
+    <div>
+      <PageHeader title="Institution Management" subtitle="Manage all institutions across the platform" />
+      <Card>
+        <DataTable<Institution>
+          columns={[
+            { key: 'name', label: 'Institution Name', render: (i) => <span className="font-medium text-ink-800">{i.name}</span> },
+            { key: 'type', label: 'Type' },
+            { key: 'location', label: 'Location' },
+            { key: 'joinedDate', label: 'Joined Date' },
+            { key: 'status', label: 'Status', render: (i) => <StatusBadge status={i.status} /> },
+          ]}
+          data={institutions}
+        />
+      </Card>
+    </div>
+  );
+}
+
+export function AdminManagement() {
+  return (
+    <div>
+      <PageHeader title="Admin Management" subtitle="Manage super admins and product admins" />
+      <Card>
+        <DataTable<AdminUser>
+          columns={[
+            { key: 'name', label: 'Name', render: (u) => <span className="font-medium text-ink-800">{u.name}</span> },
+            { key: 'email', label: 'Email' },
+            { key: 'role', label: 'Role', render: (u) => (
+              <Badge variant={u.role === 'super_admin' ? 'error' : u.role === 'product_admin' ? 'warning' : 'primary'}>
+                {u.role.replace('_', ' ')}
+              </Badge>
+            ) },
+            { key: 'institution', label: 'Institution' },
+            { key: 'status', label: 'Status', render: (u) => <StatusBadge status={u.status} /> },
+          ]}
+          data={adminUsers.filter(u => u.role !== 'admin')}
+        />
+      </Card>
+    </div>
+  );
+}
+
+export function UserManagement() {
+  return (
+    <div>
+      <PageHeader title="All Users" subtitle="View all admins and institution staff" />
+      <Card>
+        <DataTable<AdminUser>
+          columns={[
+            { key: 'name', label: 'Name', render: (u) => <span className="font-medium text-ink-800">{u.name}</span> },
+            { key: 'email', label: 'Email' },
+            { key: 'role', label: 'Role', render: (u) => (
+              <Badge variant="primary">{u.role.replace('_', ' ')}</Badge>
+            ) },
+            { key: 'institution', label: 'Institution' },
+            { key: 'status', label: 'Status', render: (u) => <StatusBadge status={u.status} /> },
+          ]}
+          data={adminUsers}
+        />
+      </Card>
     </div>
   );
 }

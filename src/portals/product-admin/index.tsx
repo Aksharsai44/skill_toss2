@@ -2,6 +2,7 @@ import {
   Building2, TrendingUp, Users, Inbox, Tags, Check, Clock, Star,
   ArrowUpRight, Video, CreditCard, MessageCircle, Calendar, Sparkles,
   Fingerprint, Award, MessagesSquare, Palette, ToggleLeft, Plus, Search,
+  AlertTriangle, Send
 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader, Card, CardHeader } from '@/components/ui/Layout';
@@ -11,8 +12,8 @@ import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Tabs';
 import { RevenueAreaChart } from '@/components/ui/Charts';
-import { clients, demoRequests, revenueData, featureCatalog } from '@/lib/mockData';
-import type { Client, DemoRequest } from '@/lib/types';
+import { clients, demoRequests, revenueData, featureCatalog, supportTickets } from '@/lib/mockData';
+import type { Client, DemoRequest, Ticket, TicketMessage } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -405,6 +406,115 @@ export function WhiteLabel() {
           </div>
         </Card>
       </div>
+    </div>
+  );
+}
+
+export function CustomerSupport() {
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+
+  const openTickets = supportTickets.filter(t => t.status === 'Open').length;
+  const inProgress = supportTickets.filter(t => t.status === 'In Progress').length;
+  const critical = supportTickets.filter(t => t.priority === 'High' && t.status !== 'Resolved').length;
+
+  return (
+    <div>
+      <PageHeader title="Customer Support Helpdesk" subtitle="Manage incoming issues and tickets from institutions" actions={<button className="btn-primary"><Plus className="w-4 h-4" /> Create Ticket</button>} />
+      
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Open Tickets" value={openTickets} icon={MessagesSquare} color="primary" />
+        <StatCard label="In Progress" value={inProgress} icon={Clock} color="warning" />
+        <StatCard label="Critical Issues" value={critical} icon={AlertTriangle} color="error" />
+        <StatCard label="Avg Response" value="1.4h" icon={TrendingUp} color="success" />
+      </div>
+
+      <Card>
+        <CardHeader title="All Tickets" action={
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+            <input placeholder="Search tickets..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" />
+          </div>
+        } />
+        <DataTable 
+          data={supportTickets}
+          columns={[
+            { key: 'id', label: 'ID', render: (t) => <span className="font-mono text-xs text-ink-600">{t.id}</span> },
+            { key: 'client', label: 'Client', render: (t) => <span className="font-medium text-ink-900">{t.clientName}</span> },
+            { key: 'subject', label: 'Subject', render: (t) => <span className="text-sm truncate max-w-xs block">{t.subject}</span> },
+            { key: 'priority', label: 'Priority', render: (t) => <Badge variant={t.priority === 'High' ? 'error' : t.priority === 'Medium' ? 'warning' : 'success'}>{t.priority}</Badge> },
+            { key: 'status', label: 'Status', render: (t) => <Badge variant={t.status === 'Resolved' ? 'success' : t.status === 'Open' ? 'primary' : 'warning'}>{t.status}</Badge> },
+            { key: 'date', label: 'Created', render: (t) => <span className="text-sm">{new Date(t.createdAt).toLocaleDateString()}</span> },
+            { key: 'actions', label: '', render: (t) => <button onClick={() => setSelectedTicket(t)} className="btn-secondary py-1 px-3 text-xs">View Thread</button> }
+          ]}
+        />
+      </Card>
+
+      <Modal open={!!selectedTicket} onClose={() => setSelectedTicket(null)} title={`Ticket: ${selectedTicket?.id}`} size="xl">
+        {selectedTicket && (
+          <div className="grid lg:grid-cols-3 gap-6 h-[600px]">
+            <div className="lg:col-span-2 flex flex-col h-full border border-ink-200 rounded-xl bg-ink-50 overflow-hidden">
+              <div className="p-4 bg-white border-b border-ink-200">
+                <h3 className="font-bold text-ink-900 text-lg">{selectedTicket.subject}</h3>
+                <p className="text-sm text-ink-500 mt-1">Opened on {new Date(selectedTicket.createdAt).toLocaleString()}</p>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                {selectedTicket.messages.map((m: TicketMessage) => (
+                  <div key={m.id} className={cn("flex gap-3", m.sender === 'support' ? 'flex-row-reverse' : '')}>
+                    {m.sender === 'support' && m.avatar ? (
+                      <img src={m.avatar} alt="agent" className="w-8 h-8 rounded-full" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-ink-200 flex items-center justify-center text-ink-600 font-bold text-xs shrink-0">
+                        {m.name.charAt(0)}
+                      </div>
+                    )}
+                    <div className={cn("max-w-[75%] rounded-2xl p-3 text-sm", m.sender === 'support' ? "bg-primary-600 text-white rounded-tr-none" : "bg-white border border-ink-200 text-ink-800 rounded-tl-none")}>
+                      <div className="flex justify-between items-baseline mb-1 gap-4">
+                        <span className={cn("font-semibold text-xs", m.sender === 'support' ? "text-primary-100" : "text-ink-900")}>{m.name}</span>
+                        <span className={cn("text-[10px]", m.sender === 'support' ? "text-primary-200" : "text-ink-400")}>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="whitespace-pre-wrap">{m.message}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 bg-white border-t border-ink-200">
+                <div className="flex gap-2">
+                  <textarea rows={2} className="input flex-1 resize-none" placeholder="Type your reply to the client..." />
+                  <button className="btn-primary shrink-0 self-end px-3"><Send className="w-4 h-4" /></button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Card className="p-4 shadow-none border-ink-200">
+                <h4 className="font-semibold text-ink-900 mb-3 text-sm uppercase tracking-wider">Client Context</h4>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="text-ink-500 block text-xs">Institution</span>
+                    <span className="font-medium text-ink-900">{selectedTicket.clientName}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-500 block text-xs">Current Plan</span>
+                    <Badge variant="primary" className="mt-1">Enterprise</Badge>
+                  </div>
+                  <div>
+                    <span className="text-ink-500 block text-xs">MRR</span>
+                    <span className="font-medium text-ink-900 text-lg">₹39k/mo</span>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-4 shadow-none border-ink-200">
+                <h4 className="font-semibold text-ink-900 mb-3 text-sm uppercase tracking-wider">Ticket Actions</h4>
+                <div className="space-y-2">
+                  <button className="btn-secondary w-full justify-start text-sm"><Check className="w-4 h-4 mr-2" /> Mark as Resolved</button>
+                  <button className="btn-secondary w-full justify-start text-sm text-error-600 hover:bg-error-50 hover:border-error-200"><AlertTriangle className="w-4 h-4 mr-2" /> Escalate to Engineering</button>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

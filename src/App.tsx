@@ -6,8 +6,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { StudentCourses } from '@/components/StudentCourses';
 import { StudentPortalProvider } from '@/lib/studentPortal';
 
-import { ProductAdminDashboard, DemoRequests, Clients, PlansPricing, FeatureToggles, WhiteLabel } from '@/portals/product-admin';
-import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports } from '@/portals/super-admin';
+import { ProductAdminDashboard, DemoRequests, Clients, PlansPricing, FeatureToggles, WhiteLabel, CustomerSupport } from '@/portals/product-admin';
+import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports, InstitutionManagement, AdminManagement, UserManagement } from '@/portals/super-admin';
 import { AdminDashboard, AdminTeachers, AdminStudents, AdminBatches, AdminFees, AdminSalary, AdminAttendance, AdminLeaves, AdminEvents, AdminIntegrations, AdminCertifications, AdminCalendar, AdminCourses } from '@/portals/admin';
 import { TeacherDashboard, TeacherBatches, LiveClasses, TeacherRecordings, TeacherAttendance, TeacherLeaves, TeacherCourses, TeacherAssignments, TeacherExams, TeacherResources, TeacherCommunity, TeacherForum, TeacherCalendar, TeacherSalary, TeacherProfile } from '@/portals/teacher';
 import { StudentDashboard, StudentClasses, StudentRecordings, StudentResources, MyNotes, StudentAssignments, StudentExams, StudentTimetable, StudentDiary, StudentLeaves, StudentCommunity, StudentForum, StudentCalendar, StudentFees, StudentReports, StudentCertifications, AiHub, StudentProfile } from '@/portals/student';
@@ -25,6 +25,7 @@ function AppRoutes() {
       <Route path="/product-admin/plans" element={<ProtectedRoute allowedRoles={['product_admin']}><PlansPricing /></ProtectedRoute>} />
       <Route path="/product-admin/features" element={<ProtectedRoute allowedRoles={['product_admin']}><FeatureToggles /></ProtectedRoute>} />
       <Route path="/product-admin/white-label" element={<ProtectedRoute allowedRoles={['product_admin']}><WhiteLabel /></ProtectedRoute>} />
+      <Route path="/product-admin/support" element={<ProtectedRoute allowedRoles={['product_admin']}><CustomerSupport /></ProtectedRoute>} />
 
       {/* Super Admin */}
       <Route path="/super-admin" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminDashboard /></ProtectedRoute>} />
@@ -32,6 +33,9 @@ function AppRoutes() {
       <Route path="/super-admin/revenue" element={<ProtectedRoute allowedRoles={['super_admin']}><Revenue /></ProtectedRoute>} />
       <Route path="/super-admin/leads" element={<ProtectedRoute allowedRoles={['super_admin']}><LeadsReport /></ProtectedRoute>} />
       <Route path="/super-admin/reports" element={<ProtectedRoute allowedRoles={['super_admin']}><ConsolidatedReports /></ProtectedRoute>} />
+      <Route path="/super-admin/institutions" element={<ProtectedRoute allowedRoles={['super_admin']}><InstitutionManagement /></ProtectedRoute>} />
+      <Route path="/super-admin/admins" element={<ProtectedRoute allowedRoles={['super_admin']}><AdminManagement /></ProtectedRoute>} />
+      <Route path="/super-admin/users" element={<ProtectedRoute allowedRoles={['super_admin']}><UserManagement /></ProtectedRoute>} />
 
       {/* Admin */}
       <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />

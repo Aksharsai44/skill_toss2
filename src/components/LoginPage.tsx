@@ -36,8 +36,12 @@ export function LoginPage() {
       
       const targetRoute = ROLE_HOME_ROUTES[userProfile.role] || '/student';
       navigate(targetRoute, { replace: true });
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to sign in. Please check your credentials.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setErrorMessage(err.message || 'Failed to sign in. Please check your credentials.');
+      } else {
+        setErrorMessage('Failed to sign in. Please check your credentials.');
+      }
     } finally {
       setIsSubmitting(false);
     }

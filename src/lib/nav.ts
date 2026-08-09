@@ -9,18 +9,24 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       ],
     },
     {
-      group: 'CRM',
+      group: 'Onboarding',
       items: [
         { label: 'Demo Requests', path: '/product-admin/demos', icon: 'Inbox', badge: '4' },
         { label: 'Clients', path: '/product-admin/clients', icon: 'Building2' },
-        { label: 'Plans & Pricing', path: '/product-admin/plans', icon: 'Tags' },
       ],
     },
     {
-      group: 'Configuration',
+      group: 'Plans & Features',
       items: [
+        { label: 'Plans & Pricing', path: '/product-admin/plans', icon: 'Tags' },
         { label: 'Feature Toggles', path: '/product-admin/features', icon: 'ToggleLeft' },
         { label: 'White-label', path: '/product-admin/white-label', icon: 'Palette' },
+      ],
+    },
+    {
+      group: 'Support',
+      items: [
+        { label: 'Customer Support', path: '/product-admin/support', icon: 'LifeBuoy' },
       ],
     },
   ],
@@ -29,14 +35,26 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       group: 'Overview',
       items: [
         { label: 'Dashboard', path: '/super-admin', icon: 'LayoutDashboard' },
+      ],
+    },
+    {
+      group: 'Organizations',
+      items: [
+        { label: 'Institutions', path: '/super-admin/institutions', icon: 'Building' },
         { label: 'Branches', path: '/super-admin/branches', icon: 'Network' },
+      ],
+    },
+    {
+      group: 'Users',
+      items: [
+        { label: 'Admin Management', path: '/super-admin/admins', icon: 'ShieldCheck' },
+        { label: 'All Users', path: '/super-admin/users', icon: 'Users' },
       ],
     },
     {
       group: 'Analytics',
       items: [
         { label: 'Revenue', path: '/super-admin/revenue', icon: 'TrendingUp' },
-        { label: 'Leads Report', path: '/super-admin/leads', icon: 'Target' },
         { label: 'Consolidated Reports', path: '/super-admin/reports', icon: 'FileBarChart' },
       ],
     },
