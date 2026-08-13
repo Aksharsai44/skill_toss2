@@ -5,6 +5,7 @@ import { LoginPage } from '@/components/LoginPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { StudentCourses } from '@/components/StudentCourses';
 import { StudentPortalProvider } from '@/lib/studentPortal';
+import { LmsDataProvider } from '@/lib/lmsData';
 
 import { ProductAdminDashboard, DemoRequests, Clients, PlansPricing, FeatureToggles, WhiteLabel, CustomerSupport } from '@/portals/product-admin';
 import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports, InstitutionManagement, AdminManagement, UserManagement } from '@/portals/super-admin';
@@ -95,14 +96,19 @@ function AppRoutes() {
   );
 }
 
+import { SkipToContent } from '@/components/SkipToContent';
+
 export default function App() {
   return (
     <AuthProvider>
-      <StudentPortalProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </StudentPortalProvider>
+      <LmsDataProvider>
+        <StudentPortalProvider>
+          <BrowserRouter>
+            <SkipToContent />
+            <AppRoutes />
+          </BrowserRouter>
+        </StudentPortalProvider>
+      </LmsDataProvider>
     </AuthProvider>
   );
 }

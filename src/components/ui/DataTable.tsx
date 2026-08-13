@@ -20,14 +20,15 @@ export function DataTable<T extends { id: string }>({
   emptyMessage?: string;
 }) {
   return (
-    <div className="overflow-x-auto scrollbar-thin">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto scrollbar-thin" role="region" aria-label="Data table" tabIndex={0}>
+      <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="border-b border-ink-100 text-left">
+          <tr className="border-b border-ink-200 bg-ink-50/70 text-left">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={cn('py-3 px-4 font-semibold text-ink-500 text-xs uppercase tracking-wider whitespace-nowrap', col.className)}
+                scope="col"
+                className={cn('py-2.5 px-4 font-semibold text-ink-600 text-[11px] uppercase tracking-[0.08em] whitespace-nowrap', col.className)}
               >
                 {col.label}
               </th>
@@ -46,10 +47,17 @@ export function DataTable<T extends { id: string }>({
               <tr
                 key={row.id}
                 onClick={() => onRowClick?.(row)}
-                className={cn('border-b border-ink-50 table-row-hover', onRowClick && 'cursor-pointer')}
+                onKeyDown={(event) => {
+                  if (onRowClick && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onRowClick(row);
+                  }
+                }}
+                tabIndex={onRowClick ? 0 : undefined}
+                className={cn('border-b border-ink-100 last:border-0 table-row-hover focus-visible:outline-none focus-visible:bg-primary-50/60', onRowClick && 'cursor-pointer')}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={cn('py-3 px-4 text-ink-700 whitespace-nowrap', col.className)}>
+                  <td key={col.key} className={cn('py-3 px-4 text-ink-700 whitespace-nowrap align-middle', col.className)}>
                     {col.render ? col.render(row) : (row as Record<string, ReactNode>)[col.key]}
                   </td>
                 ))}

@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Users, Video, PlayCircle, CheckSquare, ClipboardList, FileQuestion, FolderOpen,
-  MessagesSquare, Calendar, Wallet, UserCircle, Layers, Plus, Download,
-  Sparkles, Upload, Send, Clock, Mail, Phone, BookOpen, Award, GraduationCap,
+  Users, Video, PlayCircle, CheckSquare, ClipboardList, FileQuestion,
+  MessagesSquare, Wallet, Layers, Plus, Download,
+  Sparkles, Upload, Send, Clock, Mail, Phone, Award,
   TrendingUp, FileText, Image, ChevronRight, MessageCircle, Heart, Bookmark,
-  Edit, Trash2, NotebookPen, FileBarChart, CalendarOff, Check, X,
+  Edit, CalendarOff, Check, X,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CourseBuilder } from '@/components/CourseBuilder';
@@ -16,20 +16,27 @@ import { Modal } from '@/components/ui/Modal';
 import { Tabs, Select } from '@/components/ui/Tabs';
 import { AttendanceBarChart } from '@/components/ui/Charts';
 import {
-  students, batches, recordings, assignments, events, salaryRecords,
+  students, batches, recordings, events, salaryRecords,
   forumPosts, attendanceData,
 } from '@/lib/mockData';
 import { cn } from '@/lib/cn';
+import { useLmsData } from '@/lib/lmsDataContext';
+import type { AttendanceStatus } from '@/lib/types';
 
 export function TeacherDashboard() {
+  const { state } = useLmsData();
+  const teacher = state.teachers.find((item) => item.id === 'teacher_001');
+  const batchIds = teacher?.batchIds ?? [];
+  const pendingReviews = state.submissions.filter((submission) => submission.status === 'submitted' && state.assignments.some((assignment) => assignment.id === submission.assignmentId && assignment.teacherId === teacher?.id)).length;
+  const classesToday = state.classSessions.filter((session) => session.teacherId === teacher?.id && session.date === '2026-08-12').length;
   return (
     <div>
       <PageHeader title="Teacher Dashboard" subtitle="Welcome back, Sneha — here's your teaching overview" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="My Batches" value={3} icon={Layers} color="primary" />
-        <StatCard label="Students" value={92} icon={Users} color="accent" />
-        <StatCard label="Classes Today" value={4} icon={Video} color="success" />
-        <StatCard label="Pending Reviews" value={8} icon={ClipboardList} color="warning" />
+        <StatCard label="My Batches" value={batchIds.length} icon={Layers} color="primary" />
+        <StatCard label="Students" value={state.students.filter((student) => batchIds.includes(student.batchId)).length} icon={Users} color="accent" />
+        <StatCard label="Classes Today" value={classesToday} icon={Video} color="success" />
+        <StatCard label="Pending Reviews" value={pendingReviews} icon={ClipboardList} color="warning" />
       </div>
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         <Card className="lg:col-span-2">
@@ -90,7 +97,7 @@ export function TeacherBatches() {
         {batches.slice(0, 3).map((b) => (
           <Card key={b.id} hover className="p-5">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white"><Layers className="w-5 h-5" /></div>
+              <div className="w-11 h-11 rounded-sm bg-primary-600 flex items-center justify-center text-white"><Layers className="w-5 h-5" /></div>
               <Badge variant="primary">{b.department}</Badge>
             </div>
             <h3 className="font-semibold text-ink-900">{b.name}</h3>
@@ -111,7 +118,11 @@ export function TeacherBatches() {
 }
 
 export function LiveClasses() {
+  const { state, scheduleClass } = useLmsData();
   const [showSchedule, setShowSchedule] = useState(false);
+  const [form, setForm] = useState({ courseId: 'course_ds', batchId: 'batch_001', date: '2026-08-13', startTime: '09:00', endTime: '10:00', mode: 'online' as 'online' | 'classroom', location: 'Demo meeting room' });
+  const sessions = state.classSessions.filter((session) => session.teacherId === 'teacher_001');
+  const saveClass = () => { const saved = scheduleClass({ ...form, teacherId: 'teacher_001' }); if (saved.ok) setShowSchedule(false); };
   return (
     <div>
       <PageHeader title="Live Classes" subtitle="Schedule & start Zoom, Meet or Teams classes" actions={<button onClick={() => setShowSchedule(true)} className="btn-primary"><Plus className="w-4 h-4" /> Schedule Class</button>} />
@@ -119,16 +130,12 @@ export function LiveClasses() {
         <Card>
           <CardHeader title="Upcoming Classes" />
           <div className="p-4 space-y-3">
-            {[
-              { title: 'Data Structures — Linked Lists', batch: 'CS-2024-A', time: 'Today 09:00', platform: 'Zoom' },
-              { title: 'Algorithms — Sorting', batch: 'CS-2024-A', time: 'Today 11:00', platform: 'Zoom' },
-              { title: 'Doubt Clearing Session', batch: 'CS-2024-A', time: 'Tomorrow 14:00', platform: 'Meet' },
-            ].map((c, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-ink-50">
+            {sessions.filter((session) => session.status === 'scheduled').map((session) => (
+              <div key={session.id} className="flex items-center gap-3 p-3 rounded-xl bg-ink-50">
                 <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center"><Video className="w-5 h-5 text-primary-600" /></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink-800">{c.title}</p>
-                  <p className="text-xs text-ink-400">{c.batch} · {c.time} · {c.platform}</p>
+                  <p className="text-sm font-medium text-ink-800">{state.courses.find((course) => course.id === session.courseId)?.title}</p>
+                  <p className="text-xs text-ink-400">{state.batches.find((batch) => batch.id === session.batchId)?.name} · {session.date} {session.startTime} · {session.mode}</p>
                 </div>
                 <button className="btn-primary text-xs px-3 py-1.5">Start</button>
               </div>
@@ -153,25 +160,26 @@ export function LiveClasses() {
       </div>
       <Modal open={showSchedule} onClose={() => setShowSchedule(false)} title="Schedule Live Class" size="md">
         <div className="space-y-4">
-          <div><label className="label">Class Title</label><input className="input" placeholder="Data Structures — Trees" /></div>
+          <div><label className="label">Course</label><Select value={form.courseId} onChange={(value) => setForm({ ...form, courseId: value })} options={state.courses.filter((course) => course.batchIds.includes(form.batchId)).map((course) => ({ value: course.id, label: course.title }))} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Batch</label>
-              <Select value="b1" onChange={() => {}} options={batches.slice(0, 3).map((b) => ({ value: b.id, label: b.name }))} />
+              <Select value={form.batchId} onChange={(value) => setForm({ ...form, batchId: value })} options={state.batches.map((batch) => ({ value: batch.id, label: batch.name }))} />
             </div>
             <div><label className="label">Platform</label>
-              <Select value="zoom" onChange={() => {}} options={[
-                { value: 'zoom', label: 'Zoom' }, { value: 'meet', label: 'Google Meet' }, { value: 'teams', label: 'Microsoft Teams' },
+              <Select value={form.mode} onChange={(value) => setForm({ ...form, mode: value as typeof form.mode })} options={[
+                { value: 'online', label: 'Online (demo)' }, { value: 'classroom', label: 'Classroom' },
               ]} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Date</label><input className="input" type="date" /></div>
-            <div><label className="label">Time</label><input className="input" type="time" /></div>
+            <div><label className="label">Date</label><input className="input" type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></div>
+            <div><label className="label">Start</label><input className="input" type="time" value={form.startTime} onChange={(event) => setForm({ ...form, startTime: event.target.value })} /></div>
           </div>
+          <div className="grid grid-cols-2 gap-3"><div><label className="label">End</label><input className="input" type="time" value={form.endTime} onChange={(event) => setForm({ ...form, endTime: event.target.value })} /></div><div><label className="label">Room / demo info</label><input className="input" value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></div></div>
           <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-xl text-sm text-primary-700">
-            <MessageCircle className="w-4 h-4" /> Auto-send Zoom link & reminder to all batch students via WhatsApp & email
+            <MessageCircle className="w-4 h-4" /> Internal reminders are created. No external meeting or message is sent in demo mode.
           </div>
-          <button onClick={() => setShowSchedule(false)} className="btn-primary w-full">Schedule & Notify</button>
+          <button onClick={saveClass} className="btn-primary w-full">Schedule & Notify</button>
         </div>
       </Modal>
     </div>
@@ -209,15 +217,21 @@ export function TeacherRecordings() {
 }
 
 export function TeacherAttendance() {
-  const [attendance, setAttendance] = useState<Record<string, 'present' | 'absent' | 'late'>>(
-    Object.fromEntries(students.slice(0, 6).map((s) => [s.id, 'present'])),
-  );
+  const { state, markAttendance } = useLmsData();
+  const batch = state.batches.find((item) => item.id === 'batch_001');
+  const roster = state.students.filter((student) => student.batchId === batch?.id);
+  const courses = state.courses.filter((course) => course.batchIds.includes(batch?.id ?? ''));
+  const [courseId, setCourseId] = useState(courses[0]?.id ?? '');
+  const [date, setDate] = useState('2026-08-12');
+  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>(Object.fromEntries(roster.map((student) => [student.id, 'present'])));
+  const saveAttendance = () => roster.forEach((student) => markAttendance(student.id, courseId, batch?.id ?? '', date, attendance[student.id] ?? 'present'));
   return (
     <div>
-      <PageHeader title="Take Attendance" subtitle="CS-2024-A · Friday, July 24, 2026" actions={<button className="btn-primary"><CheckSquare className="w-4 h-4" /> Save Attendance</button>} />
+      <PageHeader title="Take Attendance" subtitle={`${batch?.name} · changes update student and parent views`} actions={<button onClick={saveAttendance} className="btn-primary"><CheckSquare className="w-4 h-4" /> Save Attendance</button>} />
+      <div className="grid sm:grid-cols-2 gap-3 mb-4"><div><label className="label">Course</label><Select value={courseId} onChange={setCourseId} options={courses.map((course) => ({ value: course.id, label: course.title }))} /></div><div><label className="label">Date</label><input className="input" type="date" value={date} onChange={(event) => setDate(event.target.value)} /></div></div>
       <Card>
         <div className="p-4 space-y-2">
-          {students.slice(0, 6).map((s) => (
+          {roster.map((s) => (
             <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50">
               <img src={s.avatar} alt={s.name} className="w-9 h-9 rounded-lg bg-ink-100" />
               <div className="flex-1">
@@ -225,7 +239,7 @@ export function TeacherAttendance() {
                 <p className="text-xs text-ink-400">{s.rollNo}</p>
               </div>
               <div className="flex gap-1">
-                {(['present', 'absent', 'late'] as const).map((st) => (
+                {(['present', 'absent', 'late', 'excused'] as const).map((st) => (
                   <button
                     key={st}
                     onClick={() => setAttendance({ ...attendance, [s.id]: st })}
@@ -298,6 +312,7 @@ export function TeacherLeaves() {
       <Card>
         <Tabs
           defaultIndex={tab}
+          onChange={setTab}
           tabs={[
             { label: `Pending (${pending.length})`, content: loading ? <div className="p-8 text-center text-ink-400">Loading...</div> : current.length === 0 ? <EmptyState icon={CalendarOff} title="No pending requests" description="Student leave requests will appear here for your approval." /> : <LeaveTable data={current} onAction={handleAction} fmtDate={fmtDate} showActions /> },
             { label: `Decided (${decided.length})`, content: loading ? <div className="p-8 text-center text-ink-400">Loading...</div> : decided.length === 0 ? <EmptyState icon={CalendarOff} title="No decided requests" description="Approved or rejected requests will appear here." /> : <LeaveTable data={current} onAction={handleAction} fmtDate={fmtDate} /> },
@@ -339,70 +354,96 @@ export function TeacherCourses() {
 }
 
 export function TeacherAssignments() {
+  const { state, createAssignment, gradeSubmission } = useLmsData();
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [gradingId, setGradingId] = useState<string | null>(null);
+  const [marks, setMarks] = useState('');
+  const [gradeFeedback, setGradeFeedback] = useState('');
+  const [form, setForm] = useState({ title: '', batchId: 'batch_001', courseId: 'course_ds', instructions: '', dueDate: '2026-08-20T23:59', maxMarks: '20', attachmentName: '' });
+  const teacherAssignments = state.assignments.filter((item) => item.teacherId === 'teacher_001' || item.teacherId === 'teacher_003');
+  const selectedAssignment = state.assignments.find((item) => item.id === selectedAssignmentId);
+  const selectedSubmissions = state.submissions.filter((item) => item.assignmentId === selectedAssignmentId);
+  const grading = state.submissions.find((item) => item.id === gradingId);
+  const submitAssignment = () => {
+    const saved = createAssignment({ title: form.title, batchId: form.batchId, courseId: form.courseId, teacherId: 'teacher_001', instructions: form.instructions, dueDate: new Date(form.dueDate).toISOString(), maxMarks: Number(form.maxMarks), attachmentName: form.attachmentName || undefined });
+    if (saved.ok) { setShowCreate(false); setForm({ ...form, title: '', instructions: '', attachmentName: '' }); }
+  };
+  const publishGrade = () => {
+    if (!grading) return;
+    const saved = gradeSubmission(grading.id, Number(marks), gradeFeedback);
+    if (saved.ok) { setGradingId(null); setMarks(''); setGradeFeedback(''); }
+  };
   return (
     <div>
       <PageHeader title="Assignments" subtitle="Create, review & grade student submissions" actions={<button onClick={() => setShowCreate(true)} className="btn-primary"><Plus className="w-4 h-4" /> Create Assignment</button>} />
       <div className="grid sm:grid-cols-2 gap-4">
-        {assignments.map((a) => (
+        {teacherAssignments.map((a) => {
+          const course = state.courses.find((item) => item.id === a.courseId);
+          const batch = state.batches.find((item) => item.id === a.batchId);
+          const rosterCount = state.students.filter((item) => item.batchId === a.batchId).length;
+          const submittedCount = state.submissions.filter((item) => item.assignmentId === a.id && ['submitted', 'graded'].includes(item.status)).length;
+          return (
           <Card key={a.id} hover className="p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 rounded-xl bg-accent-50 flex items-center justify-center"><ClipboardList className="w-5 h-5 text-accent-600" /></div>
               <StatusBadge status={a.status} />
             </div>
             <h3 className="font-semibold text-ink-900">{a.title}</h3>
-            <p className="text-xs text-ink-400 mt-1">{a.batch} · {a.subject}</p>
+            <p className="text-xs text-ink-400 mt-1">{batch?.name} · {course?.title}</p>
             <div className="mt-3 flex items-center justify-between text-sm">
-              <span className="text-ink-500">Due: <span className="font-medium text-ink-700">{a.dueDate}</span></span>
-              <span className="text-ink-500">{a.submissions}/{a.total} submitted</span>
+              <span className="text-ink-500">Due: <span className="font-medium text-ink-700">{new Date(a.dueDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</span></span>
+              <span className="text-ink-500">{submittedCount}/{rosterCount} submitted</span>
             </div>
             <div className="mt-2 h-1.5 bg-ink-100 rounded-full overflow-hidden">
-              <div className="h-full bg-accent-500 rounded-full" style={{ width: `${(a.submissions / a.total) * 100}%` }} />
+              <div className="h-full bg-accent-500 rounded-full" style={{ width: `${rosterCount ? (submittedCount / rosterCount) * 100 : 0}%` }} />
             </div>
             <div className="mt-3 flex gap-2">
-              <button className="btn-secondary flex-1 text-xs">View Submissions</button>
-              <button className="btn-ghost text-xs"><Sparkles className="w-3.5 h-3.5" /> AI Grade</button>
+              <button onClick={() => setSelectedAssignmentId(a.id)} className="btn-secondary flex-1 text-xs">View Submissions</button>
             </div>
           </Card>
-        ))}
+        );})}
       </div>
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create Assignment" size="md">
         <div className="space-y-4">
-          <div><label className="label">Title</label><input className="input" placeholder="Implement a Binary Search Tree" /></div>
+          <div><label className="label">Title</label><input className="input" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Implement a Binary Search Tree" /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Batch</label><Select value="b1" onChange={() => {}} options={batches.slice(0, 3).map((b) => ({ value: b.id, label: b.name }))} /></div>
-            <div><label className="label">Due Date</label><input className="input" type="date" /></div>
+            <div><label className="label">Batch</label><Select value={form.batchId} onChange={(value) => setForm({ ...form, batchId: value })} options={state.batches.map((batch) => ({ value: batch.id, label: batch.name }))} /></div>
+            <div><label className="label">Course</label><Select value={form.courseId} onChange={(value) => setForm({ ...form, courseId: value })} options={state.courses.filter((course) => course.batchIds.includes(form.batchId)).map((course) => ({ value: course.id, label: course.title }))} /></div>
           </div>
-          <div><label className="label">Description</label><textarea className="input min-h-24" placeholder="Assignment details..." /></div>
-          <div><label className="label">Attach Files</label>
-            <div className="border-2 border-dashed border-ink-200 rounded-xl p-6 text-center hover:border-primary-300 transition cursor-pointer">
-              <Upload className="w-6 h-6 text-ink-400 mx-auto mb-2" />
-              <p className="text-sm text-ink-500">Drop files here or click to upload</p>
-              <p className="text-xs text-ink-400 mt-1">PDF, DOCX, PPTX, images supported</p>
-            </div>
-          </div>
-          <button onClick={() => setShowCreate(false)} className="btn-primary w-full">Create & Notify Students</button>
+          <div className="grid grid-cols-2 gap-3"><div><label className="label">Due date</label><input className="input" type="datetime-local" value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} /></div><div><label className="label">Maximum marks</label><input className="input" type="number" min="1" value={form.maxMarks} onChange={(event) => setForm({ ...form, maxMarks: event.target.value })} /></div></div>
+          <div><label className="label">Instructions</label><textarea className="input min-h-24" value={form.instructions} onChange={(event) => setForm({ ...form, instructions: event.target.value })} placeholder="Assignment details..." /></div>
+          <div><label className="label">Demo attachment name (optional)</label><input className="input" value={form.attachmentName} onChange={(event) => setForm({ ...form, attachmentName: event.target.value })} placeholder="worksheet.pdf — metadata only" /></div>
+          <button onClick={submitAssignment} className="btn-primary w-full">Create & Notify Students</button>
         </div>
       </Modal>
+      <Modal open={!!selectedAssignment} onClose={() => setSelectedAssignmentId(null)} title={`Submissions — ${selectedAssignment?.title ?? ''}`} size="lg"><div className="space-y-3">
+        {selectedSubmissions.length ? selectedSubmissions.map((submission) => { const student = state.students.find((item) => item.id === submission.studentId); return <div key={submission.id} className="card p-4 flex items-center gap-3"><div className="flex-1"><p className="font-semibold text-ink-800">{student?.name}</p><p className="text-xs text-ink-500 capitalize">{submission.status.replace('-', ' ')} · {submission.attachmentName || 'No attachment'}</p></div>{submission.status === 'submitted' ? <button onClick={() => { setGradingId(submission.id); setMarks(''); setGradeFeedback(''); }} className="btn-primary text-sm">Grade</button> : submission.status === 'graded' ? <Badge variant="success">{submission.marks}/{selectedAssignment?.maxMarks}</Badge> : <Badge>{submission.status}</Badge>}</div>; }) : <EmptyState icon={ClipboardList} title="No submissions yet" description="Submitted student work will appear here." />}
+      </div></Modal>
+      <Modal open={!!grading} onClose={() => setGradingId(null)} title="Grade Submission" size="md"><div className="space-y-4"><div><label className="label">Marks</label><input className="input" type="number" min="0" max={selectedAssignment?.maxMarks} value={marks} onChange={(event) => setMarks(event.target.value)} /></div><div><label className="label">Feedback</label><textarea className="input min-h-24" value={gradeFeedback} onChange={(event) => setGradeFeedback(event.target.value)} /></div><button onClick={publishGrade} className="btn-primary w-full">Publish Grade</button></div></Modal>
     </div>
   );
 }
 
 export function TeacherExams() {
+  const { state, scheduleExam } = useLmsData();
   const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ title: '', courseId: 'course_ds', batchId: 'batch_001', date: '2026-08-24', startTime: '10:00', durationMinutes: '60', maxMarks: '50', syllabus: '' });
+  const saveExam = () => {
+    const saved = scheduleExam({ ...form, durationMinutes: Number(form.durationMinutes), maxMarks: Number(form.maxMarks) });
+    if (saved.ok) { setShowCreate(false); setForm({ ...form, title: '', syllabus: '' }); }
+  };
   return (
     <div>
-      <PageHeader title="AI Exam Generator" subtitle="Upload documents — AI creates questions automatically" actions={<button onClick={() => setShowCreate(true)} className="btn-primary"><Plus className="w-4 h-4" /> Create AI Exam</button>} />
+      <PageHeader title="Exams" subtitle="Schedule assessments and publish them to students" actions={<button onClick={() => setShowCreate(true)} className="btn-primary"><Plus className="w-4 h-4" /> Schedule Exam</button>} />
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         <Card className="lg:col-span-2 p-6">
-          <h3 className="font-semibold text-ink-900 mb-4 flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary-600" /> How AI Exam Generation Works</h3>
+          <h3 className="font-semibold text-ink-900 mb-4 flex items-center gap-2"><FileQuestion className="w-5 h-5 text-primary-600" /> Assessment workflow</h3>
           <div className="space-y-3">
             {[
-              { step: 1, title: 'Upload documents', desc: 'Upload PDFs, PPTs, notes or any study material' },
-              { step: 2, title: 'AI analyzes content', desc: 'AI reads and understands the topics & concepts' },
-              { step: 3, title: 'Configure exam', desc: 'Set number of questions, marks, timer & question types' },
-              { step: 4, title: 'AI generates questions', desc: 'MCQs, true/false, descriptive — all auto-created' },
-              { step: 5, title: 'Auto-grade & report', desc: 'Students get instant results; you get analytics' },
+              { step: 1, title: 'Configure exam', desc: 'Choose the course, batch, date, duration, and maximum marks' },
+              { step: 2, title: 'Publish syllabus', desc: 'Give students a clear deterministic syllabus' },
+              { step: 3, title: 'Notify the batch', desc: 'An internal notification is created for every enrolled student' },
             ].map((s) => (
               <div key={s.step} className="flex gap-3">
                 <div className="w-7 h-7 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center shrink-0">{s.step}</div>
@@ -417,48 +458,34 @@ export function TeacherExams() {
         <Card className="p-6">
           <h3 className="font-semibold text-ink-900 mb-4">Recent Exams</h3>
           <div className="space-y-2">
-            {[
-              { title: 'DS Mid-Sem', students: 30, avg: 78 },
-              { title: 'Algorithms Quiz', students: 28, avg: 82 },
-              { title: 'Sorting Concepts', students: 32, avg: 75 },
-            ].map((e, i) => (
-              <div key={i} className="p-3 rounded-xl bg-ink-50">
-                <p className="text-sm font-medium text-ink-800">{e.title}</p>
+            {state.exams.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map((exam) => (
+              <div key={exam.id} className="p-3 rounded-xl bg-ink-50">
+                <p className="text-sm font-medium text-ink-800">{exam.title}</p>
                 <div className="flex justify-between text-xs text-ink-400 mt-1">
-                  <span>{e.students} students</span><span>Avg: {e.avg}%</span>
+                  <span>{exam.date} · {exam.startTime}</span><span>{exam.maxMarks} marks</span>
                 </div>
               </div>
             ))}
           </div>
         </Card>
       </div>
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create AI-Generated Exam" size="lg">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Schedule Exam" size="lg">
         <div className="space-y-4">
-          <div><label className="label">Exam Title</label><input className="input" placeholder="Data Structures Mid-Semester Exam" /></div>
-          <div><label className="label">Upload Source Documents</label>
-            <div className="border-2 border-dashed border-ink-200 rounded-xl p-6 text-center hover:border-primary-300 transition cursor-pointer">
-              <Upload className="w-6 h-6 text-ink-400 mx-auto mb-2" />
-              <p className="text-sm text-ink-500">Upload PDFs, PPTs or notes for AI to generate questions from</p>
-            </div>
+          <div><label className="label">Exam Title</label><input className="input" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Data Structures Mid-Semester Exam" /></div>
+          <div className="grid grid-cols-2 gap-3"><div><label className="label">Batch</label><Select value={form.batchId} onChange={(value) => setForm({ ...form, batchId: value })} options={state.batches.map((batch) => ({ value: batch.id, label: batch.name }))} /></div><div><label className="label">Course</label><Select value={form.courseId} onChange={(value) => setForm({ ...form, courseId: value })} options={state.courses.filter((course) => course.batchIds.includes(form.batchId)).map((course) => ({ value: course.id, label: course.title }))} /></div></div>
+          <div><label className="label">Syllabus</label><textarea className="input min-h-20" value={form.syllabus} onChange={(event) => setForm({ ...form, syllabus: event.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="label">Date</label><input className="input" type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></div>
+            <div><label className="label">Start time</label><input className="input" type="time" value={form.startTime} onChange={(event) => setForm({ ...form, startTime: event.target.value })} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Number of Questions</label><input className="input" type="number" defaultValue={25} /></div>
-            <div><label className="label">Total Marks</label><input className="input" type="number" defaultValue={100} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Question Types</label>
-              <div className="flex flex-wrap gap-2">
-                {['MCQ', 'True/False', 'Descriptive', 'Fill in Blanks'].map((t, i) => (
-                  <button key={t} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium border-2', i < 2 ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-ink-200 text-ink-500')}>{t}</button>
-                ))}
-              </div>
-            </div>
-            <div><label className="label">Timer (minutes)</label><input className="input" type="number" defaultValue={90} /></div>
+            <div><label className="label">Total marks</label><input className="input" type="number" min="1" value={form.maxMarks} onChange={(event) => setForm({ ...form, maxMarks: event.target.value })} /></div>
+            <div><label className="label">Duration (minutes)</label><input className="input" type="number" min="1" value={form.durationMinutes} onChange={(event) => setForm({ ...form, durationMinutes: event.target.value })} /></div>
           </div>
           <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-xl text-sm text-primary-700">
-            <Sparkles className="w-4 h-4" /> AI will generate questions from your uploaded documents instantly
+            <MessageCircle className="w-4 h-4" /> Students receive an internal notification when this exam is scheduled.
           </div>
-          <button onClick={() => setShowCreate(false)} className="btn-primary w-full"><Sparkles className="w-4 h-4" /> Generate Exam with AI</button>
+          <button onClick={saveExam} className="btn-primary w-full"><FileQuestion className="w-4 h-4" /> Schedule & Notify</button>
         </div>
       </Modal>
     </div>
@@ -466,33 +493,29 @@ export function TeacherExams() {
 }
 
 export function TeacherResources() {
+  const { state, addResource } = useLmsData();
   const [showUpload, setShowUpload] = useState(false);
-  const resources = [
-    { name: 'Data Structures — Complete Notes.pdf', type: 'PDF', size: '2.4 MB', date: 'Jul 24' },
-    { name: 'Linked Lists — Presentation.pptx', type: 'PPT', size: '5.1 MB', date: 'Jul 23' },
-    { name: 'Sorting Algorithms — Reference.docx', type: 'DOC', size: '1.2 MB', date: 'Jul 22' },
-    { name: 'Algorithm Visualizations.xlsx', type: 'XLS', size: '800 KB', date: 'Jul 21' },
-    { name: 'Practice Problems.pdf', type: 'PDF', size: '1.8 MB', date: 'Jul 20' },
-  ];
-  const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = { PDF: FileText, PPT: FileText, DOC: FileText, XLS: FileText };
-  const typeColors: Record<string, string> = { PDF: 'text-error-600 bg-error-50', PPT: 'text-warning-600 bg-warning-50', DOC: 'text-primary-600 bg-primary-50', XLS: 'text-success-600 bg-success-50' };
+  const [form, setForm] = useState({ title: '', description: '', courseId: 'course_ds', batchId: 'batch_001', type: 'PDF' as 'PDF' | 'DOC' | 'PPT' | 'LINK' });
+  const resources = state.resources;
+  const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = { PDF: FileText, PPT: FileText, DOC: FileText, LINK: FileText };
+  const typeColors: Record<string, string> = { PDF: 'text-error-600 bg-error-50', PPT: 'text-warning-600 bg-warning-50', DOC: 'text-primary-600 bg-primary-50', LINK: 'text-success-600 bg-success-50' };
+  const saveResource = () => { const saved = addResource({ ...form, uploadedBy: 'teacher_001' }); if (saved.ok) { setShowUpload(false); setForm({ ...form, title: '', description: '' }); } };
   return (
     <div>
       <PageHeader title="Notes & Resources" subtitle="Upload notes, PPTs, PDFs — auto-shared with students via WhatsApp & email" actions={<button onClick={() => setShowUpload(true)} className="btn-primary"><Upload className="w-4 h-4" /> Upload Resource</button>} />
       <Card>
         <div className="p-4 space-y-2">
-          {resources.map((r, i) => {
+          {resources.map((r) => {
             const Icon = typeIcons[r.type] || FileText;
             return (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50 transition">
+              <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50 transition">
                 <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', typeColors[r.type])}><Icon className="w-5 h-5" /></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink-800 truncate">{r.name}</p>
-                  <p className="text-xs text-ink-400">{r.type} · {r.size} · Uploaded {r.date}</p>
+                  <p className="text-sm font-medium text-ink-800 truncate">{r.title}</p>
+                  <p className="text-xs text-ink-400">{r.type} · {state.courses.find((course) => course.id === r.courseId)?.title} · {new Date(r.uploadedAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-ink-400">
-                  <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" /> Sent</span>
-                  <button className="btn-ghost p-1.5"><Download className="w-4 h-4" /></button>
+                  <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" /> Shared internally</span>
                 </div>
               </div>
             );
@@ -501,18 +524,14 @@ export function TeacherResources() {
       </Card>
       <Modal open={showUpload} onClose={() => setShowUpload(false)} title="Upload Resource" size="md">
         <div className="space-y-4">
-          <div><label className="label">Batch</label><Select value="b1" onChange={() => {}} options={batches.slice(0, 3).map((b) => ({ value: b.id, label: b.name }))} /></div>
-          <div><label className="label">Upload File</label>
-            <div className="border-2 border-dashed border-ink-200 rounded-xl p-8 text-center hover:border-primary-300 transition cursor-pointer">
-              <Upload className="w-8 h-8 text-ink-400 mx-auto mb-2" />
-              <p className="text-sm text-ink-500">Drop files here or click to browse</p>
-              <p className="text-xs text-ink-400 mt-1">PDF, DOCX, PPTX, XLSX, images — up to 50MB</p>
-            </div>
-          </div>
+          <div><label className="label">Title</label><input className="input" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></div>
+          <div><label className="label">Description</label><textarea className="input min-h-20" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3"><div><label className="label">Batch</label><Select value={form.batchId} onChange={(value) => setForm({ ...form, batchId: value })} options={state.batches.map((batch) => ({ value: batch.id, label: batch.name }))} /></div><div><label className="label">Course</label><Select value={form.courseId} onChange={(value) => setForm({ ...form, courseId: value })} options={state.courses.filter((course) => course.batchIds.includes(form.batchId)).map((course) => ({ value: course.id, label: course.title }))} /></div></div>
+          <div><label className="label">Resource type</label><Select value={form.type} onChange={(value) => setForm({ ...form, type: value as typeof form.type })} options={['PDF', 'DOC', 'PPT', 'LINK'].map((type) => ({ value: type, label: type }))} /></div>
           <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-xl text-sm text-primary-700">
-            <MessageCircle className="w-4 h-4" /> Auto-send to all batch students via WhatsApp & email after upload
+            <MessageCircle className="w-4 h-4" /> Demo metadata only. Students receive an internal notification; no file is uploaded or externally sent.
           </div>
-          <button onClick={() => setShowUpload(false)} className="btn-primary w-full">Upload & Share</button>
+          <button onClick={saveResource} className="btn-primary w-full">Save & Share Metadata</button>
         </div>
       </Modal>
     </div>
@@ -607,7 +626,7 @@ function CommunityView() {
           <p className="px-2 py-1 text-xs font-semibold text-ink-400 uppercase">Channels</p>
           {channels.map((c) => (
             <button key={c.id} onClick={() => setActive(c.id)} className={cn('w-full flex items-center gap-3 p-3 rounded-xl transition', active === c.id ? 'bg-primary-50' : 'hover:bg-ink-50')}>
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-xs font-bold">{c.name.slice(0, 2)}</div>
+              <div className="w-9 h-9 rounded-lg bg-primary-600 flex items-center justify-center text-white text-xs font-bold">{c.name.slice(0, 2)}</div>
               <div className="flex-1 text-left"><p className="text-sm font-medium text-ink-800">{c.name}</p><p className="text-xs text-ink-400">{c.members} members</p></div>
               {c.unread > 0 && <span className="badge bg-primary-600 text-white text-[10px] px-1.5">{c.unread}</span>}
             </button>
@@ -615,7 +634,7 @@ function CommunityView() {
         </Card>
         <Card className="lg:col-span-2 flex flex-col">
           <div className="px-4 py-3 border-b border-ink-100 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-xs font-bold">CS</div>
+            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white text-xs font-bold">CS</div>
             <div><p className="font-semibold text-ink-900 text-sm">CS-2024-A</p><p className="text-xs text-ink-400">32 members</p></div>
           </div>
           <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3">
@@ -672,9 +691,9 @@ function ForumView() {
           <Card className="p-5">
             <h3 className="font-semibold text-ink-900 mb-3">Trending Topics</h3>
             <div className="space-y-2">
-              {['Data Structures', 'Linked Lists', 'Sorting Algorithms', 'Exam Preparation', 'Project Ideas'].map((t) => (
-                <div key={t} className="flex items-center justify-between text-sm">
-                  <span className="text-ink-600">#{t}</span><span className="text-xs text-ink-400">{Math.floor(Math.random() * 50)} posts</span>
+              {[['Data Structures', 42], ['Linked Lists', 31], ['Sorting Algorithms', 27], ['Exam Preparation', 19], ['Project Ideas', 14]].map(([topic, count]) => (
+                <div key={topic} className="flex items-center justify-between text-sm">
+                  <span className="text-ink-600">#{topic}</span><span className="text-xs text-ink-400">{count} posts</span>
                 </div>
               ))}
             </div>

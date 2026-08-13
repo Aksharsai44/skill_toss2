@@ -13,11 +13,12 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Tabs';
-import { recordings, assignments, events, students, forumPosts, aiTools, timetable } from '@/lib/mockData';
+import { recordings, events, forumPosts, aiTools, timetable } from '@/lib/mockData';
 import { cn } from '@/lib/cn';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from '@/lib/authContext';
 import { useNavigate } from 'react-router-dom';
-import { useStudentPortal } from '@/lib/studentPortal';
+import { useStudentPortal } from '@/lib/studentPortalContext';
+import { useLmsData } from '@/lib/lmsDataContext';
 
 export function StudentDashboard() {
   const { profile } = useAuth();
@@ -33,37 +34,42 @@ export function StudentDashboard() {
   const attendanceVal = isParent ? currentChild.attendance : 92;
   const isAttendanceAtRisk = attendanceVal < 75;
   const quickAccessItems = [
-    { label: 'Assignments', path: '/student/assignments', icon: ClipboardList, cardClass: 'bg-primary-50 border-primary-100', iconClass: 'text-primary-600' },
-    { label: 'Exams', path: '/student/exams', icon: FileQuestion, cardClass: 'bg-error-50 border-error-100', iconClass: 'text-error-600' },
-    { label: 'Recordings', path: '/student/recordings', icon: PlayCircle, cardClass: 'bg-accent-50 border-accent-100', iconClass: 'text-accent-600' },
-    { label: 'Attendance', path: '/student/classes', icon: CheckCircle2, cardClass: 'bg-success-50 border-success-100', iconClass: 'text-success-600' },
-    { label: 'Fees', path: '/student/fees', icon: CreditCard, cardClass: 'bg-warning-50 border-warning-100', iconClass: 'text-warning-600' },
-    { label: 'Calendar', path: '/student/calendar', icon: CalendarCheck, cardClass: 'bg-accent-50 border-accent-100', iconClass: 'text-accent-600' },
+    { label: 'Assignments', path: '/student/assignments', icon: ClipboardList },
+    { label: 'Exams', path: '/student/exams', icon: FileQuestion },
+    { label: 'Recordings', path: '/student/recordings', icon: PlayCircle },
+    { label: 'Attendance', path: '/student/classes', icon: CheckCircle2 },
+    { label: 'Fees', path: '/student/fees', icon: CreditCard },
+    { label: 'Calendar', path: '/student/calendar', icon: CalendarCheck },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 lg:space-y-6">
       {/* Role-Aware Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-ink-100">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-ink-200/70">
         <div>
-          <h1 className="text-2xl font-bold font-display text-ink-900">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-600">Academic overview</span>
+            {isParent && <Badge variant="primary">Parent access</Badge>}
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold font-display text-ink-950 leading-tight">
             Student Dashboard
           </h1>
-          <p className="text-sm text-ink-500 mt-1">
+          <p className="text-sm text-ink-500 mt-1.5 max-w-2xl">
             {isParent ? `Viewing ${currentChild.name}'s learning overview` : `Welcome back, ${studentName} — here's your learning overview`}
           </p>
         </div>
 
         {/* Parent Child Selector Dropdown */}
         {isParent && (
-          <div className="relative bg-white border border-ink-200 rounded-xl p-1.5 px-3 shadow-sm flex items-center gap-3">
+          <div className="relative bg-white border border-ink-200 rounded-xl px-3 py-2 shadow-sm flex items-center gap-3 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-500/15">
             <GraduationCap className="w-5 h-5 text-primary-600" />
             <div className="text-left">
               <p className="text-[10px] uppercase font-semibold text-ink-400">Viewing Child</p>
               {linkedStudents.length > 1 ? <select
+                aria-label="Select student to view"
                 value={selectedStudentId ?? ''}
                 onChange={(e) => selectStudent(e.target.value)}
-                className="text-sm font-bold text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-4"
+                className="text-sm font-semibold text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-6 min-w-44"
               >
                 {linkedStudents.map((child) => (
                   <option key={child.id} value={child.id}>
@@ -76,10 +82,10 @@ export function StudentDashboard() {
         )}
       </div>
 
-      {/* 4 Actionable KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Compact operational summary */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 border-y border-ink-200 divide-x divide-y xl:divide-y-0 divide-ink-200 bg-white">
         {/* Attendance Card */}
-        <div className={cn('card p-5 border-l-4', isAttendanceAtRisk ? 'border-l-error-500 bg-error-50/20' : 'border-l-success-500')}>
+        <div className="p-4 lg:p-5 min-w-0">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">Attendance</span>
             {isAttendanceAtRisk ? (
@@ -107,7 +113,7 @@ export function StudentDashboard() {
         </div>
 
         {/* Pending Fees Card */}
-        <div className="card p-5 border-l-4 border-l-warning-500">
+        <div className="p-4 lg:p-5 min-w-0">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">Pending Fees</span>
             <CreditCard className="w-4 h-4 text-warning-600" />
@@ -116,13 +122,13 @@ export function StudentDashboard() {
             <span className="text-3xl font-bold font-display text-ink-900">₹{currentChild.feePending.toLocaleString('en-IN')}</span>
           </div>
           <p className="text-xs text-ink-500 mt-1">{currentChild.feePending > 0 ? 'Due: 12 Aug 2026 (Semester 7)' : 'No payment currently due'}</p>
-          <button onClick={() => navigate('/student/fees')} className="mt-3 btn-primary text-xs py-1 px-3 inline-flex items-center gap-1">
-            Pay Now <ArrowUpRight className="w-3.5 h-3.5" />
+          <button onClick={() => navigate('/student/fees')} className="mt-3 text-xs font-semibold text-primary-700 hover:text-primary-800 inline-flex items-center gap-1">
+            Review balance <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Assignments Card */}
-        <div className="card p-5 border-l-4 border-l-primary-500">
+        <div className="p-4 lg:p-5 min-w-0">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">Assignments</span>
             <ClipboardList className="w-4 h-4 text-primary-600" />
@@ -138,7 +144,7 @@ export function StudentDashboard() {
         </div>
 
         {/* Upcoming Exams Card */}
-        <div className="card p-5 border-l-4 border-l-accent-500">
+        <div className="p-4 lg:p-5 min-w-0">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">Upcoming Exams</span>
             <FileQuestion className="w-4 h-4 text-accent-600" />
@@ -153,21 +159,21 @@ export function StudentDashboard() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-5 lg:gap-6 items-start">
         {/* Main Left Column (2 Cols) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Today Timeline */}
           <Card>
             <CardHeader title="Today's Schedule & Tasks" subtitle="Friday, 7 August 2026" />
-            <div className="p-5 space-y-3">
+            <div className="divide-y divide-ink-100">
               {[
                 { time: '09:00 AM', title: 'Data Structures — Linked Lists', detail: 'Sneha Kapoor · CS-2024-A', type: 'class', status: 'live' },
                 { time: '11:00 AM', title: 'Algorithms — Sorting Techniques', detail: 'Sneha Kapoor · CS-2024-A', type: 'class', status: 'upcoming' },
                 { time: '02:00 PM', title: 'Doubt Clearing Session', detail: 'Sneha Kapoor · Online Meet', type: 'session', status: 'upcoming' },
                 { time: '11:59 PM', title: 'DBMS Assignment 3 (Normalization)', detail: 'Submit before midnight', type: 'assignment', status: 'due' },
               ].map((item, idx) => (
-                <div key={idx} className="flex items-center gap-4 p-3.5 rounded-xl bg-ink-50 border border-ink-100 hover:bg-white hover:shadow-sm transition">
-                  <div className="text-xs font-bold text-primary-700 w-16 shrink-0">{item.time}</div>
+                <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 hover:bg-ink-50 transition-colors duration-150">
+                  <div className="text-xs font-bold text-primary-700 sm:w-16 shrink-0">{item.time}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-ink-900 truncate">{item.title}</p>
                     <p className="text-xs text-ink-400 mt-0.5 truncate">{item.detail}</p>
@@ -177,12 +183,12 @@ export function StudentDashboard() {
                   {item.status === 'upcoming' && <Badge variant="primary">Upcoming</Badge>}
 
                   {item.status === 'live' && permissions.canJoinClass ? (
-                       <button className="btn-danger text-xs px-3 py-1.5 shrink-0">Join Class</button>
+                       <button className="btn-danger text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto">Join Class</button>
                     ) : item.status === 'due' && permissions.canSubmitAssignment ? (
-                       <button onClick={() => navigate('/student/assignments')} className="btn-primary text-xs px-3 py-1.5 shrink-0">Submit</button>
+                       <button onClick={() => navigate('/student/assignments')} className="btn-primary text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto">Submit</button>
                     ) : !isParent ? (
-                       <button className="btn-secondary text-xs px-3 py-1.5 shrink-0">Reminder</button>
-                    ) : <button onClick={() => navigate(item.type === 'assignment' ? '/student/assignments' : '/student/classes')} className="btn-secondary text-xs px-3 py-1.5 shrink-0">View Details</button>}
+                       <button className="btn-secondary text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto">Reminder</button>
+                    ) : <button onClick={() => navigate(item.type === 'assignment' ? '/student/assignments' : '/student/classes')} className="btn-secondary text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto">View Details</button>}
                 </div>
               ))}
             </div>
@@ -191,24 +197,24 @@ export function StudentDashboard() {
           {/* Action Required Widget */}
           <Card>
             <CardHeader title="Action Required" subtitle="High-priority items requiring attention" />
-            <div className="p-5 space-y-3">
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-warning-50/50 border border-warning-200">
+            <div className="divide-y divide-ink-100">
+              {currentChild.feePending > 0 && <div className="flex items-center justify-between px-5 py-4 border-l-2 border-l-warning-500">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-warning-100 flex items-center justify-center text-warning-700 font-bold shrink-0">
                     ₹
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-ink-900">Semester 7 Fee Due</p>
-                    <p className="text-xs text-ink-500">₹15,000 pending due on 12 August 2026</p>
+                    <p className="text-xs text-ink-500">₹{currentChild.feePending.toLocaleString('en-IN')} pending</p>
                   </div>
                 </div>
                 <button onClick={() => navigate('/student/fees')} className="btn-primary text-xs px-3 py-1.5 shrink-0">
                   {permissions.canPayFees ? 'Pay Now' : 'View Bill'}
                 </button>
-              </div>
+              </div>}
 
               {isAttendanceAtRisk && (
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-error-50/50 border border-error-200">
+                <div className="flex items-center justify-between px-5 py-4 border-l-2 border-l-error-500">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-error-100 flex items-center justify-center text-error-700 shrink-0">
                       <AlertTriangle className="w-5 h-5" />
@@ -229,11 +235,11 @@ export function StudentDashboard() {
           <Card>
               <CardHeader title="Course Progress" subtitle={`Current learning progress for ${studentName}`} />
               <div className="p-5 space-y-4">
-                <div className="p-4 rounded-xl bg-gradient-to-r from-primary-900 to-ink-900 text-white flex items-center justify-between gap-4">
+                <div className="py-1 text-ink-900 flex items-center justify-between gap-4">
                   <div>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-accent-400">Video Recording</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-700">Video Recording</span>
                     <h4 className="font-bold text-base mt-0.5">Data Structures — Linked Lists (Lecture 8)</h4>
-                    <p className="text-xs text-ink-300 mt-1">Progress: 68% (32 mins remaining)</p>
+                    <p className="text-xs text-ink-500 mt-1">Progress: 68% (32 mins remaining)</p>
                   </div>
                   {permissions.canJoinClass ? <button onClick={() => navigate('/student/recordings')} className="btn-primary text-xs px-4 py-2 shrink-0 flex items-center gap-1.5">
                     <Play className="w-4 h-4 fill-current" /> Resume
@@ -244,22 +250,22 @@ export function StudentDashboard() {
           <Card>
               <CardHeader title="Academic Progress" subtitle={`Performance overview for ${studentName}`} />
               <div className="p-5 grid sm:grid-cols-4 gap-4">
-                <div className="p-3 bg-ink-50 rounded-xl border border-ink-100 text-center">
+                <div className="py-2 border-r border-ink-200 text-left">
                   <p className="text-xs text-ink-500">Overall Grade</p>
                    <p className="text-2xl font-bold text-primary-600 font-display mt-1">{currentChild.overallPerformance}%</p>
                   <span className="text-[10px] text-success-600 font-semibold">Grade A</span>
                 </div>
-                <div className="p-3 bg-ink-50 rounded-xl border border-ink-100 text-center">
+                <div className="py-2 sm:pl-4 border-r border-ink-200 text-left">
                   <p className="text-xs text-ink-500">Strongest Subject</p>
                    <p className="text-base font-bold text-ink-900 mt-1 truncate">{currentChild.strongestSubject}</p>
                   <span className="text-[10px] text-success-600 font-semibold">89% Score</span>
                 </div>
-                <div className="p-3 bg-ink-50 rounded-xl border border-ink-100 text-center">
+                <div className="py-2 sm:pl-4 border-r border-ink-200 text-left">
                   <p className="text-xs text-ink-500">Needs Attention</p>
                    <p className="text-base font-bold text-error-600 mt-1 truncate">{currentChild.needsAttention}</p>
                   <span className="text-[10px] text-error-600 font-semibold">72% Score</span>
                 </div>
-                <div className="p-3 bg-ink-50 rounded-xl border border-ink-100 text-center">
+                <div className="py-2 sm:pl-4 text-left">
                   <p className="text-xs text-ink-500">Semester Trend</p>
                   <p className="text-base font-bold text-success-600 mt-1 flex items-center justify-center gap-1">
                      <TrendingUp className="w-4 h-4" /> +{currentChild.semesterTrend}%
@@ -289,7 +295,7 @@ export function StudentDashboard() {
                   </div>
                   <div className="w-full bg-ink-200 rounded-full h-2 overflow-hidden">
                     <div
-                      className={cn('h-full rounded-full transition-all', sub.status === 'risk' ? 'bg-error-500' : 'bg-success-500')}
+                      className={cn('h-full rounded-full transition-[width]', sub.status === 'risk' ? 'bg-error-500' : 'bg-success-500')}
                       style={{ width: `${sub.percent}%` }}
                     />
                   </div>
@@ -311,13 +317,14 @@ export function StudentDashboard() {
         <div className="space-y-6">
           {/* Quick Access Widget */}
           <Card>
-            <CardHeader title="Quick Shortcuts" />
-            <div className="p-4 grid grid-cols-2 gap-2.5">
+            <CardHeader title="Quick Access" />
+            <div className="divide-y divide-ink-100">
               {quickAccessItems.map((item) => {
                 const Icon = item.icon;
-                return <button key={item.path} onClick={() => navigate(item.path)} className={cn('p-3 rounded-xl border text-center hover:shadow-sm transition', item.cardClass)}>
-                  <Icon className={cn('w-5 h-5 mx-auto mb-1', item.iconClass)} />
-                  <span className="text-xs font-semibold text-ink-800">{item.label}</span>
+                return <button key={item.path} onClick={() => navigate(item.path)} className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-ink-50 duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/30 active:bg-ink-100">
+                  <Icon className="w-4 h-4 text-ink-500" />
+                  <span className="text-xs font-medium text-ink-800">{item.label}</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-ink-300" />
                 </button>;
               })}
             </div>
@@ -343,7 +350,7 @@ export function StudentDashboard() {
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-primary-900 to-ink-900 text-white">
+          <Card className="bg-ink-900 text-white border-ink-800">
               <div className="p-5 space-y-3">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2">
                   <h3 className="font-bold text-sm font-display text-white">Weekly Summary</h3>
@@ -381,14 +388,19 @@ export function StudentDashboard() {
 
 export function StudentClasses() {
   const { viewerRole, permissions, selectedStudent } = useStudentPortal();
+  const { state, getStudentSummary } = useLmsData();
+  const [reminders, setReminders] = useState<string[]>([]);
+  const summary = selectedStudent ? getStudentSummary(selectedStudent.id) : null;
+  const sessions = state.classSessions.filter((session) => session.batchId === summary?.student.batchId);
   return (
     <div>
       <PageHeader title="Live Classes" subtitle={viewerRole === 'parent' ? `Class schedule for ${selectedStudent?.name ?? 'selected student'}` : 'Join your scheduled classes & view upcoming sessions'} />
+      {summary && <Card className="p-5 mb-4"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-sm text-ink-500">Attendance</p><p className="text-3xl font-bold text-ink-900">{summary.attendance}%</p></div><div className="text-sm text-ink-600"><strong>{summary.attended}</strong> attended of <strong>{summary.conducted}</strong> conducted{summary.recoveryClasses > 0 && <p className="text-error-600 mt-1">Attend the next {summary.recoveryClasses} consecutive classes to reach 75%.</p>}</div></div></Card>}
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Live Now" subtitle="Class in progress" />
           <div className="p-5">
-            <div className="rounded-xl bg-gradient-to-br from-primary-600 to-accent-600 p-6 text-white">
+            <div className="rounded-lg bg-primary-700 p-6 text-white">
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-error-400 animate-pulse" />
                 <span className="text-sm font-medium">LIVE</span>
@@ -405,17 +417,15 @@ export function StudentClasses() {
         <Card>
           <CardHeader title="Upcoming" subtitle="Next classes this week" />
           <div className="p-4 space-y-2">
-            {[
-              { title: 'Algorithms — Sorting', time: 'Today 11:00', platform: 'Zoom' },
-              { title: 'Doubt Session', time: 'Today 14:00', platform: 'Meet' },
-              { title: 'Graph Theory', time: 'Tomorrow 09:00', platform: 'Zoom' },
-            ].map((c, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50">
+            {sessions.filter((session) => session.status === 'scheduled').map((session) => {
+              const course = state.courses.find((item) => item.id === session.courseId);
+              const reminderSet = reminders.includes(session.id);
+              return <div key={session.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50">
                 <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center"><Video className="w-5 h-5 text-primary-600" /></div>
-                <div className="flex-1"><p className="text-sm font-medium text-ink-800">{c.title}</p><p className="text-xs text-ink-400">{c.time} · {c.platform}</p></div>
-                {permissions.canJoinClass ? <button className="btn-secondary text-xs px-3 py-1.5">Remind Me</button> : <button className="btn-secondary text-xs px-3 py-1.5">View Details</button>}
-              </div>
-            ))}
+                <div className="flex-1"><p className="text-sm font-medium text-ink-800">{course?.title}</p><p className="text-xs text-ink-400">{session.date} {session.startTime} · {session.mode} · {session.location}</p></div>
+                {permissions.canJoinClass ? <button onClick={() => setReminders((items) => reminderSet ? items.filter((id) => id !== session.id) : [...items, session.id])} className="btn-secondary text-xs px-3 py-1.5">{reminderSet ? 'Reminder set' : 'Remind Me'}</button> : <button className="btn-secondary text-xs px-3 py-1.5">View Details</button>}
+              </div>;
+            })}
           </div>
         </Card>
       </div>
@@ -450,29 +460,27 @@ export function StudentRecordings() {
 }
 
 export function StudentResources() {
-  const resources = [
-    { name: 'Data Structures — Complete Notes.pdf', type: 'PDF', size: '2.4 MB', date: 'Jul 24' },
-    { name: 'Linked Lists — Presentation.pptx', type: 'PPT', size: '5.1 MB', date: 'Jul 23' },
-    { name: 'Sorting Algorithms — Reference.docx', type: 'DOC', size: '1.2 MB', date: 'Jul 22' },
-    { name: 'Algorithm Visualizations.xlsx', type: 'XLS', size: '800 KB', date: 'Jul 21' },
-    { name: 'Practice Problems.pdf', type: 'PDF', size: '1.8 MB', date: 'Jul 20' },
-  ];
-  const typeColors: Record<string, string> = { PDF: 'text-error-600 bg-error-50', PPT: 'text-warning-600 bg-warning-50', DOC: 'text-primary-600 bg-primary-50', XLS: 'text-success-600 bg-success-50' };
+  const { selectedStudent } = useStudentPortal();
+  const { state, getStudentResources } = useLmsData();
+  const resources = selectedStudent ? getStudentResources(selectedStudent.id) : [];
+  const typeColors: Record<string, string> = { PDF: 'text-error-600 bg-error-50', PPT: 'text-warning-600 bg-warning-50', DOC: 'text-primary-600 bg-primary-50', LINK: 'text-success-600 bg-success-50' };
   return (
     <div>
       <PageHeader title="Notes & Resources" subtitle="All study materials shared by your teachers" />
       <Card>
         <div className="p-4 space-y-2">
-          {resources.map((r, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50 transition">
+          {resources.map((r) => (
+            <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50 transition">
               <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', typeColors[r.type])}><FileText className="w-5 h-5" /></div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-ink-800 truncate">{r.name}</p>
-                <p className="text-xs text-ink-400">{r.type} · {r.size} · Shared {r.date}</p>
+                <p className="text-sm font-medium text-ink-800 truncate">{r.title}</p>
+                <p className="text-xs text-ink-400">{state.courses.find((course) => course.id === r.courseId)?.title} · {r.type} · Shared {new Date(r.uploadedAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p>
+                <p className="text-xs text-ink-500 mt-1">{r.description}</p>
               </div>
-              <button className="btn-secondary text-xs px-3 py-1.5"><Download className="w-3.5 h-3.5" /> Download</button>
+              <Badge variant="primary">Demo metadata</Badge>
             </div>
           ))}
+          {resources.length === 0 && <EmptyState icon={FileText} title="No resources" description="Resources shared by teachers will appear here." />}
         </div>
       </Card>
     </div>
@@ -489,6 +497,7 @@ export function MyNotes() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   const fetchNotes = useCallback(async () => {
     setLoading(true);
@@ -514,15 +523,22 @@ export function MyNotes() {
     fetchNotes();
   };
   const del = async (id: string) => {
+    if (!window.confirm('Delete this note? This cannot be undone.')) return;
     await supabase.from('notes').delete().eq('id', id);
     fetchNotes();
   };
+  const downloadNote = (note: Note) => {
+    const url = URL.createObjectURL(new Blob([`${note.title}\n\n${note.content}`], { type: 'text/plain' }));
+    const link = document.createElement('a'); link.href = url; link.download = `${note.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'note'}.txt`; link.click(); URL.revokeObjectURL(url);
+  };
+  const visibleNotes = notes.filter((note) => `${note.title} ${note.content}`.toLowerCase().includes(search.toLowerCase()));
 
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   return (
     <div>
       <PageHeader title="My Notes" subtitle="Create, edit & download your personal notes — saved automatically" actions={<button onClick={openNew} className="btn-primary"><Plus className="w-4 h-4" /> New Note</button>} />
+      <div className="relative max-w-sm mb-4"><input className="input pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search notes…" /><FileSearch className="absolute left-3 top-3 w-4 h-4 text-ink-400" /></div>
       {loading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => <div key={i} className="card p-5 animate-pulse"><div className="h-4 bg-ink-100 rounded w-1/3 mb-3" /><div className="h-3 bg-ink-100 rounded w-full mb-2" /><div className="h-3 bg-ink-100 rounded w-2/3" /></div>)}
@@ -531,7 +547,7 @@ export function MyNotes() {
         <Card><EmptyState icon={NotebookPen} title="No notes yet" description="Create your first note — it saves automatically and you can download it anytime." action={<button onClick={openNew} className="btn-primary"><Plus className="w-4 h-4" /> New Note</button>} /></Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {notes.map((n) => (
+          {visibleNotes.map((n) => (
             <Card key={n.id} hover className="p-5">
               <div className="flex items-start justify-between mb-2">
                 <div className="w-9 h-9 rounded-lg bg-accent-50 flex items-center justify-center"><NotebookPen className="w-4 h-4 text-accent-600" /></div>
@@ -544,7 +560,7 @@ export function MyNotes() {
               <p className="text-xs text-ink-500 mt-1 line-clamp-3">{n.content}</p>
               <div className="mt-3 flex items-center justify-between text-xs text-ink-400">
                 <span>{fmtDate(n.created_at)}</span>
-                <button className="flex items-center gap-1 hover:text-primary-600"><Download className="w-3 h-3" /> Download</button>
+                <button onClick={() => downloadNote(n)} className="flex items-center gap-1 hover:text-primary-600"><Download className="w-3 h-3" /> Download</button>
               </div>
             </Card>
           ))}
@@ -667,13 +683,31 @@ export function StudentLeaves() {
 
 export function StudentAssignments() {
   const { viewerRole, permissions, selectedStudent } = useStudentPortal();
+  const { getStudentAssignments, saveSubmission } = useLmsData();
   const isParent = viewerRole === 'parent';
   const [tab, setTab] = useState('All');
-  const visibleAssignments = assignments.filter((assignment) => {
-    if (tab === 'Due Soon') return assignment.status === 'open';
-    if (tab === 'Submitted' || tab === 'Graded') return assignment.status === 'closed';
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [response, setResponse] = useState('');
+  const [attachmentName, setAttachmentName] = useState('');
+  const allAssignments = selectedStudent ? getStudentAssignments(selectedStudent.id) : [];
+  const selectedAssignment = allAssignments.find((item) => item.id === selectedAssignmentId);
+  const visibleAssignments = allAssignments.filter((assignment) => {
+    if (tab === 'Due Soon') return !assignment.submission || !['submitted', 'graded'].includes(assignment.submission.status);
+    if (tab === 'Submitted') return assignment.submission?.status === 'submitted';
+    if (tab === 'Graded') return assignment.submission?.status === 'graded';
     return true;
   });
+  const openAssignment = (id: string) => {
+    const assignment = allAssignments.find((item) => item.id === id);
+    setSelectedAssignmentId(id);
+    setResponse(assignment?.submission?.response ?? '');
+    setAttachmentName(assignment?.submission?.attachmentName ?? '');
+  };
+  const save = (submit: boolean) => {
+    if (!selectedAssignment || !selectedStudent) return;
+    const saved = saveSubmission(selectedAssignment.id, selectedStudent.id, response, submit, attachmentName || undefined);
+    if (saved.ok && submit) setSelectedAssignmentId(null);
+  };
 
   return (
     <div>
@@ -687,33 +721,53 @@ export function StudentAssignments() {
         ))}
       </div>
       <div className="grid sm:grid-cols-2 gap-4">
-        {visibleAssignments.map((a) => (
+        {visibleAssignments.map((a) => {
+          const displayStatus = a.submission?.status ?? 'not-started';
+          return (
           <Card key={a.id} hover className="p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 rounded-xl bg-accent-50 flex items-center justify-center"><ClipboardList className="w-5 h-5 text-accent-600" /></div>
-              <StatusBadge status={a.status} />
+              <StatusBadge status={displayStatus} />
             </div>
             <h3 className="font-semibold text-ink-900">{a.title}</h3>
-            <p className="text-xs text-ink-400 mt-1">{a.subject} · Due {a.dueDate}</p>
+            <p className="text-xs text-ink-400 mt-1">{a.courseTitle} · Due {new Date(a.dueDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+            <p className="text-sm text-ink-600 mt-3 line-clamp-2">{a.instructions}</p>
             <div className="mt-3 flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-ink-100 rounded-full overflow-hidden">
-                <div className="h-full bg-accent-500 rounded-full" style={{ width: a.status === 'closed' ? '100%' : '0%' }} />
+                <div className="h-full bg-accent-500 rounded-full" style={{ width: displayStatus === 'graded' ? '100%' : displayStatus === 'submitted' ? '75%' : displayStatus === 'in-progress' ? '35%' : '0%' }} />
               </div>
-              <span className="text-xs text-ink-500">{a.status === 'closed' ? 'Submitted' : 'Pending'}</span>
+              <span className="text-xs text-ink-500 capitalize">{displayStatus.replace('-', ' ')}</span>
             </div>
-            <button className={cn('w-full mt-3 text-sm', a.status === 'closed' || !permissions.canSubmitAssignment ? 'btn-secondary' : 'btn-primary')}>
-              {!permissions.canSubmitAssignment ? 'View Details' : a.status === 'closed' ? 'View Feedback' : 'Continue Assignment'}
+            {a.submission?.status === 'graded' && <div className="mt-3 rounded-lg bg-success-50 p-3 text-sm"><strong>{a.submission.marks}/{a.maxMarks}</strong><p className="text-xs text-success-700 mt-1">{a.submission.feedback}</p></div>}
+            <button onClick={() => openAssignment(a.id)} className={cn('w-full mt-3 text-sm', displayStatus === 'graded' || !permissions.canSubmitAssignment ? 'btn-secondary' : 'btn-primary')}>
+              {!permissions.canSubmitAssignment ? 'View Details' : displayStatus === 'graded' ? 'View Feedback' : displayStatus === 'submitted' ? 'View Submission' : 'Continue Assignment'}
             </button>
           </Card>
-        ))}
+        );})}
       </div>
+      {visibleAssignments.length === 0 && <EmptyState icon={ClipboardList} title={`No ${tab.toLowerCase()} assignments`} description="Assignments matching this filter will appear here." />}
+      <Modal open={!!selectedAssignment} onClose={() => setSelectedAssignmentId(null)} title={selectedAssignment?.title ?? 'Assignment'} size="lg">
+        {selectedAssignment && <div className="space-y-4">
+          <div className="card p-4 bg-ink-50"><p className="text-sm text-ink-700">{selectedAssignment.instructions}</p><p className="text-xs text-ink-400 mt-2">Maximum marks: {selectedAssignment.maxMarks}</p></div>
+          {permissions.canSubmitAssignment && selectedAssignment.submission?.status !== 'graded' ? <>
+            <div><label className="label">Your response</label><textarea className="input min-h-36" value={response} onChange={(event) => setResponse(event.target.value)} placeholder="Enter your assignment response…" /></div>
+            <div><label className="label">Demo attachment name (optional)</label><input className="input" value={attachmentName} onChange={(event) => setAttachmentName(event.target.value)} placeholder="example.pdf — metadata only" /></div>
+            <p className="text-xs text-ink-500">Files are not uploaded in demo mode; only attachment metadata is recorded.</p>
+            <div className="flex gap-2"><button onClick={() => save(false)} className="btn-secondary flex-1"><Save className="w-4 h-4" /> Save Draft</button><button onClick={() => save(true)} className="btn-primary flex-1"><Send className="w-4 h-4" /> Submit</button></div>
+          </> : <div className="space-y-3"><p className="text-sm"><strong>Status:</strong> <span className="capitalize">{selectedAssignment.submission?.status ?? 'Not started'}</span></p><p className="text-sm whitespace-pre-wrap">{selectedAssignment.submission?.response || 'No response submitted.'}</p>{selectedAssignment.submission?.feedback && <div className="bg-success-50 rounded-lg p-3 text-sm"><strong>Grade: {selectedAssignment.submission.marks}/{selectedAssignment.maxMarks}</strong><p>{selectedAssignment.submission.feedback}</p></div>}</div>}
+        </div>}
+      </Modal>
     </div>
   );
 }
 
 export function StudentExams() {
   const { viewerRole, permissions, selectedStudent } = useStudentPortal();
+  const { state, getStudentExams } = useLmsData();
   const isParent = viewerRole === 'parent';
+  const exams = selectedStudent ? getStudentExams(selectedStudent.id) : [];
+  const upcoming = exams.filter((exam) => exam.status === 'scheduled');
+  const completed = exams.filter((exam) => exam.status === 'completed').map((exam) => ({ exam, result: state.examResults.find((result) => result.examId === exam.id && result.studentId === selectedStudent?.id) }));
   return (
     <div>
       <PageHeader title="Exams" subtitle={isParent ? `Exam schedule and results for ${selectedStudent?.name ?? 'your child'}` : 'Upcoming, practice and completed exams'} />
@@ -721,50 +775,47 @@ export function StudentExams() {
         <Card>
           <CardHeader title="Upcoming Exams" />
           <div className="p-4 space-y-3">
-            {[
-              { title: 'Data Structures Mid-Sem', date: 'Jul 28', questions: 25, marks: 100, time: 90 },
-              { title: 'Algorithms Quiz', date: 'Aug 02', questions: 15, marks: 50, time: 30 },
-            ].map((e, i) => (
-              <div key={i} className="p-4 rounded-xl bg-ink-50">
+            {upcoming.map((exam) => (
+              <div key={exam.id} className="p-4 rounded-xl bg-ink-50">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-ink-800">{e.title}</p>
+                  <p className="font-medium text-ink-800">{exam.title}</p>
                   <Badge variant="error">Exam</Badge>
                 </div>
-                <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                  <div><p className="text-ink-400">Date</p><p className="font-medium text-ink-700">{e.date}</p></div>
-                  <div><p className="text-ink-400">Questions</p><p className="font-medium text-ink-700">{e.questions}</p></div>
-                  <div><p className="text-ink-400">Marks</p><p className="font-medium text-ink-700">{e.marks}</p></div>
-                  <div><p className="text-ink-400">Time</p><p className="font-medium text-ink-700">{e.time}m</p></div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div><p className="text-ink-400">Date</p><p className="font-medium text-ink-700">{new Date(exam.date).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p></div>
+                  <div><p className="text-ink-400">Marks</p><p className="font-medium text-ink-700">{exam.maxMarks}</p></div>
+                  <div><p className="text-ink-400">Time</p><p className="font-medium text-ink-700">{exam.durationMinutes}m</p></div>
                 </div>
+                <p className="text-xs text-ink-500 mt-3"><strong>Syllabus:</strong> {exam.syllabus}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                  <button className="btn-secondary text-sm">View Syllabus</button>
+                  <button className="btn-secondary text-sm">Syllabus Shown</button>
                   {permissions.canTakeExam && <button className="btn-primary text-sm">Start Practice Quiz</button>}
                 </div>
               </div>
             ))}
+            {upcoming.length === 0 && <p className="p-6 text-sm text-center text-ink-500">No upcoming exams.</p>}
           </div>
         </Card>
         <Card>
           <CardHeader title="Completed Exams" subtitle="Instant AI-graded results" />
           <div className="p-4 space-y-3">
-            {[
-              { title: 'Sorting Concepts Quiz', score: 85, total: 100, date: 'Jul 20' },
-              { title: 'Arrays Practice Test', score: 92, total: 100, date: 'Jul 15' },
-            ].map((e, i) => (
-              <div key={i} className="p-4 rounded-xl bg-ink-50">
+            {completed.map(({ exam, result }) => {
+              const percentage = result ? Math.round((result.marks / exam.maxMarks) * 100) : null;
+              return <div key={exam.id} className="p-4 rounded-xl bg-ink-50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-ink-800">{e.title}</p>
-                    <p className="text-xs text-ink-400">{e.date}</p>
+                    <p className="font-medium text-ink-800">{exam.title}</p>
+                    <p className="text-xs text-ink-400">{new Date(exam.date).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p>
                   </div>
                   <div className="text-right">
-                    <p className={cn('text-2xl font-bold font-display', e.score >= 80 ? 'text-success-600' : 'text-warning-600')}>{e.score}%</p>
-                    <p className="text-xs text-ink-400">{e.score}/{e.total}</p>
+                    <p className={cn('text-2xl font-bold font-display', (percentage ?? 0) >= 80 ? 'text-success-600' : 'text-warning-600')}>{percentage === null ? 'Pending' : `${percentage}%`}</p>
+                    {result && <p className="text-xs text-ink-400">{result.marks}/{exam.maxMarks}</p>}
                   </div>
                 </div>
                 <button className="btn-secondary w-full mt-2 text-xs"><FileBarChart className="w-3.5 h-3.5" /> View Detailed Report</button>
-              </div>
-            ))}
+              </div>;
+            })}
+            {completed.length === 0 && <p className="p-6 text-sm text-center text-ink-500">No completed exams.</p>}
           </div>
         </Card>
       </div>
@@ -824,38 +875,33 @@ export function StudentTimetable() {
 }
 
 export function StudentDiary() {
-  const entries = [
-    { id: 'd1', date: 'Jul 24', title: 'Today\'s Class Work', content: 'Covered Linked Lists — singly, doubly and circular. Homework: Implement a doubly linked list with insert & delete operations.', teacher: 'Sneha Kapoor' },
-    { id: 'd2', date: 'Jul 23', title: 'Assignment Reminder', content: 'Sorting Algorithm Comparison Report due on July 30. Submit via the assignments portal.', teacher: 'Sneha Kapoor' },
-    { id: 'd3', date: 'Jul 22', title: 'Lab Session Notes', content: 'Practiced array operations. Focus on time complexity analysis for each operation.', teacher: 'Sneha Kapoor' },
-  ];
+  const { viewerRole, selectedStudent } = useStudentPortal();
+  const { state, saveGoal, deleteGoal } = useLmsData();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ id: '', title: '', category: 'Academic', target: '', deadline: '2026-08-31', progress: '0' });
+  const goals = state.goals.filter((goal) => goal.studentId === selectedStudent?.id);
+  const editGoal = (id?: string) => { const goal = goals.find((item) => item.id === id); setForm(goal ? { id: goal.id, title: goal.title, category: goal.category, target: goal.target, deadline: goal.deadline, progress: String(goal.progress) } : { id: '', title: '', category: 'Academic', target: '', deadline: '2026-08-31', progress: '0' }); setShowForm(true); };
+  const submitGoal = () => { if (!selectedStudent) return; const saved = saveGoal({ id: form.id || undefined, studentId: selectedStudent.id, title: form.title, category: form.category, target: form.target, deadline: form.deadline, progress: Number(form.progress) }); if (saved.ok) setShowForm(false); };
   return (
     <div>
-      <PageHeader title="Diary" subtitle="Daily class updates from your teachers" />
-      <div className="space-y-4">
-        {entries.map((e) => (
-          <Card key={e.id} className="p-5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white shrink-0">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-ink-900">{e.title}</h3>
-                  <span className="text-xs text-ink-400">{e.date}</span>
-                </div>
-                <p className="text-sm text-ink-600 mt-1">{e.content}</p>
-                <p className="text-xs text-ink-400 mt-2">— {e.teacher}</p>
-              </div>
-            </div>
-          </Card>
-        ))}
+      <PageHeader title="Goals & Diary" subtitle={viewerRole === 'parent' ? `Read-only goals for ${selectedStudent?.name ?? 'your child'}` : 'Create and track academic goals'} actions={viewerRole === 'student' ? <button onClick={() => editGoal()} className="btn-primary"><Plus className="w-4 h-4" /> New Goal</button> : undefined} />
+      <div className="grid sm:grid-cols-2 gap-4">
+        {goals.map((goal) => <Card key={goal.id} className="p-5"><div className="flex items-start justify-between"><div><Badge variant={goal.status === 'completed' ? 'success' : 'primary'}>{goal.status}</Badge><h3 className="font-semibold text-ink-900 mt-2">{goal.title}</h3><p className="text-xs text-ink-500 mt-1">{goal.category} · Target: {goal.target} · Due {new Date(goal.deadline).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p></div>{viewerRole === 'student' && <div className="flex gap-1"><button onClick={() => editGoal(goal.id)} className="btn-ghost p-2" aria-label="Edit goal"><Edit className="w-4 h-4" /></button><button onClick={() => { if (window.confirm('Delete this goal?')) deleteGoal(goal.id); }} className="btn-ghost p-2 text-error-600" aria-label="Delete goal"><Trash2 className="w-4 h-4" /></button></div>}</div><div className="mt-4 h-2 bg-ink-100 rounded-full overflow-hidden"><div className="h-full bg-primary-600" style={{ width: `${goal.progress}%` }} /></div><p className="text-xs text-ink-500 mt-1">{goal.progress}% complete</p></Card>)}
       </div>
+      {goals.length === 0 && <EmptyState icon={BookOpen} title="No goals yet" description="Create a measurable academic goal to start tracking progress." />}
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={form.id ? 'Edit Goal' : 'Create Goal'} size="md"><div className="space-y-4"><div><label className="label">Goal title</label><input className="input" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></div><div className="grid grid-cols-2 gap-3"><div><label className="label">Category</label><input className="input" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></div><div><label className="label">Target</label><input className="input" value={form.target} onChange={(event) => setForm({ ...form, target: event.target.value })} /></div></div><div className="grid grid-cols-2 gap-3"><div><label className="label">Deadline</label><input className="input" type="date" value={form.deadline} onChange={(event) => setForm({ ...form, deadline: event.target.value })} /></div><div><label className="label">Progress (%)</label><input className="input" type="number" min="0" max="100" value={form.progress} onChange={(event) => setForm({ ...form, progress: event.target.value })} /></div></div><button onClick={submitGoal} className="btn-primary w-full">Save Goal</button></div></Modal>
     </div>
   );
 }
 
 export function StudentCommunity() {
+  const [messages, setMessages] = useState([
+    { id: 'community_001', author: 'Diya Patel', text: 'Did anyone finish the linked list assignment?', time: '10:20 AM' },
+    { id: 'community_002', author: 'Arjun Verma', text: 'Working on it now. The doubly linked list part is tricky.', time: '10:25 AM' },
+    { id: 'community_003', author: 'Sneha Kapoor', text: 'Focus on the pointer manipulation. I\'ll cover it in tomorrow\'s doubt session.', time: '10:30 AM' },
+  ]);
+  const [message, setMessage] = useState('');
+  const sendMessage = () => { if (!message.trim()) return; setMessages((items) => [...items, { id: `community_${items.length + 1}`, author: 'Arjun Verma', text: message.trim(), time: 'Now' }]); setMessage(''); };
   return (
     <div>
       <PageHeader title="Community" subtitle="Batch & department group chats" />
@@ -868,7 +914,7 @@ export function StudentCommunity() {
             { id: 'c3', name: 'Announcements', members: 1200, unread: 1 },
           ].map((c) => (
             <div key={c.id} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50 cursor-pointer">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-xs font-bold">{c.name.slice(0, 2)}</div>
+              <div className="w-9 h-9 rounded-lg bg-primary-600 flex items-center justify-center text-white text-xs font-bold">{c.name.slice(0, 2)}</div>
               <div className="flex-1"><p className="text-sm font-medium text-ink-800">{c.name}</p><p className="text-xs text-ink-400">{c.members} members</p></div>
               {c.unread > 0 && <span className="badge bg-primary-600 text-white text-[10px] px-1.5">{c.unread}</span>}
             </div>
@@ -876,16 +922,12 @@ export function StudentCommunity() {
         </Card>
         <Card className="lg:col-span-2 flex flex-col">
           <div className="px-4 py-3 border-b border-ink-100 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-xs font-bold">CS</div>
+            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white text-xs font-bold">CS</div>
             <div><p className="font-semibold text-ink-900 text-sm">CS-2024-A</p><p className="text-xs text-ink-400">32 members</p></div>
           </div>
           <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3">
-            {[
-              { author: 'Diya Patel', text: 'Did anyone finish the linked list assignment?', time: '10:20 AM' },
-              { author: 'Arjun Verma', text: 'Working on it now. The doubly linked list part is tricky.', time: '10:25 AM' },
-              { author: 'Sneha Kapoor', text: 'Focus on the pointer manipulation. I\'ll cover it in tomorrow\'s doubt session.', time: '10:30 AM' },
-            ].map((m, i) => (
-              <div key={i} className="flex gap-2.5">
+            {messages.map((m) => (
+              <div key={m.id} className="flex gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-ink-100 shrink-0" />
                 <div className="max-w-[75%]">
                   <div className="flex items-center gap-2"><p className="text-xs font-medium text-ink-700">{m.author}</p><p className="text-[10px] text-ink-400">{m.time}</p></div>
@@ -895,8 +937,8 @@ export function StudentCommunity() {
             ))}
           </div>
           <div className="p-3 border-t border-ink-100 flex gap-2">
-            <input placeholder="Type a message..." className="input flex-1" />
-            <button className="btn-primary px-3"><Send className="w-4 h-4" /></button>
+            <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') sendMessage(); }} placeholder="Type a message..." className="input flex-1" />
+            <button onClick={sendMessage} disabled={!message.trim()} className="btn-primary px-3" aria-label="Send message"><Send className="w-4 h-4" /></button>
           </div>
         </Card>
       </div>
@@ -905,12 +947,16 @@ export function StudentCommunity() {
 }
 
 export function StudentForum() {
+  const [posts, setPosts] = useState(forumPosts);
+  const [showPost, setShowPost] = useState(false);
+  const [postContent, setPostContent] = useState('');
+  const publishPost = () => { if (!postContent.trim()) return; setPosts((items) => [{ id: `local-post-${items.length + 1}`, author: 'Arjun Verma', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Arjun%20Verma', role: 'student', content: postContent.trim(), likes: 0, comments: 0, time: 'Now', tags: ['CS-2024-A'] }, ...items]); setPostContent(''); setShowPost(false); };
   return (
     <div>
-      <PageHeader title="Discussion Forum" subtitle="Ask questions, share insights across all branches" actions={<button className="btn-primary"><Plus className="w-4 h-4" /> New Post</button>} />
+      <PageHeader title="Discussion Forum" subtitle="Ask questions, share insights across all branches" actions={<button onClick={() => setShowPost(true)} className="btn-primary"><Plus className="w-4 h-4" /> New Post</button>} />
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-3">
-          {forumPosts.map((p) => (
+          {posts.map((p) => (
             <Card key={p.id} hover className="p-5">
               <div className="flex gap-3">
                 <img src={p.avatar} alt={p.author} className="w-10 h-10 rounded-lg bg-ink-100 shrink-0" />
@@ -935,14 +981,15 @@ export function StudentForum() {
         <Card className="p-5">
           <h3 className="font-semibold text-ink-900 mb-3">Trending Topics</h3>
           <div className="space-y-2">
-            {['Data Structures', 'Linked Lists', 'Sorting', 'Exam Prep', 'Projects'].map((t) => (
-              <div key={t} className="flex items-center justify-between text-sm">
-                <span className="text-ink-600">#{t}</span><span className="text-xs text-ink-400">{Math.floor(Math.random() * 50)} posts</span>
+            {[['Data Structures', 42], ['Linked Lists', 31], ['Sorting', 27], ['Exam Prep', 19], ['Projects', 14]].map(([topic, count]) => (
+              <div key={topic} className="flex items-center justify-between text-sm">
+                <span className="text-ink-600">#{topic}</span><span className="text-xs text-ink-400">{count} posts</span>
               </div>
             ))}
           </div>
         </Card>
       </div>
+      <Modal open={showPost} onClose={() => setShowPost(false)} title="New Forum Post" size="md"><div className="space-y-4"><div><label className="label">Post</label><textarea className="input min-h-32" value={postContent} onChange={(event) => setPostContent(event.target.value)} placeholder="Ask a question or share an insight…" /></div><button onClick={publishPost} disabled={!postContent.trim()} className="btn-primary w-full">Publish Post</button></div></Modal>
     </div>
   );
 }
@@ -1001,12 +1048,20 @@ export function StudentCalendar() {
 
 export function StudentFees() {
   const { viewerRole, permissions, selectedStudent } = useStudentPortal();
+  const { state, getStudentFees, recordPayment } = useLmsData();
   const [showPay, setShowPay] = useState(false);
-  const fee = { total: 45000, paid: 30000, pending: 15000, term: 'Term 2', dueDate: 'Aug 05, 2026' };
-  const history = [
-    { id: 'p1', term: 'Term 1', amount: 15000, date: 'Jan 15, 2026', method: 'Razorpay', status: 'paid' },
-    { id: 'p2', term: 'Admission Fee', amount: 15000, date: 'Dec 10, 2025', method: 'Razorpay', status: 'paid' },
-  ];
+  const [amount, setAmount] = useState('');
+  const [method, setMethod] = useState<'cash' | 'bank-transfer' | 'demo-card'>('demo-card');
+  const [reference, setReference] = useState('DEMO-');
+  const [paymentDate, setPaymentDate] = useState('2026-08-12');
+  const fee = selectedStudent ? getStudentFees(selectedStudent.id) : { invoices: [], total: 0, paid: 0, pending: 0 };
+  const openInvoice = fee.invoices.find((invoice) => invoice.pending > 0);
+  const history = state.payments.filter((payment) => payment.studentId === selectedStudent?.id).map((payment) => ({ id: payment.id, term: state.feeInvoices.find((invoice) => invoice.id === payment.invoiceId)?.title ?? 'Fee', amount: payment.amount, date: new Date(payment.date).toLocaleDateString('en-IN', { dateStyle: 'medium' }), method: payment.method.replace('-', ' '), status: payment.status, receiptId: state.receipts.find((receipt) => receipt.paymentId === payment.id)?.id }));
+  const submitPayment = () => {
+    if (!selectedStudent || !openInvoice) return;
+    const saved = recordPayment(openInvoice.id, selectedStudent.id, Number(amount), method, reference, paymentDate);
+    if (saved.ok) { setShowPay(false); setAmount(''); setReference('DEMO-'); }
+  };
   return (
     <div>
       <PageHeader title="Fees & Payments" subtitle={viewerRole === 'parent' ? `Fee ledger for ${selectedStudent?.name ?? 'selected student'}` : 'View fee structure, pending dues & download invoices'} />
@@ -1022,13 +1077,13 @@ export function StudentFees() {
         <Card className="p-6">
           <p className="text-sm text-ink-500">Paid</p>
           <p className="text-3xl font-bold font-display text-success-600 mt-1">₹{fee.paid.toLocaleString()}</p>
-          <p className="text-xs text-ink-400 mt-2">2 payments completed</p>
+          <p className="text-xs text-ink-400 mt-2">{history.length} payments completed</p>
         </Card>
-        <Card className="p-6 bg-gradient-to-br from-warning-50 to-white border-warning-200">
+        <Card className="p-6 bg-white border-warning-300">
           <p className="text-sm text-ink-500">Pending</p>
           <p className="text-3xl font-bold font-display text-warning-600 mt-1">₹{fee.pending.toLocaleString()}</p>
-          <p className="text-xs text-ink-400 mt-2">{fee.term} · Due {fee.dueDate}</p>
-          {permissions.canPayFees ? <button onClick={() => setShowPay(true)} className="btn-primary w-full mt-3 text-sm"><CreditCard className="w-4 h-4" /> Pay Now</button> : <button className="btn-secondary w-full mt-3 text-sm">View Details</button>}
+          <p className="text-xs text-ink-400 mt-2">{openInvoice ? `${openInvoice.title} · Due ${new Date(openInvoice.dueDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })}` : 'No payment currently due'}</p>
+          {permissions.canPayFees && openInvoice ? <button onClick={() => { setAmount(String(openInvoice.pending)); setShowPay(true); }} className="btn-primary w-full mt-3 text-sm"><CreditCard className="w-4 h-4" /> Record Demo Payment</button> : <button className="btn-secondary w-full mt-3 text-sm">{openInvoice ? 'View Details' : 'Paid in Full'}</button>}
         </Card>
       </div>
       <Card>
@@ -1040,27 +1095,25 @@ export function StudentFees() {
             { key: 'date', label: 'Date' },
             { key: 'method', label: 'Method', render: (r) => <Badge variant="primary">{r.method}</Badge> },
             { key: 'status', label: 'Status', render: (r) => <StatusBadge status={r.status} /> },
-            { key: 'action', label: '', render: () => <button className="btn-ghost text-xs"><Download className="w-3.5 h-3.5" /> Invoice</button> },
+            { key: 'action', label: '', render: (r) => <button onClick={() => window.print()} className="btn-ghost text-xs"><Download className="w-3.5 h-3.5" /> {r.receiptId ? 'Receipt' : 'Record'}</button> },
           ]}
           data={history}
         />
       </Card>
-      <Modal open={showPay} onClose={() => setShowPay(false)} title="Pay Fee — Term 2" size="md">
+      <Modal open={showPay} onClose={() => setShowPay(false)} title="Record Demo Payment" size="md">
         <div className="space-y-4">
           <div className="card p-4 bg-ink-50">
             <div className="flex justify-between text-sm"><span className="text-ink-500">Pending Amount</span><span className="font-semibold text-warning-600">₹{fee.pending.toLocaleString()}</span></div>
-            <div className="flex justify-between text-sm mt-1"><span className="text-ink-500">Due Date</span><span className="font-medium text-ink-800">{fee.dueDate}</span></div>
+            <div className="flex justify-between text-sm mt-1"><span className="text-ink-500">Fee Type</span><span className="font-medium text-ink-800">{openInvoice?.title}</span></div>
           </div>
-          <div><label className="label">Select Term</label>
-            <Select value="term2" onChange={() => {}} options={[
-              { value: 'term2', label: 'Term 2 — ₹15,000' },
-              { value: 'full', label: 'Full Year — ₹15,000 (remaining)' },
-            ]} />
-          </div>
+          <div><label className="label">Amount (₹)</label><input className="input" type="number" min="1" max={openInvoice?.pending} value={amount} onChange={(event) => setAmount(event.target.value)} /></div>
+          <div><label className="label">Payment method</label><Select value={method} onChange={(value) => setMethod(value as typeof method)} options={[{ value: 'demo-card', label: 'Demo Card' }, { value: 'bank-transfer', label: 'Bank Transfer' }, { value: 'cash', label: 'Cash' }]} /></div>
+          <div><label className="label">Reference</label><input className="input" value={reference} onChange={(event) => setReference(event.target.value)} placeholder="DEMO-REFERENCE" /></div>
+          <div><label className="label">Payment date</label><input className="input" type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></div>
           <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-xl text-sm text-primary-700">
-            <CreditCard className="w-4 h-4" /> Secure payment via Razorpay. Invoice auto-sent to WhatsApp, email & SMS.
+            <CreditCard className="w-4 h-4" /> Demo transaction only. No payment gateway or external message service is contacted.
           </div>
-          <button onClick={() => setShowPay(false)} className="btn-primary w-full"><CreditCard className="w-4 h-4" /> Pay ₹{fee.pending.toLocaleString()}</button>
+          <button onClick={submitPayment} className="btn-primary w-full"><CreditCard className="w-4 h-4" /> Record Demo Payment</button>
         </div>
       </Modal>
     </div>
@@ -1068,49 +1121,53 @@ export function StudentFees() {
 }
 
 export function StudentReports() {
-  const [reportType, setReportType] = useState('ai');
+  const { selectedStudent } = useStudentPortal();
+  const { state, getStudentSummary, getStudentAssignments } = useLmsData();
+  const [reportType, setReportType] = useState('overview');
+  const summary = selectedStudent ? getStudentSummary(selectedStudent.id) : null;
+  const gradedAssignments = selectedStudent ? getStudentAssignments(selectedStudent.id).filter((item) => item.submission?.status === 'graded') : [];
+  const resultRows = state.examResults.filter((item) => item.studentId === selectedStudent?.id).map((result) => { const exam = state.exams.find((item) => item.id === result.examId); const course = state.courses.find((item) => item.id === exam?.courseId); return { id: result.id, subject: course?.title ?? 'Course', marks: `${result.marks}/${exam?.maxMarks ?? 0}`, grade: exam && result.marks / exam.maxMarks >= 0.9 ? 'A+' : exam && result.marks / exam.maxMarks >= 0.8 ? 'A' : 'B', attendance: `${summary?.attendance ?? 0}%` }; });
   return (
     <div>
-      <PageHeader title="Reports" subtitle="AI-generated & custom performance reports" actions={
+      <PageHeader title="Reports" subtitle={`Derived academic report for ${selectedStudent?.name ?? 'student'}`} actions={
         <>
           <Select value={reportType} onChange={setReportType} options={[
-            { value: 'ai', label: 'AI Generated' }, { value: 'attendance', label: 'Attendance Report' },
+            { value: 'overview', label: 'Performance Overview' }, { value: 'attendance', label: 'Attendance Report' },
             { value: 'marks', label: 'Marks Report' }, { value: 'custom', label: 'Custom Report' },
           ]} />
-          <button className="btn-primary"><Download className="w-4 h-4" /> Download</button>
+          <button onClick={() => window.print()} className="btn-primary"><Download className="w-4 h-4" /> Print Report</button>
         </>
       } />
-      {reportType === 'ai' && (
+      {reportType === 'overview' && summary && (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-primary-600" />
-            <h3 className="font-semibold text-ink-900">AI Performance Analysis</h3>
-            <Badge variant="primary">Auto-generated</Badge>
+            <h3 className="font-semibold text-ink-900">Performance Analysis</h3>
+            <Badge variant="primary">Calculated from records</Badge>
           </div>
           <div className="prose prose-sm max-w-none">
-            <p className="text-ink-700">Arjun Verma has shown <strong className="text-success-600">excellent performance</strong> in the Computer Science department during the current term. Here's a comprehensive analysis:</p>
+            <p className="text-ink-700">This summary uses the same attendance, assessment, assignment, and fee records displayed throughout the portal.</p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 not-prose">
-              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">92%</p><p className="text-xs text-ink-400">Attendance</p></div>
-              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">85%</p><p className="text-xs text-ink-400">Avg Score</p></div>
-              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">8/8</p><p className="text-xs text-ink-400">Assignments</p></div>
-              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">A+</p><p className="text-xs text-ink-400">Grade</p></div>
+              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">{summary.attendance}%</p><p className="text-xs text-ink-400">Attendance</p></div>
+              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">{summary.overallPerformance}%</p><p className="text-xs text-ink-400">Avg Score</p></div>
+              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">{gradedAssignments.length}</p><p className="text-xs text-ink-400">Graded Assignments</p></div>
+              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">{summary.pendingAssignments}</p><p className="text-xs text-ink-400">Pending</p></div>
             </div>
             <h4 className="font-semibold text-ink-900 mt-5">Strengths</h4>
             <ul className="text-sm text-ink-600 mt-1 space-y-1">
-              <li>Strong understanding of data structures concepts</li>
-              <li>Consistent class participation and attendance</li>
-              <li>Timely submission of all assignments</li>
+              <li>Strongest assessed subject: {summary.strongestSubject}</li>
+              <li>{summary.attended} of {summary.conducted} conducted classes attended</li>
             </ul>
             <h4 className="font-semibold text-ink-900 mt-4">Areas for Improvement</h4>
             <ul className="text-sm text-ink-600 mt-1 space-y-1">
-              <li>Could benefit from more practice on advanced algorithms</li>
-              <li>Encouraged to participate more in discussion forums</li>
+              <li>Lowest assessed subject: {summary.needsAttention}</li>
+              <li>{summary.pendingAssignments} assignment(s) currently require action</li>
             </ul>
-            <p className="text-xs text-ink-400 mt-4">Report available in multiple languages — select language to translate.</p>
+            <p className="text-xs text-ink-400 mt-4">This is deterministic demo analysis, not an AI prediction.</p>
           </div>
         </Card>
       )}
-      {reportType !== 'ai' && (
+      {reportType !== 'overview' && (
         <Card>
           <DataTable
             columns={[
@@ -1119,12 +1176,7 @@ export function StudentReports() {
               { key: 'grade', label: 'Grade' },
               { key: 'attendance', label: 'Attendance' },
             ]}
-            data={[
-              { id: '1', subject: 'Data Structures', marks: '85/100', grade: 'A', attendance: '94%' },
-              { id: '2', subject: 'Algorithms', marks: '82/100', grade: 'A', attendance: '90%' },
-              { id: '3', subject: 'Digital Electronics', marks: '78/100', grade: 'B+', attendance: '88%' },
-              { id: '4', subject: 'Mathematics', marks: '90/100', grade: 'A+', attendance: '96%' },
-            ]}
+            data={resultRows}
           />
         </Card>
       )}
@@ -1217,57 +1269,74 @@ export function AiHub() {
 }
 
 export function StudentProfile() {
+  const { selectedStudent } = useStudentPortal();
+  const { state, getStudentSummary, updateStudentProfile } = useLmsData();
+  const [editing, setEditing] = useState(false);
+  const student = selectedStudent ? state.students.find((item) => item.id === selectedStudent.id) : undefined;
+  const summary = student ? getStudentSummary(student.id) : null;
+  const batch = state.batches.find((item) => item.id === student?.batchId);
+  const department = state.departments.find((item) => item.id === student?.departmentId);
+  const teacher = state.teachers.find((item) => item.id === batch?.teacherId);
+  const [form, setForm] = useState({ phone: '', email: '', address: '', emergencyContact: '' });
+  if (!student || !summary) return <EmptyState icon={GraduationCap} title="Profile unavailable" description="No student profile is linked to this account." />;
+  const openEdit = () => { setForm({ phone: student.phone, email: student.email, address: student.address, emergencyContact: student.emergencyContact }); setEditing(true); };
+  const saveProfile = () => { if (updateStudentProfile(student.id, form).ok) setEditing(false); };
   return (
     <div>
-      <PageHeader title="My Profile" subtitle="Your complete information" actions={<button className="btn-primary"><Edit className="w-4 h-4" /> Edit Profile</button>} />
+      <PageHeader title="My Profile" subtitle="Your complete information" actions={<button onClick={openEdit} className="btn-primary"><Edit className="w-4 h-4" /> Edit Profile</button>} />
       <div className="grid lg:grid-cols-3 gap-4">
         <Card className="p-6 text-center">
-          <img src={students[0].avatar} alt="Profile" className="w-24 h-24 rounded-2xl bg-ink-100 mx-auto mb-4" />
-          <h3 className="text-lg font-bold font-display text-ink-900">Arjun Verma</h3>
-          <p className="text-sm text-ink-500">Student · CS-2024-A</p>
-          <p className="text-xs text-ink-400 mt-1">Bright Future College</p>
+          <img src={student.avatar} alt="Profile" className="w-24 h-24 rounded-2xl bg-ink-100 mx-auto mb-4" />
+          <h3 className="text-lg font-bold font-display text-ink-900">{student.name}</h3>
+          <p className="text-sm text-ink-500">Student · {batch?.name}</p>
+          <p className="text-xs text-ink-400 mt-1">{state.institution.name}</p>
           <div className="mt-4 flex justify-center gap-2">
             <Badge variant="success">Active</Badge>
-            <Badge variant="primary">Roll: BFC-CS-01</Badge>
+            <Badge variant="primary">Roll: {student.rollNo}</Badge>
           </div>
           <div className="mt-4 pt-4 border-t border-ink-100 space-y-2 text-sm text-left">
-            <div className="flex items-center gap-2 text-ink-600"><Mail className="w-4 h-4 text-ink-400" /> arjun@student.com</div>
-            <div className="flex items-center gap-2 text-ink-600"><Phone className="w-4 h-4 text-ink-400" /> +91 98765 43210</div>
+            <div className="flex items-center gap-2 text-ink-600"><Mail className="w-4 h-4 text-ink-400" /> {student.email}</div>
+            <div className="flex items-center gap-2 text-ink-600"><Phone className="w-4 h-4 text-ink-400" /> {student.phone}</div>
           </div>
           <div className="mt-3 pt-3 border-t border-ink-50 text-xs text-ink-400">
-            <p>Parent: +91 98765 43211</p>
+            <p>Emergency: {student.emergencyContact}</p>
           </div>
         </Card>
         <Card className="lg:col-span-2 p-6">
           <h3 className="font-semibold text-ink-900 mb-4">Personal Information</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><p className="text-ink-400 text-xs">Full Name</p><p className="font-medium text-ink-800">Arjun Verma</p></div>
-            <div><p className="text-ink-400 text-xs">Date of Birth</p><p className="font-medium text-ink-800">12 June 2005</p></div>
-            <div><p className="text-ink-400 text-xs">Gender</p><p className="font-medium text-ink-800">Male</p></div>
-            <div><p className="text-ink-400 text-xs">Blood Group</p><p className="font-medium text-ink-800">O+</p></div>
-            <div><p className="text-ink-400 text-xs">Batch</p><p className="font-medium text-ink-800">CS-2024-A</p></div>
-            <div><p className="text-ink-400 text-xs">Department</p><p className="font-medium text-ink-800">Computer Science</p></div>
+            <div><p className="text-ink-400 text-xs">Full Name</p><p className="font-medium text-ink-800">{student.name}</p></div>
+            <div><p className="text-ink-400 text-xs">Address</p><p className="font-medium text-ink-800">{student.address}</p></div>
+            <div><p className="text-ink-400 text-xs">Batch</p><p className="font-medium text-ink-800">{batch?.name}</p></div>
+            <div><p className="text-ink-400 text-xs">Department</p><p className="font-medium text-ink-800">{department?.name}</p></div>
           </div>
           <h3 className="font-semibold text-ink-900 mb-4 mt-6">Academic Information</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><p className="text-ink-400 text-xs">Roll Number</p><p className="font-medium text-ink-800">BFC-CS-01</p></div>
-            <div><p className="text-ink-400 text-xs">Attendance</p><p className="font-medium text-ink-800">92%</p></div>
-            <div><p className="text-ink-400 text-xs">Total Fee</p><p className="font-medium text-ink-800">₹45,000</p></div>
-            <div><p className="text-ink-400 text-xs">Fee Paid</p><p className="font-medium text-success-600">₹30,000</p></div>
+            <div><p className="text-ink-400 text-xs">Roll Number</p><p className="font-medium text-ink-800">{student.rollNo}</p></div>
+            <div><p className="text-ink-400 text-xs">Attendance</p><p className="font-medium text-ink-800">{summary.attendance}%</p></div>
+            <div><p className="text-ink-400 text-xs">Total Fee</p><p className="font-medium text-ink-800">₹{summary.feeTotal.toLocaleString('en-IN')}</p></div>
+            <div><p className="text-ink-400 text-xs">Fee Paid</p><p className="font-medium text-success-600">₹{summary.feePaid.toLocaleString('en-IN')}</p></div>
           </div>
           <h3 className="font-semibold text-ink-900 mb-4 mt-6">Teacher Details</h3>
           <div className="card p-4 bg-ink-50">
             <div className="flex items-center gap-3">
-              <img src="https://api.dicebear.com/7.x/initials/svg?seed=Sneha%20Kapoor&backgroundColor=2563eb&textColor=ffffff" alt="teacher" className="w-10 h-10 rounded-lg bg-white" />
+              <img src={teacher?.avatar} alt="teacher" className="w-10 h-10 rounded-lg bg-white" />
               <div>
-                <p className="font-medium text-ink-800">Sneha Kapoor</p>
-                <p className="text-xs text-ink-400">sneha@brightfuture.edu · +91 90000 11111</p>
+                <p className="font-medium text-ink-800">{teacher?.name}</p>
+                <p className="text-xs text-ink-400">{teacher?.email} · {teacher?.phone}</p>
               </div>
             </div>
           </div>
-          <p className="text-xs text-ink-400 mt-4">Note: Mobile number & email changes require admin/teacher approval.</p>
+          <p className="text-xs text-ink-400 mt-4">Student ID, institution, academic batch, and role are restricted fields.</p>
         </Card>
       </div>
+      <Modal open={editing} onClose={() => setEditing(false)} title="Edit Contact Details" size="md"><div className="space-y-4">
+        <div><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
+        <div><label className="label">Phone</label><input className="input" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></div>
+        <div><label className="label">Address</label><textarea className="input min-h-20" value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} /></div>
+        <div><label className="label">Emergency contact</label><input className="input" value={form.emergencyContact} onChange={(event) => setForm({ ...form, emergencyContact: event.target.value })} /></div>
+        <button onClick={saveProfile} className="btn-primary w-full"><Save className="w-4 h-4" /> Save Changes</button>
+      </div></Modal>
     </div>
   );
 }

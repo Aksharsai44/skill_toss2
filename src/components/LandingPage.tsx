@@ -1,20 +1,42 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sparkles, Video, CreditCard, MessageCircle, Calendar, Award, Fingerprint,
-  Users, TrendingUp, Shield, Zap, ArrowRight, Check, Star, Building2,
+  Video, CreditCard, MessageCircle, Calendar, Award, Fingerprint,
+  Users, TrendingUp, Zap, ArrowRight, Building2,
   GraduationCap, BookOpen, Brain, Cloud, Bell, ChevronRight,
 } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
 import { ROLES } from '@/lib/types';
 import { cn } from '@/lib/cn';
+import { enter, prefersReducedMotion, reveal } from '@/lib/motion';
 
 export function LandingPage() {
   const navigate = useNavigate();
   const handleLogin = () => navigate('/login');
 
+  useEffect(() => {
+    document.documentElement.classList.add('landing-scroll');
+    const sections = Array.from(document.querySelectorAll<HTMLElement>('.landing-reveal'));
+    const heroGroups = Array.from(document.querySelectorAll<HTMLElement>('.landing-hero-group'));
+    const heroAnimation = enter(heroGroups, { offset: 16, duration: 420, staggerMs: 50 });
+    if (prefersReducedMotion()) sections.forEach((section) => { section.style.opacity = '1'; });
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          reveal(entry.target as HTMLElement);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    sections.forEach((section) => observer.observe(section));
+    return () => {
+      observer.disconnect();
+      heroAnimation.revert();
+      document.documentElement.classList.remove('landing-scroll');
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white landing-page">
       <Nav onLogin={handleLogin} />
       <Hero onLogin={handleLogin} />
       <TrustBar />
@@ -30,17 +52,17 @@ export function LandingPage() {
 
 function Nav({ onLogin }: { onLogin: () => void }) {
   return (
-    <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-ink-100">
+    <nav className="app-chrome sticky top-0 z-30 bg-white border-b border-ink-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-accent-600 flex items-center justify-center text-white font-bold font-display">ST</div>
+          <div className="w-9 h-9 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold font-display">ST</div>
           <span className="font-bold font-display text-lg text-ink-900">Skill Toss</span>
         </div>
         <div className="hidden md:flex items-center gap-7 text-sm font-medium text-ink-600">
-          <a href="#features" className="hover:text-ink-900 transition">Features</a>
-          <a href="#roles" className="hover:text-ink-900 transition">Roles</a>
-          <a href="#automation" className="hover:text-ink-900 transition">Automation</a>
-          <a href="#pricing" className="hover:text-ink-900 transition">Pricing</a>
+          <a href="#features" className="hover:text-ink-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded">Features</a>
+          <a href="#roles" className="hover:text-ink-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded">Roles</a>
+          <a href="#automation" className="hover:text-ink-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded">Automation</a>
+          <a href="#pricing" className="hover:text-ink-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded">Pricing</a>
         </div>
         <button onClick={onLogin} className="btn-primary text-sm">
           Sign In <ArrowRight className="w-4 h-4" />
@@ -52,33 +74,39 @@ function Nav({ onLogin }: { onLogin: () => void }) {
 
 function Hero({ onLogin }: { onLogin: () => void }) {
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-primary-50/50 via-white to-white" />
-      <div className="absolute top-20 right-0 w-96 h-96 bg-accent-200/20 rounded-full blur-3xl" />
-      <div className="absolute top-40 left-0 w-80 h-80 bg-primary-200/20 rounded-full blur-3xl" />
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-50 border border-primary-100 text-primary-700 text-sm font-medium mb-6 animate-slide-up">
-          <Sparkles className="w-4 h-4" />
-          AI-Powered Learning Management System
-        </div>
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-display text-ink-900 max-w-4xl mx-auto leading-[1.1] animate-slide-up">
-          The complete LMS that <span className="bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">automates everything</span> for schools, colleges & training institutes
-        </h1>
-        <p className="mt-6 text-lg text-ink-500 max-w-2xl mx-auto animate-slide-up">
-          Live classes, auto-recordings, AI exams, fee management, WhatsApp automation, salary, attendance, certifications — all in one intelligent platform.
+    <section className="border-b border-ink-200 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 lg:py-28 grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+        <div className="lg:col-span-7 landing-hero-group">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-700 mb-6">
+          Learning operations, unified
         </p>
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 animate-slide-up">
-          <button onClick={onLogin} className="btn-primary px-6 py-3 text-base">
-            Explore Portals <ArrowRight className="w-5 h-5" />
+        <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-semibold font-display text-ink-950 leading-[1.02] tracking-[-0.045em]">
+          Run your institution from one accountable system.
+        </h1>
+        <p className="mt-7 text-base sm:text-lg leading-8 text-ink-600 max-w-xl">
+          Skill Toss connects teaching, attendance, fees, assessments and parent communication without adding another layer of administrative work.
+        </p>
+        <div className="mt-9 flex flex-col sm:flex-row sm:items-center gap-3">
+          <button onClick={onLogin} className="btn-primary px-5 py-3 text-sm">
+            Explore the platform <ArrowRight className="w-4 h-4" />
           </button>
-          <a href="#features" className="btn-secondary px-6 py-3 text-base">See Features</a>
+          <a href="#features" className="btn-ghost px-4 py-3 text-sm">Review capabilities</a>
+        </div>
+
+        <div className="mt-12 pt-6 border-t border-ink-200 grid grid-cols-3 gap-5 max-w-xl">
+          {[["5", "Role-specific portals"], ["24/7", "Operational visibility"], ["1", "Institutional record"]].map(([value, label]) => (
+            <div key={label}>
+              <p className="text-xl font-semibold text-ink-950 tabular-nums">{value}</p>
+              <p className="text-xs leading-5 text-ink-500 mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
         </div>
 
         {/* Hero dashboard preview */}
-        <div className="mt-16 max-w-5xl mx-auto animate-slide-up">
-          <div className="card p-2 shadow-pop">
-            <div className="rounded-xl bg-gradient-to-br from-ink-900 to-ink-800 p-6 sm:p-8">
+        <div className="lg:col-span-5 landing-hero-group">
+          <div className="border border-ink-300 bg-ink-950 p-5 sm:p-6 shadow-card">
+            <div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
                   { label: 'Total Revenue', value: '₹2.43L', icon: TrendingUp, color: 'text-success-400' },
@@ -86,7 +114,7 @@ function Hero({ onLogin }: { onLogin: () => void }) {
                   { label: 'Classes Today', value: '28', icon: Video, color: 'text-accent-400' },
                   { label: 'Auto Messages', value: '1,240', icon: MessageCircle, color: 'text-warning-400' },
                 ].map((s) => (
-                  <div key={s.label} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <div key={s.label} className="py-3 border-t border-white/15">
                     <s.icon className={cn('w-5 h-5 mb-2', s.color)} />
                     <p className="text-2xl font-bold font-display text-white">{s.value}</p>
                     <p className="text-xs text-ink-400 mt-0.5">{s.label}</p>
@@ -94,12 +122,12 @@ function Hero({ onLogin }: { onLogin: () => void }) {
                 ))}
               </div>
               <div className="mt-4 grid grid-cols-12 gap-3">
-                <div className="col-span-7 bg-white/5 rounded-xl p-4 border border-white/10 h-32 flex items-end gap-1.5">
+                <div className="col-span-7 border-t border-white/15 pt-4 h-32 flex items-end gap-1.5">
                   {[40, 55, 45, 65, 58, 72, 68, 80, 75, 90, 85, 95].map((h, i) => (
-                    <div key={i} className="flex-1 bg-gradient-to-t from-primary-600 to-accent-400 rounded-t" style={{ height: `${h}%` }} />
+                    <div key={i} className="flex-1 bg-primary-500 rounded-t" style={{ height: `${h}%` }} />
                   ))}
                 </div>
-                <div className="col-span-5 bg-white/5 rounded-xl p-4 border border-white/10 h-32 flex flex-col justify-center gap-2">
+                <div className="col-span-5 border-t border-white/15 pt-4 h-32 flex flex-col justify-center gap-2">
                   {[
                     { label: 'Recordings auto-synced', val: '12 today', icon: Cloud },
                     { label: 'WhatsApp sent', val: '340 today', icon: MessageCircle },
@@ -157,20 +185,20 @@ function Features() {
     { icon: Users, title: 'Community & Forum', desc: 'WhatsApp-style community chats & Quora-style discussion forums across all branches.' },
   ];
   return (
-    <section id="features" className="py-20 bg-white">
+    <section id="features" className="landing-reveal py-20 sm:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold font-display text-ink-900">Everything automated, end to end</h2>
-          <p className="mt-3 text-ink-500 max-w-2xl mx-auto">From scheduling a class to sending the recording, collecting fees to generating salary slips — Skill Toss automates it all.</p>
+        <div className="grid lg:grid-cols-12 gap-5 lg:gap-12 items-end mb-12">
+          <h2 className="lg:col-span-5 text-3xl sm:text-4xl font-semibold font-display text-ink-950 tracking-tight">One operational layer for the entire institution.</h2>
+          <p className="lg:col-span-5 lg:col-start-8 text-ink-500 leading-7">From scheduling a class to issuing a receipt, every workflow stays attached to the same student and institutional record.</p>
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid md:grid-cols-2 border-y border-ink-200 md:divide-x divide-ink-200">
           {features.map((f) => (
-            <div key={f.title} className="card card-hover p-6 group">
-              <div className="w-12 h-12 rounded-xl bg-primary-50 group-hover:bg-primary-100 transition-colors flex items-center justify-center mb-4">
-                <f.icon className="w-6 h-6 text-primary-600" />
+            <div key={f.title} className="grid grid-cols-[2.5rem_1fr] gap-4 py-6 md:px-6 border-b border-ink-100 last:border-b-0 md:[&:nth-last-child(-n+2)]:border-b-0">
+              <div className="w-10 h-10 rounded-lg bg-primary-50 border border-primary-100 flex items-center justify-center">
+                <f.icon className="w-5 h-5 text-primary-600" />
               </div>
-              <h3 className="font-semibold text-ink-900 mb-1.5">{f.title}</h3>
-              <p className="text-sm text-ink-500 leading-relaxed">{f.desc}</p>
+              <div><h3 className="font-semibold text-ink-900 mb-1.5">{f.title}</h3>
+              <p className="text-sm text-ink-500 leading-relaxed">{f.desc}</p></div>
             </div>
           ))}
         </div>
@@ -181,33 +209,26 @@ function Features() {
 
 function RolesSection({ onLogin }: { onLogin: () => void }) {
   return (
-    <section id="roles" className="py-20 bg-ink-50">
+    <section id="roles" className="landing-reveal py-20 sm:py-24 bg-ink-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold font-display text-ink-900">Five powerful portals, one platform</h2>
-          <p className="mt-3 text-ink-500 max-w-2xl mx-auto">Each role gets a tailored experience with exactly the tools they need.</p>
+        <div className="grid lg:grid-cols-12 gap-5 lg:gap-12 items-end mb-12">
+          <h2 className="lg:col-span-6 text-3xl sm:text-4xl font-semibold font-display text-ink-950 tracking-tight">Different responsibilities. One source of truth.</h2>
+          <p className="lg:col-span-4 lg:col-start-9 text-ink-500 leading-7">Each role sees the tools and records relevant to its work—without duplicating the platform.</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {ROLES.map((role, i) => {
-            const colors = [
-              'from-primary-600 to-primary-800',
-              'from-accent-600 to-accent-800',
-              'from-success-600 to-success-800',
-              'from-warning-600 to-warning-800',
-              'from-ink-700 to-ink-900',
-            ];
             return (
               <button
                 key={role.id}
                 onClick={onLogin}
-                className="card card-hover p-6 text-left group cursor-pointer"
+                className="p-5 text-left group cursor-pointer border-t border-ink-300 hover:bg-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
               >
-                <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-white font-bold font-display text-lg mb-4', colors[i])}>
+                <div className="w-9 h-9 rounded-lg bg-ink-900 flex items-center justify-center text-white font-bold font-display text-sm mb-4">
                   {i + 1}
                 </div>
                 <h3 className="font-semibold text-ink-900 mb-1.5 group-hover:text-primary-700 transition">{role.label}</h3>
                 <p className="text-xs text-ink-500 leading-relaxed">{role.description}</p>
-                <div className="mt-4 flex items-center gap-1 text-xs font-medium text-primary-600 group-hover:gap-2 transition-all">
+                <div className="mt-4 flex items-center gap-1 text-xs font-medium text-primary-600">
                   Explore <ChevronRight className="w-3.5 h-3.5" />
                 </div>
               </button>
@@ -228,19 +249,19 @@ function AutomationSection() {
     { icon: Award, title: 'Course complete — certificate', desc: 'AI generates certificate, sends it to student\'s WhatsApp & email with congratulations.' },
   ];
   return (
-    <section id="automation" className="py-20 bg-white">
+    <section id="automation" className="landing-reveal py-20 sm:py-24 bg-white">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-50 border border-accent-100 text-accent-700 text-sm font-medium mb-4">
-            <Zap className="w-4 h-4" /> Automation Engine
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold font-display text-ink-900">How a single class triggers a chain of automation</h2>
+        <div className="mb-14 border-b border-ink-200 pb-8">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary-700 mb-4">
+            <Zap className="w-4 h-4" /> Automation engine
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-semibold font-display text-ink-950 tracking-tight max-w-3xl">A class ends. The administrative work continues automatically.</h2>
         </div>
         <div className="space-y-0">
           {steps.map((step, i) => (
             <div key={i} className="flex gap-5 group">
               <div className="flex flex-col items-center">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white shrink-0 shadow-soft group-hover:scale-110 transition-transform">
+                <div className="w-11 h-11 rounded-xl bg-primary-600 flex items-center justify-center text-white shrink-0 shadow-soft">
                   <step.icon className="w-5 h-5" />
                 </div>
                 {i < steps.length - 1 && <div className="w-0.5 flex-1 bg-gradient-to-b from-primary-200 to-transparent my-1 min-h-[40px]" />}
@@ -265,7 +286,7 @@ function StatsSection() {
     { value: '99.9%', label: 'Uptime guaranteed' },
   ];
   return (
-    <section className="py-16 bg-gradient-to-br from-primary-700 to-accent-700">
+    <section className="landing-reveal py-16 bg-primary-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((s) => (
@@ -282,7 +303,7 @@ function StatsSection() {
 
 function CTASection({ onLogin }: { onLogin: () => void }) {
   return (
-    <section id="pricing" className="py-20 bg-ink-50">
+    <section id="pricing" className="landing-reveal py-20 bg-ink-50 border-t border-ink-200">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
         <h2 className="text-3xl sm:text-4xl font-bold font-display text-ink-900">Ready to automate your institution?</h2>
         <p className="mt-3 text-ink-500">Sign in to explore each portal with rich demo data — see exactly how Skill Toss works for your role.</p>
@@ -299,7 +320,7 @@ function Footer() {
     <footer className="py-10 bg-ink-900 text-ink-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-bold text-sm">ST</div>
+          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm">ST</div>
           <span className="font-semibold text-white">Skill Toss</span>
         </div>
         <p className="text-sm">AI-Powered LMS for Schools, Colleges & Training Institutes</p>

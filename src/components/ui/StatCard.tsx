@@ -26,13 +26,13 @@ export function StatCard({
   const c = colorMap[color];
 
   return (
-    <div className="card card-hover p-5">
+    <div className="card card-hover p-5 lg:p-6">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-ink-500 font-medium">{label}</p>
-          <p className="text-2xl font-bold font-display text-ink-900 mt-1">{value}</p>
+          <p className="text-xs uppercase tracking-[0.08em] text-ink-500 font-semibold">{label}</p>
+          <p data-kpi-value className="text-2xl font-bold font-display text-ink-950 mt-1.5 leading-none tabular-nums">{value}</p>
         </div>
-        <div className={cn('rounded-xl p-2.5 ring-4', c.bg, c.ring)}>
+        <div className={cn('rounded-lg p-2.5 ring-1 ring-inset', c.bg, c.ring)}>
           <Icon className={cn('w-5 h-5', c.text)} />
         </div>
       </div>

@@ -1,39 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useAuth } from '@/lib/auth';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useAuth } from '@/lib/authContext';
 import type { StudentPortalPermissions, StudentViewerRole } from '@/lib/types';
 
-export type LinkedStudent = {
-  id: string;
-  name: string;
-  rollNo: string;
-  batch: string;
-  department: string;
-  attendance: number;
-  feePending: number;
-  assignmentsPending: number;
-  upcomingExams: number;
-  overallPerformance: number;
-  strongestSubject: string;
-  needsAttention: string;
-  semesterTrend: number;
-  relationship?: 'father' | 'mother' | 'guardian' | 'other';
-};
-
-const DEMO_LINKED_STUDENTS: LinkedStudent[] = [
-  { id: 's1', name: 'Arjun Verma', rollNo: 'BFC-CS-01', batch: 'CS-2024-A', department: 'Computer Science', attendance: 92, feePending: 15000, assignmentsPending: 3, upcomingExams: 2, overallPerformance: 84, strongestSubject: 'DBMS', needsAttention: 'Operating Systems', semesterTrend: 6, relationship: 'father' },
-  { id: 's4', name: 'Ananya Verma', rollNo: 'BFC-EE-01', batch: 'EE-2024-B', department: 'Electronics', attendance: 74, feePending: 0, assignmentsPending: 1, upcomingExams: 3, overallPerformance: 91, strongestSubject: 'Mathematics', needsAttention: 'Physics', semesterTrend: 3, relationship: 'father' },
-];
-
-type StudentPortalContextValue = {
-  viewerRole: StudentViewerRole;
-  isParent: boolean;
-  linkedStudents: LinkedStudent[];
-  selectedStudentId: string | null;
-  selectedStudent: LinkedStudent | null;
-  activeStudentId: string | null;
-  permissions: StudentPortalPermissions;
-  selectStudent: (studentId: string) => void;
-};
+import { StudentPortalContext, type LinkedStudent, type StudentPortalContextValue } from '@/lib/studentPortalContext';
+import { useLmsData } from '@/lib/lmsDataContext';
 
 const VIEWER_PERMISSIONS: Record<StudentViewerRole, StudentPortalPermissions> = {
   student: {
@@ -50,14 +20,21 @@ const VIEWER_PERMISSIONS: Record<StudentViewerRole, StudentPortalPermissions> = 
   },
 };
 
-const StudentPortalContext = createContext<StudentPortalContextValue | null>(null);
-
 export function StudentPortalProvider({ children }: { children: ReactNode }) {
   const { profile } = useAuth();
+  const { state, getStudentSummary } = useLmsData();
   const isParent = profile?.role === 'parent';
   const viewerRole: StudentViewerRole = isParent ? 'parent' : 'student';
-  // Demo data is isolated here until parent_student_links is available behind RLS.
-  const linkedStudents = useMemo(() => (isParent ? DEMO_LINKED_STUDENTS : []), [isParent]);
+  const toLinkedStudent = useCallback((studentId: string, relationship?: LinkedStudent['relationship']): LinkedStudent | null => {
+    const summary = getStudentSummary(studentId);
+    if (!summary) return null;
+    const batch = state.batches.find((item) => item.id === summary.student.batchId);
+    const department = state.departments.find((item) => item.id === summary.student.departmentId);
+    return { id: summary.student.id, name: summary.student.name, rollNo: summary.student.rollNo, batch: batch?.name ?? '', department: department?.name ?? '', attendance: summary.attendance, feePending: summary.feePending, assignmentsPending: summary.pendingAssignments, upcomingExams: summary.upcomingExams, overallPerformance: summary.overallPerformance, strongestSubject: summary.strongestSubject, needsAttention: summary.needsAttention, semesterTrend: 0, relationship } satisfies LinkedStudent;
+  }, [getStudentSummary, state.batches, state.departments]);
+  const linkedStudents = useMemo(() => isParent
+    ? state.parentLinks.filter((link) => link.parentId === 'demo-parent-id').map((link) => toLinkedStudent(link.studentId, link.relationship)).filter((item): item is LinkedStudent => item !== null)
+    : [], [isParent, state.parentLinks, toLinkedStudent]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,9 +46,8 @@ export function StudentPortalProvider({ children }: { children: ReactNode }) {
 
   const selectedStudent = useMemo(() => isParent
     ? linkedStudents.find((student) => student.id === selectedStudentId) ?? null
-    : profile?.role === 'student'
-      ? { id: profile.id, name: profile.fullName, rollNo: 'BFC-CS-01', batch: 'CS-2024-A', department: 'Computer Science', attendance: 92, feePending: 15000, assignmentsPending: 3, upcomingExams: 2, overallPerformance: 84, strongestSubject: 'DBMS', needsAttention: 'Operating Systems', semesterTrend: 6 }
-      : null, [isParent, linkedStudents, profile, selectedStudentId]);
+    : profile?.role === 'student' ? toLinkedStudent('student_001') : null,
+  [isParent, linkedStudents, profile?.role, selectedStudentId, toLinkedStudent]);
 
   const value = useMemo<StudentPortalContextValue>(() => ({
     viewerRole,
@@ -85,10 +61,4 @@ export function StudentPortalProvider({ children }: { children: ReactNode }) {
   }), [isParent, linkedStudents, selectedStudent, selectedStudentId, viewerRole]);
 
   return <StudentPortalContext.Provider value={value}>{children}</StudentPortalContext.Provider>;
-}
-
-export function useStudentPortal() {
-  const context = useContext(StudentPortalContext);
-  if (!context) throw new Error('useStudentPortal must be used within StudentPortalProvider');
-  return context;
 }

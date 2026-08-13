@@ -1,16 +1,15 @@
 import { clsx, type ClassValue } from 'clsx';
-import { cn } from '@/lib/cn';
 
 type Variant = 'primary' | 'success' | 'warning' | 'error' | 'neutral' | 'accent';
 type Size = 'sm' | 'md';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-primary-100 text-primary-700',
-  success: 'bg-success-100 text-success-700',
-  warning: 'bg-warning-100 text-warning-700',
-  error: 'bg-error-100 text-error-700',
+  primary: 'bg-primary-50 text-primary-700 ring-1 ring-inset ring-primary-200/70',
+  success: 'bg-success-50 text-success-700 ring-1 ring-inset ring-success-200/70',
+  warning: 'bg-warning-50 text-warning-700 ring-1 ring-inset ring-warning-200/70',
+  error: 'bg-error-50 text-error-700 ring-1 ring-inset ring-error-200/70',
   neutral: 'bg-ink-100 text-ink-600',
-  accent: 'bg-accent-100 text-accent-700',
+  accent: 'bg-accent-50 text-accent-700 ring-1 ring-inset ring-accent-200/70',
 };
 
 const sizes: Record<Size, string> = {

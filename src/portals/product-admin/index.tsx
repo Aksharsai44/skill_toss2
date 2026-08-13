@@ -1,5 +1,5 @@
 import {
-  Building2, TrendingUp, Users, Inbox, Tags, Check, Clock, Star,
+  Building2, TrendingUp, Users, Inbox, Check, Clock, Star,
   ArrowUpRight, Video, CreditCard, MessageCircle, Calendar, Sparkles,
   Fingerprint, Award, MessagesSquare, Palette, ToggleLeft, Plus, Search,
   AlertTriangle, Send

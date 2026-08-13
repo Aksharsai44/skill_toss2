@@ -56,7 +56,7 @@ export function SuperAdminDashboard() {
                     <p className="text-sm font-semibold text-ink-900">₹{(b.revenue / 1000).toFixed(0)}k</p>
                   </div>
                   <div className="h-2 bg-ink-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full" style={{ width: `${(b.revenue / 85000) * 100}%` }} />
+                    <div className="h-full bg-primary-600 rounded-full" style={{ width: `${(b.revenue / 85000) * 100}%` }} />
                   </div>
                 </div>
                 <span className={cn('text-xs font-semibold flex items-center gap-0.5', b.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
@@ -83,7 +83,7 @@ export function Branches() {
           <button key={b.id} onClick={() => setSelectedBranch(b)} className="card card-hover p-5 text-left w-full relative">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white">
+            <div className="w-12 h-12 rounded-lg bg-primary-600 flex items-center justify-center text-white">
                   <Building2 className="w-6 h-6" />
                 </div>
                 <div>

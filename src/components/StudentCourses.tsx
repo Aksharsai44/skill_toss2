@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   PlayCircle, Play, Clock, Layers, Award, ChevronRight, ArrowLeft,
-  Check, Download, Lock, BookOpen, Video,
+  Check, Download, BookOpen, Video,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';
-import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 
 type Course = {
@@ -166,7 +166,7 @@ function CourseViewer({ course, onBack }: { course: Course; onBack: () => void }
 
         <Card className="p-5">
           <h3 className="font-semibold text-ink-900 mb-1">Course Progress</h3>
-          <div className="mt-3 h-2 bg-ink-100 rounded-full overflow-hidden"><div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
+          <div className="mt-3 h-2 bg-ink-100 rounded-full overflow-hidden"><div className="h-full bg-primary-500 rounded-full transition-[width]" style={{ width: `${progress}%` }} /></div>
           <p className="text-xs text-ink-500 mt-1">{progress}% complete · {completed.size} of {lessons.length} lessons</p>
           {allDone && (
             <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-success-50 to-primary-50 border border-success-200">

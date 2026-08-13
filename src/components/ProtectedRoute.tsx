@@ -1,14 +1,9 @@
 import { type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { useAuth, ROLE_HOME_ROUTES } from '@/lib/auth';
+import { useAuth, ROLE_HOME_ROUTES } from '@/lib/authContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import type { UserRole } from '@/lib/types';
-
-interface ProtectedRouteProps {
-  allowedRoles: UserRole[];
-  children: ReactNode;
-}
 
 export function ProtectedRoute({ allowedRoles, children }: { allowedRoles: UserRole[]; children: ReactNode }) {
   const { user, profile, loading } = useAuth();

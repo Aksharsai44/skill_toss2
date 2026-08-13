@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Users, Wallet, TrendingUp, GraduationCap, Layers, CreditCard, Fingerprint,
-  CalendarOff, CalendarDays, Plug, Award, Calendar, Plus, Search, Download,
-  Check, X, MessageCircle, Mail, Smartphone, Video, Settings, Send,
-  BookOpen, Upload, Clock, MapPin, Phone, ChevronRight, DollarSign,
+  CalendarOff, Award, Calendar, Plus, Search, Download,
+  Check, X, MessageCircle, Mail, Smartphone, Video,
+  Clock, Phone, ChevronRight,
 } from 'lucide-react';
 import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';
 import { StatCard } from '@/components/ui/StatCard';
@@ -15,22 +15,24 @@ import { RevenueAreaChart, AttendanceBarChart, DepartmentPieChart } from '@/comp
 import { supabase } from '@/lib/supabase';
 import { CourseBuilder } from '@/components/CourseBuilder';
 import {
-  students, teachers, batches, feeRecords, leaveRequests, events,
-  salaryRecords, messages, revenueData, attendanceData, departmentData,
+  teachers, leaveRequests, events,
+  salaryRecords, revenueData, attendanceData, departmentData,
 } from '@/lib/mockData';
-import type { Student, Teacher, FeeRecord, LeaveRequest } from '@/lib/types';
+import type { Student, Teacher, FeeRecord } from '@/lib/types';
 import { cn } from '@/lib/cn';
+import { useLmsData } from '@/lib/lmsDataContext';
 
 export function AdminDashboard() {
-  const totalFees = feeRecords.reduce((s, f) => s + f.total, 0);
-  const collectedFees = feeRecords.reduce((s, f) => s + f.paid, 0);
-  const pendingFees = feeRecords.reduce((s, f) => s + f.pending, 0);
+  const { state, getStudentFees } = useLmsData();
+  const feeSummaries = state.students.map((student) => getStudentFees(student.id));
+  const collectedFees = feeSummaries.reduce((sum, fees) => sum + fees.paid, 0);
+  const pendingFees = feeSummaries.reduce((sum, fees) => sum + fees.pending, 0);
   return (
     <div>
       <PageHeader title="Admin Dashboard" subtitle="Bright Future College — overview of students, fees, faculty & operations" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Students" value={students.length * 40} icon={Users} trend={6} color="primary" />
-        <StatCard label="Total Faculty" value={teachers.length * 10} icon={GraduationCap} color="accent" />
+        <StatCard label="Total Students" value={state.students.filter((student) => student.status === 'active').length} icon={Users} trend={6} color="primary" />
+        <StatCard label="Total Faculty" value={state.teachers.filter((teacher) => teacher.status === 'active').length} icon={GraduationCap} color="accent" />
         <StatCard label="Fees Collected" value={`₹${(collectedFees / 1000).toFixed(0)}k`} icon={CreditCard} trend={12} color="success" />
         <StatCard label="Pending Fees" value={`₹${(pendingFees / 1000).toFixed(0)}k`} icon={Wallet} trend={-3} color="warning" />
       </div>
@@ -155,15 +157,33 @@ export function AdminTeachers() {
 }
 
 export function AdminStudents() {
+  const { state, addStudent } = useLmsData();
   const [selected, setSelected] = useState<Student | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [search, setSearch] = useState('');
+  const [form, setForm] = useState({ name: '', rollNo: '', email: '', phone: '', parentPhone: '', batchId: 'batch_001', feeTotal: '60000' });
+  const lmsStudents: Student[] = state.students.map((student) => {
+    const batch = state.batches.find((item) => item.id === student.batchId);
+    const department = state.departments.find((item) => item.id === student.departmentId);
+    const records = state.attendance.filter((item) => item.studentId === student.id && item.status !== 'excused');
+    const attended = records.filter((item) => item.status === 'present' || item.status === 'late').length;
+    const invoiceTotal = state.feeInvoices.filter((item) => item.studentId === student.id).reduce((sum, item) => sum + item.total, 0);
+    const paid = state.payments.filter((item) => item.studentId === student.id).reduce((sum, item) => sum + item.amount, 0);
+    return { id: student.id, name: student.name, rollNo: student.rollNo, batch: batch?.name ?? '', department: department?.name ?? '', email: student.email, phone: student.phone, parentPhone: student.parentPhone, avatar: student.avatar, attendance: records.length ? Math.round((attended / records.length) * 100) : 0, feeTotal: invoiceTotal, feePaid: paid, status: student.status };
+  }).filter((student) => `${student.name} ${student.rollNo} ${student.email}`.toLowerCase().includes(search.toLowerCase()));
+  const createStudent = () => {
+    const batch = state.batches.find((item) => item.id === form.batchId);
+    if (!batch) return;
+    const saved = addStudent({ name: form.name, rollNo: form.rollNo, email: form.email, phone: form.phone, parentPhone: form.parentPhone, batchId: batch.id, departmentId: batch.departmentId, address: '', emergencyContact: form.parentPhone, status: 'active', initialFeeTotal: Number(form.feeTotal) });
+    if (saved.ok) { setShowAdd(false); setForm({ ...form, name: '', rollNo: '', email: '', phone: '', parentPhone: '' }); }
+  };
   return (
     <div>
       <PageHeader title="Students" subtitle="Manage student profiles, batches & fee status" actions={
         <>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input placeholder="Search students..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search students..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" />
           </div>
           <button onClick={() => setShowAdd(true)} className="btn-primary"><Plus className="w-4 h-4" /> Add Student</button>
         </>
@@ -198,7 +218,7 @@ export function AdminStudents() {
             } },
             { key: 'status', label: 'Status', render: (s) => <StatusBadge status={s.status} /> },
           ]}
-          data={students}
+          data={lmsStudents}
           onRowClick={setSelected}
         />
       </Card>
@@ -245,21 +265,21 @@ export function AdminStudents() {
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add New Student" size="md">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Full Name</label><input className="input" placeholder="Student name" /></div>
-            <div><label className="label">Roll Number</label><input className="input" placeholder="BFC-CS-09" /></div>
+            <div><label className="label">Full Name</label><input className="input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Student name" /></div>
+            <div><label className="label">Roll Number</label><input className="input" value={form.rollNo} onChange={(event) => setForm({ ...form, rollNo: event.target.value })} placeholder="STU-2026-005" /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Email</label><input className="input" placeholder="email@student.com" /></div>
-            <div><label className="label">Phone</label><input className="input" placeholder="+91 98765 43210" /></div>
+            <div><label className="label">Email</label><input className="input" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="email@student.com" /></div>
+            <div><label className="label">Phone</label><input className="input" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="+91 98765 43210" /></div>
           </div>
-          <div><label className="label">Parent Phone</label><input className="input" placeholder="+91 98765 43211" /></div>
+          <div><label className="label">Parent Phone</label><input className="input" value={form.parentPhone} onChange={(event) => setForm({ ...form, parentPhone: event.target.value })} placeholder="+91 98765 43211" /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Batch</label>
-              <Select value="" onChange={() => {}} options={batches.map((b) => ({ value: b.id, label: b.name }))} />
+              <Select value={form.batchId} onChange={(value) => setForm({ ...form, batchId: value })} options={state.batches.map((batch) => ({ value: batch.id, label: batch.name }))} />
             </div>
-            <div><label className="label">Total Fee (₹)</label><input className="input" type="number" placeholder="45000" /></div>
+            <div><label className="label">Total Fee (₹)</label><input className="input" type="number" value={form.feeTotal} onChange={(event) => setForm({ ...form, feeTotal: event.target.value })} /></div>
           </div>
-          <button onClick={() => setShowAdd(false)} className="btn-primary w-full">Create Student</button>
+          <button onClick={createStudent} className="btn-primary w-full">Create Student</button>
         </div>
       </Modal>
     </div>
@@ -267,60 +287,85 @@ export function AdminStudents() {
 }
 
 export function AdminBatches() {
+  const { state } = useLmsData();
   return (
     <div>
       <PageHeader title="Batches & Departments" subtitle="Manage class batches, schedules & assignments" actions={<button className="btn-primary"><Plus className="w-4 h-4" /> Create Batch</button>} />
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {batches.map((b) => (
+        {state.batches.map((b) => {
+          const department = state.departments.find((item) => item.id === b.departmentId);
+          const teacher = state.teachers.find((item) => item.id === b.teacherId);
+          const strength = state.students.filter((item) => item.batchId === b.id && item.status === 'active').length;
+          return (
           <Card key={b.id} hover className="p-5">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white">
+          <div className="w-11 h-11 rounded-lg bg-primary-600 flex items-center justify-center text-white">
                 <Layers className="w-5 h-5" />
               </div>
-              <Badge variant="primary">{b.department}</Badge>
+              <Badge variant="primary">{department?.name}</Badge>
             </div>
             <h3 className="font-semibold text-ink-900">{b.name}</h3>
             <p className="text-xs text-ink-400 mb-3">{b.schedule}</p>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-ink-500 flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> Students</span>
-                <span className="font-semibold text-ink-800">{b.strength}</span>
+                <span className="font-semibold text-ink-800">{strength}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-ink-500 flex items-center gap-1.5"><GraduationCap className="w-3.5 h-3.5" /> Teacher</span>
-                <span className="font-medium text-ink-700 text-xs">{b.teacher}</span>
+                <span className="font-medium text-ink-700 text-xs">{teacher?.name}</span>
               </div>
             </div>
             <button className="btn-secondary w-full mt-4 text-sm">Manage Batch</button>
           </Card>
-        ))}
+        );})}
       </div>
     </div>
   );
 }
 
 export function AdminFees() {
+  const { state, getStudentFees, recordPayment } = useLmsData();
   const [tab, setTab] = useState(0);
   const [showPay, setShowPay] = useState<FeeRecord | null>(null);
-  const pending = feeRecords.filter((f) => f.status !== 'paid');
-  const overdue = feeRecords.filter((f) => f.status === 'overdue');
-  const totalPending = feeRecords.reduce((s, f) => s + f.pending, 0);
+  const [method, setMethod] = useState<'cash' | 'bank-transfer' | 'demo-card'>('cash');
+  const [amount, setAmount] = useState('');
+  const [reference, setReference] = useState('DEMO-ADMIN-');
+  const [paymentDate, setPaymentDate] = useState('2026-08-12');
+  const liveFeeRecords: FeeRecord[] = state.feeInvoices.map((invoice) => {
+    const student = state.students.find((item) => item.id === invoice.studentId);
+    const batch = state.batches.find((item) => item.id === student?.batchId);
+    const view = getStudentFees(invoice.studentId).invoices.find((item) => item.id === invoice.id);
+    return { id: invoice.id, student: student?.name ?? 'Student', batch: batch?.name ?? '', total: invoice.total, paid: view?.paid ?? 0, pending: view?.pending ?? invoice.total, term: invoice.title, dueDate: invoice.dueDate, status: (view?.status ?? 'pending') as FeeRecord['status'] };
+  });
+  const pending = liveFeeRecords.filter((f) => f.status !== 'paid');
+  const overdue = liveFeeRecords.filter((f) => f.status === 'overdue');
+  const totalPending = liveFeeRecords.reduce((s, f) => s + f.pending, 0);
+  const collectPayment = () => {
+    if (!showPay) return;
+    const invoice = state.feeInvoices.find((item) => item.id === showPay.id);
+    if (!invoice) return;
+    const saved = recordPayment(invoice.id, invoice.studentId, Number(amount), method, reference, paymentDate);
+    if (saved.ok) { setShowPay(null); setAmount(''); setReference('DEMO-ADMIN-'); }
+  };
+  const openPayment = (fee: FeeRecord) => { setShowPay(fee); setAmount(String(fee.pending)); };
   return (
     <div>
       <PageHeader title="Fee Management" subtitle="Track, collect & analyze fees with auto-reminders via WhatsApp & email" actions={<button className="btn-secondary"><Download className="w-4 h-4" /> Export</button>} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Fees" value={`₹${(feeRecords.reduce((s, f) => s + f.total, 0) / 1000).toFixed(0)}k`} icon={CreditCard} color="primary" />
-        <StatCard label="Collected" value={`₹${(feeRecords.reduce((s, f) => s + f.paid, 0) / 1000).toFixed(0)}k`} icon={TrendingUp} trend={12} color="success" />
+        <StatCard label="Total Fees" value={`₹${(liveFeeRecords.reduce((s, f) => s + f.total, 0) / 1000).toFixed(0)}k`} icon={CreditCard} color="primary" />
+        <StatCard label="Collected" value={`₹${(liveFeeRecords.reduce((s, f) => s + f.paid, 0) / 1000).toFixed(0)}k`} icon={TrendingUp} trend={12} color="success" />
         <StatCard label="Pending" value={`₹${(totalPending / 1000).toFixed(0)}k`} icon={Wallet} color="warning" />
         <StatCard label="Overdue" value={overdue.length} icon={Clock} color="error" />
       </div>
       <Card>
         <Tabs
           defaultIndex={tab}
+          onChange={setTab}
           tabs={[
-            { label: 'All Records', content: <FeeTable data={feeRecords} onPay={setShowPay} /> },
-            { label: `Pending (${pending.length})`, content: <FeeTable data={pending} onPay={setShowPay} /> },
-            { label: `Overdue (${overdue.length})`, content: <FeeTable data={overdue} onPay={setShowPay} /> },
+            { label: 'All Records', content: <FeeTable data={liveFeeRecords} onPay={openPayment} /> },
+            { label: `Pending (${pending.length})`, content: <FeeTable data={pending} onPay={openPayment} /> },
+            { label: `Overdue (${overdue.length})`, content: <FeeTable data={overdue} onPay={openPayment} /> },
           ]}
         />
       </Card>
@@ -339,17 +384,19 @@ export function AdminFees() {
               <div className="card p-3"><p className="text-ink-400 text-xs">Due Date</p><p className="font-semibold text-ink-900">{showPay.dueDate}</p></div>
             </div>
             <div><label className="label">Payment Method</label>
-              <Select value="razorpay" onChange={() => {}} options={[
-                { value: 'razorpay', label: 'Razorpay (Online)' },
+              <Select value={method} onChange={(value) => setMethod(value as typeof method)} options={[
+                { value: 'demo-card', label: 'Demo Card' },
                 { value: 'cash', label: 'Cash (Manual Entry)' },
-                { value: 'bank', label: 'Bank Transfer' },
+                { value: 'bank-transfer', label: 'Bank Transfer' },
               ]} />
             </div>
-            <div><label className="label">Amount to Collect (₹)</label><input className="input" type="number" defaultValue={showPay.pending} /></div>
+            <div><label className="label">Amount to Collect (₹)</label><input className="input" type="number" min="1" max={showPay.pending} value={amount} onChange={(event) => setAmount(event.target.value)} /></div>
+            <div><label className="label">Reference</label><input className="input" value={reference} onChange={(event) => setReference(event.target.value)} /></div>
+            <div><label className="label">Date</label><input className="input" type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></div>
             <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-xl text-sm text-primary-700">
-              <MessageCircle className="w-4 h-4" /> Auto-send invoice to parent via WhatsApp & email after payment
+              <MessageCircle className="w-4 h-4" /> Demo ledger entry only. A receipt and internal notification will be created.
             </div>
-            <button onClick={() => setShowPay(null)} className="btn-primary w-full">Collect Payment</button>
+            <button onClick={collectPayment} className="btn-primary w-full">Record Demo Payment</button>
           </div>
         )}
       </Modal>
@@ -495,6 +542,7 @@ export function AdminLeaves() {
       <Card>
         <Tabs
           defaultIndex={tab}
+          onChange={setTab}
           tabs={[
             { label: `Pending (${pending.length})`, content: loading ? <div className="p-8 text-center text-ink-400">Loading...</div> : current.length === 0 ? <EmptyState icon={CalendarOff} title="No pending teacher requests" description="Teacher leave requests will appear here for your approval. Student leaves are routed to their class teachers." /> : <AdminLeaveTable data={current} onAction={handleAction} fmtDate={fmtDate} showActions /> },
             { label: `Decided (${decided.length})`, content: loading ? <div className="p-8 text-center text-ink-400">Loading...</div> : decided.length === 0 ? <EmptyState icon={CalendarOff} title="No decided requests" description="Approved or rejected teacher requests will appear here." /> : <AdminLeaveTable data={current} onAction={handleAction} fmtDate={fmtDate} /> },
@@ -532,7 +580,10 @@ function AdminLeaveTable({ data, onAction, fmtDate, showActions }: { data: Admin
 }
 
 export function AdminEvents() {
+  const { state, addEvent } = useLmsData();
   const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ title: '', date: '2026-08-20', type: 'event' as 'class' | 'exam' | 'event' | 'holiday' | 'meeting', description: '' });
+  const publish = () => { const saved = addEvent({ title: form.description.trim() ? `${form.title} — ${form.description}` : form.title, date: form.date, type: form.type }); if (saved.ok) { setShowAdd(false); setForm({ ...form, title: '', description: '' }); } };
   const typeColors: Record<string, string> = {
     class: 'bg-primary-50 text-primary-700', exam: 'bg-error-50 text-error-700',
     event: 'bg-accent-50 text-accent-700', holiday: 'bg-success-50 text-success-700', meeting: 'bg-warning-50 text-warning-700',
@@ -541,7 +592,7 @@ export function AdminEvents() {
     <div>
       <PageHeader title="Events & Holidays" subtitle="Manage events, programs, holidays & notices — visible on all dashboards" actions={<button onClick={() => setShowAdd(true)} className="btn-primary"><Plus className="w-4 h-4" /> Add Event</button>} />
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {events.map((e) => (
+        {state.events.map((e) => (
           <Card key={e.id} hover className="p-5">
             <div className="flex items-start justify-between mb-3">
               <div className={cn('px-2.5 py-1 rounded-full text-xs font-medium capitalize', typeColors[e.type])}>{e.type}</div>
@@ -554,18 +605,18 @@ export function AdminEvents() {
       </div>
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Event / Holiday" size="md">
         <div className="space-y-4">
-          <div><label className="label">Event Title</label><input className="input" placeholder="Annual Tech Fest" /></div>
+          <div><label className="label">Event Title</label><input className="input" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Annual Tech Fest" /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Date</label><input className="input" type="date" /></div>
+            <div><label className="label">Date</label><input className="input" type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></div>
             <div><label className="label">Type</label>
-              <Select value="event" onChange={() => {}} options={[
+              <Select value={form.type} onChange={(value) => setForm({ ...form, type: value as typeof form.type })} options={[
                 { value: 'event', label: 'Event' }, { value: 'holiday', label: 'Holiday' },
                 { value: 'meeting', label: 'Meeting' }, { value: 'exam', label: 'Exam' },
               ]} />
             </div>
           </div>
-          <div><label className="label">Description</label><textarea className="input min-h-20" placeholder="Event details..." /></div>
-          <button onClick={() => setShowAdd(false)} className="btn-primary w-full">Publish to All Dashboards</button>
+          <div><label className="label">Description</label><textarea className="input min-h-20" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Event details..." /></div>
+          <button onClick={publish} className="btn-primary w-full">Publish to All Dashboards</button>
         </div>
       </Modal>
     </div>

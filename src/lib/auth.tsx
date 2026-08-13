@@ -1,16 +1,8 @@
-import { createContext, useContext, useEffect, useState, useMemo, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, useMemo, type ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { UserRole, UserProfile } from '@/lib/types';
-
-export const ROLE_HOME_ROUTES: Record<UserRole, string> = {
-  product_admin: '/product-admin',
-  super_admin: '/super-admin',
-  admin: '/admin',
-  teacher: '/teacher',
-  student: '/student',
-  parent: '/student',
-};
+import { AuthContext, type AuthContextValue } from '@/lib/authContext';
 
 // Fallback mock profiles for quick demo accounts if Supabase profiles table is empty or offline
 const DEMO_PROFILES: Record<string, UserProfile> = {
@@ -58,17 +50,6 @@ const DEMO_PROFILES: Record<string, UserProfile> = {
   },
 };
 
-type AuthContextValue = {
-  user: User | null;
-  session: Session | null;
-  profile: UserProfile | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ user: User; profile: UserProfile }>;
-  signOut: () => Promise<void>;
-};
-
-const AuthContext = createContext<AuthContextValue | null>(null);
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -76,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Helper function to fetch or resolve profile
-  const fetchProfile = async (authUser: User): Promise<UserProfile> => {
+  const fetchProfile = useCallback(async (authUser: User): Promise<UserProfile> => {
     // 1. Try to fetch from Supabase `profiles` table
     try {
       const { data, error } = await supabase
@@ -117,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       institutionId: authUser.user_metadata?.institution_id || null,
       isActive: true,
     };
-  };
+  }, []);
 
   // Restore session on application startup
   useEffect(() => {
@@ -164,9 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile]);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     // 1. Try real Supabase auth
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -208,9 +189,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(userProfile);
 
     return { user: data.user, profile: userProfile };
-  };
+  }, [fetchProfile]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
     } catch (err) {
@@ -220,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setProfile(null);
     }
-  };
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -231,14 +212,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
     }),
-    [user, session, profile, loading],
+    [user, session, profile, loading, signIn, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  PlayCircle, Plus, Edit, Trash2, Save, X, Upload, Video, Clock,
-  Layers, ChevronRight, ArrowLeft, Award, Eye, Check,
+  PlayCircle, Plus, Edit, Trash2, Save, Upload, Video, Clock,
+  Layers, ArrowLeft, Award, Eye, Check,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';

@@ -2,6 +2,7 @@ import type {
   Student, Teacher, Batch, ClassRecording, FeeRecord, LeaveRequest,
   Assignment, EventItem, Client, DemoRequest, Branch, Message, SalaryRecord, ForumPost,
   Ticket, Institution, AdminUser,
+  LmsState,
 } from './types';
 
 const avatar = (seed: string) => `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&backgroundColor=2563eb,0891b2,16a34a,d97706,db2777&textColor=ffffff`;
@@ -261,3 +262,94 @@ export const supportTickets: Ticket[] = [
     ]
   }
 ];
+
+export const lmsDemoSeed: LmsState = {
+  version: 3,
+  nextId: 100,
+  institution: { id: 'institution_001', name: 'Skill Toss Demo College' },
+  departments: [
+    { id: 'department_cs', name: 'Computer Science' },
+    { id: 'department_ee', name: 'Electronics' },
+  ],
+  batches: [
+    { id: 'batch_001', name: 'CS-2024-A', departmentId: 'department_cs', teacherId: 'teacher_001', schedule: 'Mon-Fri 09:00-13:00' },
+    { id: 'batch_002', name: 'EE-2024-B', departmentId: 'department_ee', teacherId: 'teacher_002', schedule: 'Mon-Fri 10:00-14:00' },
+  ],
+  courses: [
+    { id: 'course_ds', code: 'CS301', title: 'Data Structures', departmentId: 'department_cs', teacherId: 'teacher_001', batchIds: ['batch_001'] },
+    { id: 'course_algo', code: 'CS302', title: 'Algorithms', departmentId: 'department_cs', teacherId: 'teacher_001', batchIds: ['batch_001'] },
+    { id: 'course_dbms', code: 'CS303', title: 'DBMS', departmentId: 'department_cs', teacherId: 'teacher_003', batchIds: ['batch_001'] },
+    { id: 'course_os', code: 'CS304', title: 'Operating Systems', departmentId: 'department_cs', teacherId: 'teacher_003', batchIds: ['batch_001'] },
+    { id: 'course_networks', code: 'CS305', title: 'Computer Networks', departmentId: 'department_cs', teacherId: 'teacher_001', batchIds: ['batch_001'] },
+    { id: 'course_electronics', code: 'EE301', title: 'Digital Electronics', departmentId: 'department_ee', teacherId: 'teacher_002', batchIds: ['batch_002'] },
+  ],
+  students: [
+    { id: 'student_001', name: 'Arjun Verma', rollNo: 'STU-2026-001', batchId: 'batch_001', departmentId: 'department_cs', email: 'student@skilltoss.demo', phone: '+91 98765 43210', parentPhone: '+91 98765 43211', address: 'New Delhi, India', emergencyContact: '+91 98765 43211', avatar: avatar('Arjun Verma'), status: 'active' },
+    { id: 'student_002', name: 'Ananya Rao', rollNo: 'STU-2026-002', batchId: 'batch_002', departmentId: 'department_ee', email: 'ananya@student.demo', phone: '+91 98765 43216', parentPhone: '+91 98765 43217', address: 'New Delhi, India', emergencyContact: '+91 98765 43217', avatar: avatar('Ananya Rao'), status: 'active' },
+    { id: 'student_003', name: 'Rohan Sharma', rollNo: 'STU-2026-003', batchId: 'batch_001', departmentId: 'department_cs', email: 'rohan@student.demo', phone: '+91 98765 43218', parentPhone: '+91 98765 43219', address: 'Gurugram, India', emergencyContact: '+91 98765 43219', avatar: avatar('Rohan Sharma'), status: 'active' },
+    { id: 'student_004', name: 'Meera Nair', rollNo: 'STU-2026-004', batchId: 'batch_001', departmentId: 'department_cs', email: 'meera@student.demo', phone: '+91 98765 43220', parentPhone: '+91 98765 43221', address: 'Noida, India', emergencyContact: '+91 98765 43221', avatar: avatar('Meera Nair'), status: 'active' },
+  ],
+  teachers: [
+    { id: 'teacher_001', name: 'Sneha Kapoor', email: 'teacher@skilltoss.demo', phone: '+91 90000 11111', courseIds: ['course_ds', 'course_algo', 'course_networks'], batchIds: ['batch_001'], avatar: avatar('Sneha Kapoor'), status: 'active' },
+    { id: 'teacher_002', name: 'Rahul Menon', email: 'rahul@skilltoss.demo', phone: '+91 90000 22222', courseIds: ['course_electronics'], batchIds: ['batch_002'], avatar: avatar('Rahul Menon'), status: 'active' },
+    { id: 'teacher_003', name: 'Priya Shah', email: 'priya@skilltoss.demo', phone: '+91 90000 33333', courseIds: ['course_dbms', 'course_os'], batchIds: ['batch_001'], avatar: avatar('Priya Shah'), status: 'active' },
+  ],
+  parentLinks: [
+    { id: 'parent_link_001', parentId: 'demo-parent-id', studentId: 'student_001', studentName: 'Arjun Verma', studentBatch: 'CS-2024-A', relationship: 'father', isPrimary: true, avatar: avatar('Arjun Verma') },
+    { id: 'parent_link_002', parentId: 'demo-parent-id', studentId: 'student_002', studentName: 'Ananya Rao', studentBatch: 'EE-2024-B', relationship: 'father', isPrimary: false, avatar: avatar('Ananya Rao') },
+  ],
+  assignments: [
+    { id: 'assignment_001', title: 'DBMS Normalization Assignment', courseId: 'course_dbms', batchId: 'batch_001', teacherId: 'teacher_003', instructions: 'Normalize the supplied schema to 3NF and explain each dependency.', dueDate: '2026-08-13T23:59:00+05:30', maxMarks: 20, status: 'open', createdAt: '2026-08-08T10:00:00+05:30' },
+    { id: 'assignment_002', title: 'Dijkstra Algorithm Analysis', courseId: 'course_algo', batchId: 'batch_001', teacherId: 'teacher_001', instructions: 'Implement Dijkstra and analyze time complexity.', dueDate: '2026-08-16T23:59:00+05:30', maxMarks: 25, status: 'open', createdAt: '2026-08-09T10:00:00+05:30' },
+    { id: 'assignment_003', title: 'Linked List Implementation', courseId: 'course_ds', batchId: 'batch_001', teacherId: 'teacher_001', instructions: 'Implement a doubly linked list with tests.', dueDate: '2026-08-10T23:59:00+05:30', maxMarks: 20, status: 'open', createdAt: '2026-08-01T10:00:00+05:30' },
+    { id: 'assignment_004', title: 'Logic Circuit Design', courseId: 'course_electronics', batchId: 'batch_002', teacherId: 'teacher_002', instructions: 'Design and document a four-bit adder.', dueDate: '2026-08-18T23:59:00+05:30', maxMarks: 30, status: 'open', createdAt: '2026-08-10T10:00:00+05:30' },
+  ],
+  submissions: [
+    { id: 'submission_001', assignmentId: 'assignment_003', studentId: 'student_001', response: 'Implementation and tests attached.', attachmentName: 'linked-list.ts', status: 'graded', submittedAt: '2026-08-09T18:30:00+05:30', marks: 18, feedback: 'Clear implementation and good test coverage.', gradedAt: '2026-08-11T11:00:00+05:30' },
+  ],
+  attendance: [
+    ...Array.from({ length: 46 }, (_, i) => ({ id: `attendance_arjun_present_${i + 1}`, studentId: 'student_001', courseId: i % 2 ? 'course_ds' : 'course_algo', batchId: 'batch_001', date: `2026-07-${String((i % 28) + 1).padStart(2, '0')}`, status: 'present' as const })),
+    ...Array.from({ length: 4 }, (_, i) => ({ id: `attendance_arjun_absent_${i + 1}`, studentId: 'student_001', courseId: 'course_os', batchId: 'batch_001', date: `2026-08-0${i + 1}`, status: 'absent' as const })),
+    ...Array.from({ length: 37 }, (_, i) => ({ id: `attendance_ananya_present_${i + 1}`, studentId: 'student_002', courseId: 'course_electronics', batchId: 'batch_002', date: `2026-07-${String((i % 28) + 1).padStart(2, '0')}`, status: 'present' as const })),
+    ...Array.from({ length: 13 }, (_, i) => ({ id: `attendance_ananya_absent_${i + 1}`, studentId: 'student_002', courseId: 'course_electronics', batchId: 'batch_002', date: `2026-08-${String((i % 12) + 1).padStart(2, '0')}`, status: 'absent' as const })),
+  ],
+  exams: [
+    { id: 'exam_001', courseId: 'course_os', batchId: 'batch_001', title: 'Operating Systems Internal', date: '2026-08-14', startTime: '10:00', durationMinutes: 60, maxMarks: 50, syllabus: 'Processes, scheduling, and synchronization', status: 'scheduled' },
+    { id: 'exam_002', courseId: 'course_algo', batchId: 'batch_001', title: 'Algorithms Quiz', date: '2026-08-21', startTime: '11:00', durationMinutes: 30, maxMarks: 20, syllabus: 'Graphs and greedy algorithms', status: 'scheduled' },
+    { id: 'exam_003', courseId: 'course_dbms', batchId: 'batch_001', title: 'DBMS Internal 1', date: '2026-07-20', startTime: '10:00', durationMinutes: 45, maxMarks: 20, syllabus: 'Relational model and SQL', status: 'completed' },
+    { id: 'exam_004', courseId: 'course_algo', batchId: 'batch_001', title: 'Algorithms Internal 1', date: '2026-07-28', startTime: '10:00', durationMinutes: 45, maxMarks: 20, syllabus: 'Sorting and complexity', status: 'completed' },
+  ],
+  examResults: [
+    { id: 'result_001', examId: 'exam_003', studentId: 'student_001', marks: 18, feedback: 'Excellent SQL fundamentals.' },
+    { id: 'result_002', examId: 'exam_004', studentId: 'student_001', marks: 16, feedback: 'Review graph traversal edge cases.' },
+  ],
+  feeInvoices: [
+    { id: 'invoice_001', studentId: 'student_001', title: 'Semester 7 Fee', total: 60000, dueDate: '2026-08-12', status: 'open' },
+    { id: 'invoice_002', studentId: 'student_002', title: 'Semester 7 Fee', total: 60000, dueDate: '2026-08-12', status: 'paid' },
+  ],
+  payments: [
+    { id: 'payment_001', invoiceId: 'invoice_001', studentId: 'student_001', amount: 30000, method: 'bank-transfer', reference: 'DEMO-BANK-1001', date: '2026-01-15', status: 'completed', demo: true },
+    { id: 'payment_002', invoiceId: 'invoice_001', studentId: 'student_001', amount: 15000, method: 'cash', reference: 'DEMO-CASH-1002', date: '2026-05-12', status: 'completed', demo: true },
+    { id: 'payment_003', invoiceId: 'invoice_002', studentId: 'student_002', amount: 60000, method: 'bank-transfer', reference: 'DEMO-BANK-1003', date: '2026-06-01', status: 'completed', demo: true },
+  ],
+  receipts: [
+    { id: 'receipt_001', paymentId: 'payment_001', invoiceId: 'invoice_001', studentId: 'student_001', amount: 30000, date: '2026-01-15', method: 'bank-transfer', reference: 'DEMO-BANK-1001', status: 'completed', demo: true },
+    { id: 'receipt_002', paymentId: 'payment_002', invoiceId: 'invoice_001', studentId: 'student_001', amount: 15000, date: '2026-05-12', method: 'cash', reference: 'DEMO-CASH-1002', status: 'completed', demo: true },
+  ],
+  notifications: [
+    { id: 'notification_001', userId: 'student_001', type: 'academic', title: 'Assignment graded', message: 'Linked List Implementation: 18/20', timestamp: '2026-08-11T11:00:00+05:30', read: false, relatedEntityId: 'assignment_003', path: '/student/assignments' },
+    { id: 'notification_002', userId: 'student_001', type: 'fees', title: 'Fee reminder', message: '₹15,000 remains due for Semester 7.', timestamp: '2026-08-12T08:00:00+05:30', read: false, relatedEntityId: 'invoice_001', path: '/student/fees' },
+  ],
+  resources: [
+    { id: 'resource_001', title: 'DBMS Normalization Notes', description: 'Worked normalization examples through 3NF.', courseId: 'course_dbms', batchId: 'batch_001', type: 'PDF', uploadedBy: 'teacher_003', uploadedAt: '2026-08-10T09:00:00+05:30' },
+    { id: 'resource_002', title: 'Graph Algorithms Reference', description: 'Complexity and pseudocode reference.', courseId: 'course_algo', batchId: 'batch_001', type: 'LINK', uploadedBy: 'teacher_001', uploadedAt: '2026-08-09T09:00:00+05:30' },
+  ],
+  classSessions: [
+    { id: 'class_001', courseId: 'course_ds', batchId: 'batch_001', teacherId: 'teacher_001', date: '2026-08-12', startTime: '09:00', endTime: '10:00', mode: 'classroom', location: 'Room CS-301', status: 'completed' },
+    { id: 'class_002', courseId: 'course_algo', batchId: 'batch_001', teacherId: 'teacher_001', date: '2026-08-12', startTime: '11:00', endTime: '12:00', mode: 'classroom', location: 'Room CS-301', status: 'scheduled' },
+  ],
+  goals: [
+    { id: 'goal_001', studentId: 'student_001', title: 'Complete all DBMS assignments', category: 'Academic', target: '4 assignments', deadline: '2026-08-31', progress: 50, status: 'active' },
+  ],
+  events: events.map((event) => ({ ...event })),
+};
