@@ -2,7 +2,7 @@ import {
   Building2, TrendingUp, Users, Inbox, Check, Clock, Star,
   ArrowUpRight, Video, CreditCard, MessageCircle, Calendar, Sparkles,
   Fingerprint, Award, MessagesSquare, Palette, ToggleLeft, Plus, Search,
-  AlertTriangle, Send
+  AlertTriangle, Send, BookOpen, Home, Bus
 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader, Card, CardHeader } from '@/components/ui/Layout';
@@ -17,7 +17,7 @@ import type { Client, DemoRequest, Ticket, TicketMessage } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Video, CreditCard, MessageCircle, Calendar, Sparkles, Fingerprint, Award, MessagesSquare,
+  Video, CreditCard, MessageCircle, Calendar, Sparkles, Fingerprint, Award, MessagesSquare, BookOpen, Home, Bus
 };
 
 export function ProductAdminDashboard() {
@@ -30,10 +30,10 @@ export function ProductAdminDashboard() {
     <div>
       <PageHeader title="Product Admin Dashboard" subtitle="Overview of all clients, revenue, demo requests & platform health" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total MRR" value={`₹${(totalMRR / 1000).toFixed(0)}k`} icon={TrendingUp} trend={18} trendLabel="vs last month" color="primary" />
-        <StatCard label="Active Clients" value={activeClients} icon={Building2} trend={12} trendLabel="2 new this month" color="success" />
-        <StatCard label="Trial Clients" value={trialClients} icon={Clock} trendLabel="Converting soon" color="warning" />
-        <StatCard label="Total Students" value={totalStudents.toLocaleString()} icon={Users} trend={8} trendLabel="across all clients" color="accent" />
+        <StatCard label="Total MRR" value={`₹${(totalMRR / 1000).toFixed(0)}k`} icon={TrendingUp} trend={18} trendLabel="vs last month" color="primary" to="/product-admin/plans" />
+        <StatCard label="Active Clients" value={activeClients} icon={Building2} trend={12} trendLabel="2 new this month" color="success" to="/product-admin/clients" />
+        <StatCard label="Trial Clients" value={trialClients} icon={Clock} trendLabel="Converting soon" color="warning" to="/product-admin/clients" />
+        <StatCard label="Total Students" value={totalStudents.toLocaleString()} icon={Users} trend={8} trendLabel="across all clients" color="accent" to="/product-admin/clients" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
@@ -96,13 +96,16 @@ export function ProductAdminDashboard() {
 
 export function DemoRequests() {
   const [selected, setSelected] = useState<DemoRequest | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isEditingDemo, setIsEditingDemo] = useState(false);
+  const [localDemoRequests, setLocalDemoRequests] = useState(demoRequests);
   return (
     <div>
-      <PageHeader title="Demo Requests" subtitle="Inbound leads from schools, colleges & training institutes" actions={<button className="btn-primary"><Plus className="w-4 h-4" /> Add Request</button>} />
+      <PageHeader title="Demo Requests" subtitle="Inbound leads from schools, colleges & training institutes" actions={<button className="btn-primary" onClick={() => setIsAdding(true)}><Plus className="w-4 h-4" /> Add Request</button>} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="New" value={demoRequests.filter((d) => d.status === 'new').length} icon={Inbox} color="primary" />
-        <StatCard label="Contacted" value={demoRequests.filter((d) => d.status === 'contacted').length} icon={MessageCircle} color="accent" />
-        <StatCard label="Demo Scheduled" value={demoRequests.filter((d) => d.status === 'demo-scheduled').length} icon={Calendar} color="warning" />
+        <StatCard label="New" value={localDemoRequests.filter((d) => d.status === 'new').length} icon={Inbox} color="primary" />
+        <StatCard label="Contacted" value={localDemoRequests.filter((d) => d.status === 'contacted').length} icon={MessageCircle} color="accent" />
+        <StatCard label="Demo Scheduled" value={localDemoRequests.filter((d) => d.status === 'demo-scheduled').length} icon={Calendar} color="warning" />
         <StatCard label="Conversion Rate" value="68%" icon={TrendingUp} trend={5} color="success" />
       </div>
       <Card>
@@ -125,7 +128,7 @@ export function DemoRequests() {
             { key: 'notes', label: 'Notes', render: (d) => <span className="text-xs text-ink-500 max-w-xs truncate block">{d.notes}</span> },
             { key: 'status', label: 'Status', render: (d) => <StatusBadge status={d.status} /> },
           ]}
-          data={demoRequests}
+          data={localDemoRequests}
           onRowClick={setSelected}
         />
       </Card>
@@ -150,11 +153,130 @@ export function DemoRequests() {
             </div>
             <div><p className="text-ink-400 text-sm mb-1">Notes</p><p className="text-sm text-ink-700 bg-ink-50 rounded-xl p-3">{selected.notes}</p></div>
             <div className="flex gap-2">
-              <button className="btn-primary flex-1">Schedule Demo</button>
-              <button className="btn-secondary">Mark Contacted</button>
+              <button className="btn-secondary flex-1 text-error-600 hover:bg-error-50 hover:border-error-200" onClick={() => {
+                setLocalDemoRequests(localDemoRequests.filter(d => d.id !== selected.id));
+                setSelected(null);
+              }}>Delete</button>
+              <button className="btn-secondary flex-1" onClick={() => setIsEditingDemo(true)}>Edit</button>
+              <button className="btn-secondary flex-1" onClick={() => {
+                setLocalDemoRequests(localDemoRequests.map(d => d.id === selected.id ? { ...d, status: 'contacted' } : d));
+                setSelected(null);
+              }}>Mark Contacted</button>
+              <button className="btn-primary flex-1" onClick={() => {
+                setLocalDemoRequests(localDemoRequests.map(d => d.id === selected.id ? { ...d, status: 'demo-scheduled' } : d));
+                setSelected(null);
+              }}>Schedule Demo</button>
             </div>
           </div>
         )}
+        {selected && isEditingDemo && (
+          <form className="space-y-4" onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const updated = {
+              ...selected,
+              organization: fd.get('organization') as string,
+              type: fd.get('type') as any,
+              contact: fd.get('contact') as string,
+              email: fd.get('email') as string,
+              phone: fd.get('phone') as string,
+              notes: fd.get('notes') as string,
+            };
+            setLocalDemoRequests(localDemoRequests.map(d => d.id === selected.id ? updated : d));
+            setSelected(updated);
+            setIsEditingDemo(false);
+          }}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Organization Name</label>
+                <input name="organization" required className="input" defaultValue={selected.organization} />
+              </div>
+              <div>
+                <label className="label">Type</label>
+                <select name="type" className="input" defaultValue={selected.type}>
+                  <option>School</option>
+                  <option>College</option>
+                  <option>Training Institute</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Contact Person</label>
+                <input name="contact" required className="input" defaultValue={selected.contact} />
+              </div>
+              <div>
+                <label className="label">Email</label>
+                <input name="email" type="email" pattern=".+@.+\.com" title="Email must end in .com" required className="input" defaultValue={selected.email} />
+              </div>
+              <div className="col-span-2">
+                <label className="label">Phone</label>
+                <input name="phone" type="tel" pattern="[0-9]{10}" title="Phone must be 10 digits" required className="input" defaultValue={selected.phone} />
+              </div>
+            </div>
+            <div>
+              <label className="label">Notes</label>
+              <textarea name="notes" className="input" rows={3} defaultValue={selected.notes}></textarea>
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" className="btn-secondary" onClick={() => setIsEditingDemo(false)}>Cancel</button>
+              <button type="submit" className="btn-primary">Save Changes</button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      <Modal open={isAdding} onClose={() => setIsAdding(false)} title="Add Demo Request" size="md">
+        <form className="space-y-4" onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const newReq: DemoRequest = {
+            id: `req-${Date.now()}`,
+            organization: fd.get('organization') as string,
+            type: fd.get('type') as any,
+            contact: fd.get('contact') as string,
+            email: fd.get('email') as string,
+            phone: fd.get('phone') as string,
+            date: new Date().toISOString().split('T')[0],
+            status: 'new',
+            notes: fd.get('notes') as string,
+          };
+          setLocalDemoRequests([newReq, ...localDemoRequests]);
+          setIsAdding(false);
+        }}>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Organization Name</label>
+              <input name="organization" required className="input" placeholder="e.g. Acme Institute" />
+            </div>
+            <div>
+              <label className="label">Type</label>
+              <select name="type" className="input">
+                <option>School</option>
+                <option>College</option>
+                <option>Training Institute</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Contact Person</label>
+              <input name="contact" required className="input" placeholder="John Doe" />
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <input name="email" type="email" pattern=".+@.+\.com" title="Email must end in .com" required className="input" placeholder="john@example.com" />
+            </div>
+            <div className="col-span-2">
+              <label className="label">Phone</label>
+              <input name="phone" type="tel" pattern="[0-9]{10}" title="Phone must be 10 digits" required className="input" placeholder="9876543210" />
+            </div>
+          </div>
+          <div>
+            <label className="label">Notes</label>
+            <textarea name="notes" className="input" rows={3} placeholder="Any specific requirements..."></textarea>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setIsAdding(false)}>Cancel</button>
+            <button type="submit" className="btn-primary">Submit Request</button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
@@ -162,19 +284,26 @@ export function DemoRequests() {
 
 export function Clients() {
   const [selected, setSelected] = useState<Client | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [localClients, setLocalClients] = useState(clients);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+
+  const filteredClients = localClients.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div>
       <PageHeader title="Clients" subtitle="All institutions using Skill Toss" actions={
         <>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input placeholder="Search clients..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" />
+            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search clients..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" />
           </div>
-          <button className="btn-primary"><Plus className="w-4 h-4" /> Add Client</button>
+          <button className="btn-primary" onClick={() => setIsAdding(true)}><Plus className="w-4 h-4" /> Add Client</button>
         </>
       } />
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {clients.map((c) => (
+        {filteredClients.map((c) => (
           <button key={c.id} onClick={() => setSelected(c)} className="card card-hover p-5 text-left">
             <div className="flex items-start justify-between mb-4">
               <img src={c.logo} alt={c.name} className="w-12 h-12 rounded-xl bg-ink-100" />
@@ -203,8 +332,8 @@ export function Clients() {
           </button>
         ))}
       </div>
-      <Modal open={!!selected} onClose={() => setSelected(null)} title="Client Details" size="lg">
-        {selected && (
+      <Modal open={!!selected} onClose={() => { setSelected(null); setIsEditing(false); }} title={isEditing ? "Edit Client" : "Client Details"} size="lg">
+        {selected && !isEditing && (
           <div className="space-y-5">
             <div className="flex items-center gap-4">
               <img src={selected.logo} alt={selected.name} className="w-16 h-16 rounded-xl bg-ink-100" />
@@ -230,24 +359,140 @@ export function Clients() {
                 ))}
               </div>
             </div>
+            <div className="flex justify-end pt-4 gap-2">
+              <button className="btn-secondary text-error-600 hover:bg-error-50 hover:border-error-200" onClick={() => {
+                setLocalClients(localClients.filter(c => c.id !== selected.id));
+                setSelected(null);
+              }}>Delete Client</button>
+              <button className="btn-secondary" onClick={() => setIsEditing(true)}>Edit Client</button>
+            </div>
           </div>
         )}
+        {selected && isEditing && (
+          <form className="space-y-4" onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const updated = {
+              ...selected,
+              name: fd.get('name') as string,
+              plan: fd.get('plan') as any,
+              status: fd.get('status') as any
+            };
+            setLocalClients(localClients.map(c => c.id === selected.id ? updated : c));
+            setSelected(updated);
+            setIsEditing(false);
+          }}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="label">Client Name</label>
+                <input name="name" required className="input" defaultValue={selected.name} />
+              </div>
+              <div>
+                <label className="label">Plan</label>
+                <select name="plan" className="input" defaultValue={selected.plan}>
+                  <option value="Starter">Starter</option>
+                  <option value="Growth">Growth</option>
+                  <option value="Enterprise">Enterprise</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Status</label>
+                <select name="status" className="input" defaultValue={selected.status}>
+                  <option value="active">Active</option>
+                  <option value="trial">Trial</option>
+                  <option value="churned">Churned</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" className="btn-secondary" onClick={() => setIsEditing(false)}>Cancel</button>
+              <button type="submit" className="btn-primary">Save Changes</button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      <Modal open={isAdding} onClose={() => setIsAdding(false)} title="Add New Client" size="md">
+        <form className="space-y-4" onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const newClient: Client = {
+            id: `client-${Date.now()}`,
+            name: fd.get('name') as string,
+            type: fd.get('type') as any,
+            plan: fd.get('plan') as any,
+            status: fd.get('status') as any,
+            students: Number(fd.get('students')),
+            teachers: 0,
+            mrr: 0,
+            logo: 'https://api.dicebear.com/7.x/initials/svg?seed=' + fd.get('name'),
+            features: {},
+            joinedDate: new Date().toISOString().split('T')[0],
+          };
+          setLocalClients([newClient, ...localClients]);
+          setIsAdding(false);
+        }}>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="label">Client Name</label>
+              <input name="name" required className="input" placeholder="Institution Name" />
+            </div>
+            <div>
+              <label className="label">Type</label>
+              <select name="type" className="input">
+                <option value="School">School</option>
+                <option value="College">College</option>
+                <option value="Training Center">Coaching Center</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Plan</label>
+              <select name="plan" className="input">
+                <option value="Starter">Starter</option>
+                <option value="Growth">Growth</option>
+                <option value="Enterprise">Enterprise</option>
+                <option value="Custom">Custom</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Status</label>
+              <select name="status" className="input">
+                <option value="active">Active</option>
+                <option value="trial">Trial</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Initial Students</label>
+              <input name="students" className="input" type="number" defaultValue="0" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setIsAdding(false)}>Cancel</button>
+            <button type="submit" className="btn-primary">Add Client</button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
 }
 
 export function PlansPricing() {
-  const plans = [
+  const [isCreatingCustom, setIsCreatingCustom] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<string | null>(null);
+  const [localClients, setLocalClients] = useState(clients);
+
+  const [localPlans, setLocalPlans] = useState([
     { name: 'Starter', price: '₹4,999', period: '/month', students: 'Up to 200', features: ['Razorpay payments', 'Google Calendar', 'Basic reports', 'Email support'], color: 'ink', popular: false },
     { name: 'Growth', price: '₹14,999', period: '/month', students: 'Up to 1,000', features: ['Everything in Starter', 'Zoom integration', 'WhatsApp automation', 'AI exam generator', 'Certification courses', 'Priority support'], color: 'primary', popular: true },
     { name: 'Enterprise', price: '₹39,999', period: '/month', students: 'Unlimited', features: ['Everything in Growth', 'Biometric attendance', 'White-label branding', 'Custom integrations', 'Dedicated manager', 'SLA guarantee'], color: 'accent', popular: false },
-  ];
+  ]);
+  
   return (
     <div>
-      <PageHeader title="Plans & Pricing" subtitle="Manage subscription plans for clients" actions={<button className="btn-primary"><Plus className="w-4 h-4" /> Create Custom Plan</button>} />
+      <PageHeader title="Plans & Pricing" subtitle="Manage subscription plans for clients" actions={<button className="btn-primary" onClick={() => setIsCreatingCustom(true)}><Plus className="w-4 h-4" /> Create Custom Plan</button>} />
       <div className="grid lg:grid-cols-3 gap-5 mb-6">
-        {plans.map((plan) => (
+        {localPlans.map((plan) => (
           <div key={plan.name} className={cn('card p-6 relative', plan.popular && 'ring-2 ring-primary-500')}>
             {plan.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 badge bg-primary-600 text-white px-3 py-1 text-xs">Most Popular</div>}
             <div className="flex items-center gap-2 mb-1">
@@ -266,14 +511,14 @@ export function PlansPricing() {
                 </div>
               ))}
             </div>
-            <button className={cn('w-full', plan.popular ? 'btn-primary' : 'btn-secondary')}>Edit Plan</button>
+            <button className={cn('w-full', plan.popular ? 'btn-primary' : 'btn-secondary')} onClick={() => setEditingPlan(plan.name)}>Edit Plan</button>
           </div>
         ))}
       </div>
       <Card>
         <CardHeader title="Custom Plans" subtitle="Tailored plans created for specific clients" />
         <div className="p-5 space-y-3">
-          {clients.filter((c) => c.plan === 'Custom').map((c) => (
+          {localClients.filter((c) => c.plan === 'Custom').map((c) => (
             <div key={c.id} className="flex items-center justify-between p-4 bg-ink-50 rounded-xl">
               <div className="flex items-center gap-3">
                 <img src={c.logo} alt={c.name} className="w-10 h-10 rounded-lg bg-white" />
@@ -285,12 +530,105 @@ export function PlansPricing() {
               <div className="flex items-center gap-3">
                 <Badge variant="accent">Custom</Badge>
                 <span className="text-sm font-semibold text-ink-800">₹{(c.mrr / 1000).toFixed(0)}k/mo</span>
-                <button className="btn-ghost text-sm">Edit</button>
+                <button className="btn-ghost text-sm" onClick={() => setEditingPlan(`Custom - ${c.name}`)}>Edit</button>
               </div>
             </div>
           ))}
         </div>
       </Card>
+
+      <Modal open={isCreatingCustom} onClose={() => setIsCreatingCustom(false)} title="Create Custom Plan" size="md">
+        <form className="space-y-4" onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const clientId = fd.get('clientId') as string;
+          setLocalClients(localClients.map(c => c.id === clientId ? { ...c, plan: 'Custom', mrr: Number(fd.get('mrr')), students: Number(fd.get('students')) } : c));
+          setIsCreatingCustom(false);
+        }}>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="label">Client Name</label>
+              <select name="clientId" className="input">
+                {localClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Monthly Price (MRR)</label>
+              <input name="mrr" type="number" required className="input" placeholder="e.g. 25000" />
+            </div>
+            <div>
+              <label className="label">Max Students</label>
+              <input name="students" type="number" required className="input" placeholder="e.g. 5000" />
+            </div>
+          </div>
+          <div>
+            <label className="label mb-2 block">Included Features</label>
+            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar p-2 border border-ink-200 rounded-xl">
+              {featureCatalog.map(f => (
+                <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-ink-50 p-1 rounded">
+                  <input type="checkbox" className="rounded text-primary-600 focus:ring-primary-500" defaultChecked />
+                  <span>{f.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setIsCreatingCustom(false)}>Cancel</button>
+            <button type="submit" className="btn-primary">Create Plan</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={!!editingPlan} onClose={() => setEditingPlan(null)} title={`Edit Plan: ${editingPlan}`} size="md">
+        <form className="space-y-4" onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const price = fd.get('price') as string;
+          const students = fd.get('students') as string;
+          
+          if (editingPlan?.startsWith('Custom - ')) {
+            const clientName = editingPlan.replace('Custom - ', '');
+            setLocalClients(localClients.map(c => 
+              c.name === clientName 
+                ? { ...c, mrr: Number(price.replace(/[^0-9]/g, '')), students: Number(students) } 
+                : c
+            ));
+          } else {
+            setLocalPlans(localPlans.map(p => 
+              p.name === editingPlan 
+                ? { ...p, price, students } 
+                : p
+            ));
+          }
+          setEditingPlan(null);
+        }}>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Monthly Price</label>
+              <input name="price" required className="input" placeholder="e.g. ₹4,999 or 25000" />
+            </div>
+            <div>
+              <label className="label">Student Limit</label>
+              <input name="students" required className="input" placeholder="e.g. Up to 200 or 5000" />
+            </div>
+          </div>
+          <div>
+            <label className="label mb-2 block">Update Features</label>
+            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar p-2 border border-ink-200 rounded-xl">
+              {featureCatalog.map(f => (
+                <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-ink-50 p-1 rounded">
+                  <input type="checkbox" className="rounded text-primary-600 focus:ring-primary-500" defaultChecked />
+                  <span>{f.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setEditingPlan(null)}>Cancel</button>
+            <button type="submit" className="btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
@@ -328,11 +666,11 @@ export function FeatureToggles() {
                 <h3 className="font-semibold text-ink-900">{f.label}</h3>
                 <p className="text-sm text-ink-500 mt-0.5">{f.desc}</p>
               </div>
-              <button
+              <button 
                 onClick={() => setToggles({ ...toggles, [f.key]: !enabled })}
-                className={cn('relative w-12 h-6 rounded-full transition-colors shrink-0', enabled ? 'bg-primary-600' : 'bg-ink-200')}
+                className={cn('w-11 h-6 rounded-full transition-colors relative shrink-0', enabled ? 'bg-primary-600' : 'bg-ink-200')}
               >
-                <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform', enabled ? 'translate-x-6' : 'translate-x-0.5')} />
+                <div className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform', enabled ? 'translate-x-5' : 'translate-x-0')} />
               </button>
             </div>
           );
@@ -345,6 +683,13 @@ export function FeatureToggles() {
 export function WhiteLabel() {
   const [selectedClient, setSelectedClient] = useState(clients[0].id);
   const client = clients.find((c) => c.id === selectedClient)!;
+  const [productName, setProductName] = useState(`Skill Toss — ${client.name}`);
+  const [poweredBy, setPoweredBy] = useState(client.name);
+  const [primaryColor, setPrimaryColor] = useState('#2563eb');
+  const [footerText, setFooterText] = useState(`© 2026 ${client.name}. Powered by Skill Toss.`);
+  const [saveStatus, setSaveStatus] = useState('Save Branding');
+  const [customLogo, setCustomLogo] = useState('');
+
   return (
     <div>
       <PageHeader title="White-Label Customization" subtitle="Customize branding, logo & product name for each client" />
@@ -357,42 +702,62 @@ export function WhiteLabel() {
           <div className="space-y-4">
             <div>
               <label className="label">Product Name</label>
-              <input className="input" defaultValue={`Skill Toss — ${client.name}`} />
+              <input className="input" value={productName} onChange={e => setProductName(e.target.value)} />
             </div>
             <div>
               <label className="label">Powered By Text</label>
-              <input className="input" defaultValue={client.name} />
+              <input className="input" value={poweredBy} onChange={e => setPoweredBy(e.target.value)} />
             </div>
             <div>
               <label className="label">Primary Color</label>
               <div className="flex gap-2">
                 {['#2563eb', '#0891b2', '#16a34a', '#d97706', '#dc2626'].map((c) => (
-                  <button key={c} style={{ backgroundColor: c }} className="w-10 h-10 rounded-xl ring-2 ring-offset-2 ring-transparent hover:ring-ink-200 transition" />
+                  <button 
+                    key={c} 
+                    style={{ backgroundColor: c }} 
+                    onClick={() => setPrimaryColor(c)}
+                    className={cn("w-10 h-10 rounded-xl ring-offset-2 transition", primaryColor === c ? 'ring-2 ring-ink-900' : 'ring-2 ring-transparent hover:ring-ink-200')} 
+                  />
                 ))}
               </div>
             </div>
             <div>
               <label className="label">Logo</label>
               <div className="flex items-center gap-3">
-                <img src={client.logo} alt="logo" className="w-14 h-14 rounded-xl bg-ink-100" />
-                <button className="btn-secondary">Upload New</button>
+                <img src={customLogo || client.logo} alt="logo" className="w-14 h-14 rounded-xl bg-ink-100 object-cover" />
+                <label className="btn-secondary cursor-pointer">
+                  Upload New
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setCustomLogo(URL.createObjectURL(e.target.files[0]));
+                    }
+                  }} />
+                </label>
               </div>
             </div>
             <div>
               <label className="label">Footer Text</label>
-              <input className="input" defaultValue={`© 2026 ${client.name}. Powered by Skill Toss.`} />
+              <input className="input" value={footerText} onChange={e => setFooterText(e.target.value)} />
             </div>
-            <button className="btn-primary w-full">Save Branding</button>
+            <button 
+              className={cn("w-full transition-colors", saveStatus === 'Saved!' ? 'btn-primary bg-success-600 border-success-600 hover:bg-success-700' : 'btn-primary')} 
+              onClick={() => {
+                setSaveStatus('Saved!');
+                setTimeout(() => setSaveStatus('Save Branding'), 2000);
+              }}
+            >
+              {saveStatus}
+            </button>
           </div>
         </Card>
         <Card className="p-6">
           <h3 className="font-semibold text-ink-900 mb-4">Live Preview</h3>
           <div className="rounded-xl border border-ink-200 overflow-hidden">
-            <div className="h-32 bg-gradient-to-br from-primary-600 to-accent-600 flex items-center justify-center">
+            <div className="h-32 flex items-center justify-center transition-colors" style={{ backgroundColor: primaryColor }}>
               <div className="text-center text-white">
-                <img src={client.logo} alt="logo" className="w-12 h-12 rounded-xl bg-white/20 mx-auto mb-2" />
-                <p className="font-bold font-display">{client.name}</p>
-                <p className="text-xs text-primary-100">Powered by Skill Toss</p>
+                <img src={customLogo || client.logo} alt="logo" className="w-12 h-12 rounded-xl bg-white/20 mx-auto mb-2 object-cover" />
+                <p className="font-bold font-display">{productName}</p>
+                <p className="text-xs opacity-80">Powered by {poweredBy}</p>
               </div>
             </div>
             <div className="p-4 space-y-2">
@@ -401,7 +766,7 @@ export function WhiteLabel() {
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-ink-50 rounded-lg" />)}
               </div>
-              <div className="text-center text-xs text-ink-400 mt-3">© 2026 {client.name}. Powered by Skill Toss.</div>
+              <div className="text-center text-xs text-ink-400 mt-3">{footerText}</div>
             </div>
           </div>
         </Card>
@@ -412,14 +777,24 @@ export function WhiteLabel() {
 
 export function CustomerSupport() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [localTickets, setLocalTickets] = useState(supportTickets);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [replyText, setReplyText] = useState('');
 
-  const openTickets = supportTickets.filter(t => t.status === 'Open').length;
-  const inProgress = supportTickets.filter(t => t.status === 'In Progress').length;
-  const critical = supportTickets.filter(t => t.priority === 'High' && t.status !== 'Resolved').length;
+  const filteredTickets = localTickets.filter(t => 
+    t.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    t.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const openTickets = localTickets.filter(t => t.status === 'Open').length;
+  const inProgress = localTickets.filter(t => t.status === 'In Progress').length;
+  const critical = localTickets.filter(t => t.priority === 'High' && t.status !== 'Resolved').length;
 
   return (
     <div>
-      <PageHeader title="Customer Support Helpdesk" subtitle="Manage incoming issues and tickets from institutions" actions={<button className="btn-primary"><Plus className="w-4 h-4" /> Create Ticket</button>} />
+      <PageHeader title="Customer Support Helpdesk" subtitle="Manage incoming issues and tickets from institutions" actions={<button className="btn-primary" onClick={() => setIsCreatingTicket(true)}><Plus className="w-4 h-4" /> Create Ticket</button>} />
       
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Open Tickets" value={openTickets} icon={MessagesSquare} color="primary" />
@@ -432,11 +807,16 @@ export function CustomerSupport() {
         <CardHeader title="All Tickets" action={
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input placeholder="Search tickets..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" />
+            <input 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search tickets..." 
+              className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+            />
           </div>
         } />
         <DataTable 
-          data={supportTickets}
+          data={filteredTickets}
           columns={[
             { key: 'id', label: 'ID', render: (t) => <span className="font-mono text-xs text-ink-600">{t.id}</span> },
             { key: 'client', label: 'Client', render: (t) => <span className="font-medium text-ink-900">{t.clientName}</span> },
@@ -478,10 +858,42 @@ export function CustomerSupport() {
                 ))}
               </div>
               <div className="p-3 bg-white border-t border-ink-200">
-                <div className="flex gap-2">
-                  <textarea rows={2} className="input flex-1 resize-none" placeholder="Type your reply to the client..." />
-                  <button className="btn-primary shrink-0 self-end px-3"><Send className="w-4 h-4" /></button>
-                </div>
+                <form 
+                  className="flex gap-2"
+                  onSubmit={e => {
+                    e.preventDefault();
+                    if (!replyText.trim()) return;
+                    
+                    const updatedTicket = {
+                      ...selectedTicket,
+                      status: selectedTicket.status === 'Open' ? 'In Progress' as const : selectedTicket.status,
+                      messages: [
+                        ...selectedTicket.messages, 
+                        {
+                          id: `msg-${Date.now()}`,
+                          sender: 'support' as const,
+                          name: 'Support Agent',
+                          avatar: 'https://i.pravatar.cc/150?u=support',
+                          message: replyText,
+                          timestamp: new Date().toISOString()
+                        }
+                      ]
+                    };
+                    
+                    setLocalTickets(localTickets.map(t => t.id === selectedTicket.id ? updatedTicket : t));
+                    setSelectedTicket(updatedTicket);
+                    setReplyText('');
+                  }}
+                >
+                  <textarea 
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
+                    rows={2} 
+                    className="input flex-1 resize-none" 
+                    placeholder="Type your reply to the client..." 
+                  />
+                  <button type="submit" className="btn-primary shrink-0 self-end px-3" disabled={!replyText.trim()}><Send className="w-4 h-4" /></button>
+                </form>
               </div>
             </div>
 
@@ -507,13 +919,85 @@ export function CustomerSupport() {
               <Card className="p-4 shadow-none border-ink-200">
                 <h4 className="font-semibold text-ink-900 mb-3 text-sm uppercase tracking-wider">Ticket Actions</h4>
                 <div className="space-y-2">
-                  <button className="btn-secondary w-full justify-start text-sm"><Check className="w-4 h-4 mr-2" /> Mark as Resolved</button>
-                  <button className="btn-secondary w-full justify-start text-sm text-error-600 hover:bg-error-50 hover:border-error-200"><AlertTriangle className="w-4 h-4 mr-2" /> Escalate to Engineering</button>
+                  <button 
+                    className="btn-secondary w-full justify-start text-sm"
+                    onClick={() => {
+                      const updated = { ...selectedTicket, status: 'Resolved' as const };
+                      setLocalTickets(localTickets.map(t => t.id === selectedTicket.id ? updated : t));
+                      setSelectedTicket(updated);
+                    }}
+                  >
+                    <Check className="w-4 h-4 mr-2" /> Mark as Resolved
+                  </button>
+                  <button 
+                    className="btn-secondary w-full justify-start text-sm text-error-600 hover:bg-error-50 hover:border-error-200"
+                    onClick={() => {
+                      const updated = { ...selectedTicket, priority: 'High' as const };
+                      setLocalTickets(localTickets.map(t => t.id === selectedTicket.id ? updated : t));
+                      setSelectedTicket(updated);
+                    }}
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-2" /> Escalate to Engineering
+                  </button>
                 </div>
               </Card>
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal open={isCreatingTicket} onClose={() => setIsCreatingTicket(false)} title="Create New Ticket" size="md">
+        <form className="space-y-4" onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const clientId = fd.get('clientId') as string;
+          const client = clients.find(c => c.id === clientId);
+          const newTicket: Ticket = {
+            id: `TCK-${Math.floor(Math.random() * 10000)}`,
+            clientId: clientId,
+            clientName: client?.name || 'Unknown',
+            subject: fd.get('subject') as string,
+            status: 'Open',
+            priority: fd.get('priority') as any,
+            createdAt: new Date().toISOString(),
+            messages: [{
+              id: `msg-${Date.now()}`,
+              sender: 'client',
+              name: client?.name || 'Unknown',
+              message: fd.get('message') as string,
+              timestamp: new Date().toISOString()
+            }]
+          };
+          setLocalTickets([newTicket, ...localTickets]);
+          setIsCreatingTicket(false);
+        }}>
+          <div>
+            <label className="label">Client</label>
+            <select name="clientId" className="input">
+              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Subject</label>
+            <input name="subject" required className="input" placeholder="e.g. Issue with billing" />
+          </div>
+          <div>
+            <label className="label">Priority</label>
+            <select name="priority" className="input">
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+          <div>
+            <label className="label">Initial Message</label>
+            <textarea name="message" required className="input" rows={4} placeholder="Describe the issue..."></textarea>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setIsCreatingTicket(false)}>Cancel</button>
+            <button type="submit" className="btn-primary">Create Ticket</button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
