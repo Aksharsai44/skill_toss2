@@ -349,7 +349,7 @@ export function ConsolidatedReports() {
   );
 
   const handleDownload = () => {
-    let dataToDownload: any[] = [];
+    let dataToDownload: Record<string, unknown>[] = [];
     if (reportType === 'students') {
       dataToDownload = filteredStudents;
     } else if (reportType === 'faculty') {
@@ -511,7 +511,7 @@ export function InstitutionManagement() {
               name: fd.get('name') as string,
               type: fd.get('type') as string,
               location: fd.get('location') as string,
-              status: fd.get('status') as any,
+              status: fd.get('status') as Institution['status'],
             };
             setLocalInstitutions(localInstitutions.map(i => i.id === editingInst.id ? updated : i));
             setEditingInst(null);
@@ -521,7 +521,7 @@ export function InstitutionManagement() {
               name: fd.get('name') as string,
               type: fd.get('type') as string,
               location: fd.get('location') as string,
-              status: fd.get('status') as any,
+              status: fd.get('status') as Institution['status'],
               joinedDate: new Date().toISOString().split('T')[0]
             };
             setLocalInstitutions([newInst, ...localInstitutions]);
@@ -624,7 +624,7 @@ export function AdminManagement() {
               ...editingAdmin,
               name: fd.get('name') as string,
               email: fd.get('email') as string,
-              role: fd.get('role') as any,
+              role: fd.get('role') as AdminUser['role'],
               institution: fd.get('institution') as string,
             };
             setLocalAdmins(localAdmins.map(a => a.id === editingAdmin.id ? updated : a));
@@ -634,7 +634,7 @@ export function AdminManagement() {
               id: `usr-${Date.now()}`,
               name: fd.get('name') as string,
               email: fd.get('email') as string,
-              role: fd.get('role') as any,
+              role: fd.get('role') as AdminUser['role'],
               institution: fd.get('institution') as string,
               status: 'active'
             };
@@ -716,3 +716,5 @@ export function UserManagement() {
     </div>
   );
 }
+
+export { SustainabilityDashboard, ExecutiveDecisionCenter, GlobalCampaignManager, DataQualityMonitoring } from './SuperAdminAddons';

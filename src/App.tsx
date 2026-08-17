@@ -7,8 +7,8 @@ import { StudentCourses } from '@/components/StudentCourses';
 import { StudentPortalProvider } from '@/lib/studentPortal';
 import { LmsDataProvider } from '@/lib/lmsData';
 
-import { ProductAdminDashboard, DemoRequests, Clients, PlansPricing, FeatureToggles, WhiteLabel, CustomerSupport } from '@/portals/product-admin';
-import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports, InstitutionManagement, AdminManagement, UserManagement } from '@/portals/super-admin';
+import { ProductAdminDashboard, DemoRequests, Clients, PlansPricing, FeatureToggles, WhiteLabel, CustomerSupport, AiFeatureLab, LicenseOptimizer, SlaDashboard, RoadmapManager } from '@/portals/product-admin';
+import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports, InstitutionManagement, AdminManagement, UserManagement, SustainabilityDashboard, ExecutiveDecisionCenter, GlobalCampaignManager, DataQualityMonitoring } from '@/portals/super-admin';
 import { AdminDashboard, AdminTeachers, AdminStudents, AdminBatches, AdminFees, AdminSalary, AdminAttendance, AdminLeaves, AdminEvents, AdminIntegrations, AdminCertifications, AdminCalendar, AdminCourses } from '@/portals/admin';
 import { TeacherDashboard, TeacherBatches, LiveClasses, TeacherRecordings, TeacherAttendance, TeacherLeaves, TeacherCourses, TeacherAssignments, TeacherExams, TeacherResources, TeacherCommunity, TeacherForum, TeacherCalendar, TeacherSalary, TeacherProfile } from '@/portals/teacher';
 import { StudentDashboard, StudentClasses, StudentRecordings, StudentResources, MyNotes, StudentAssignments, StudentExams, StudentTimetable, StudentDiary, StudentLeaves, StudentCommunity, StudentForum, StudentCalendar, StudentFees, StudentReports, StudentCertifications, AiHub, StudentProfile } from '@/portals/student';
@@ -27,6 +27,10 @@ function AppRoutes() {
       <Route path="/product-admin/features" element={<ProtectedRoute allowedRoles={['product_admin']}><FeatureToggles /></ProtectedRoute>} />
       <Route path="/product-admin/white-label" element={<ProtectedRoute allowedRoles={['product_admin']}><WhiteLabel /></ProtectedRoute>} />
       <Route path="/product-admin/support" element={<ProtectedRoute allowedRoles={['product_admin']}><CustomerSupport /></ProtectedRoute>} />
+      <Route path="/product-admin/ai-lab" element={<ProtectedRoute allowedRoles={['product_admin']}><AiFeatureLab /></ProtectedRoute>} />
+      <Route path="/product-admin/license-optimizer" element={<ProtectedRoute allowedRoles={['product_admin']}><LicenseOptimizer /></ProtectedRoute>} />
+      <Route path="/product-admin/sla-monitoring" element={<ProtectedRoute allowedRoles={['product_admin']}><SlaDashboard /></ProtectedRoute>} />
+      <Route path="/product-admin/roadmap" element={<ProtectedRoute allowedRoles={['product_admin']}><RoadmapManager /></ProtectedRoute>} />
 
       {/* Super Admin */}
       <Route path="/super-admin" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminDashboard /></ProtectedRoute>} />
@@ -37,6 +41,10 @@ function AppRoutes() {
       <Route path="/super-admin/institutions" element={<ProtectedRoute allowedRoles={['super_admin']}><InstitutionManagement /></ProtectedRoute>} />
       <Route path="/super-admin/admins" element={<ProtectedRoute allowedRoles={['super_admin']}><AdminManagement /></ProtectedRoute>} />
       <Route path="/super-admin/users" element={<ProtectedRoute allowedRoles={['super_admin']}><UserManagement /></ProtectedRoute>} />
+      <Route path="/super-admin/sustainability" element={<ProtectedRoute allowedRoles={['super_admin']}><SustainabilityDashboard /></ProtectedRoute>} />
+      <Route path="/super-admin/executive-center" element={<ProtectedRoute allowedRoles={['super_admin']}><ExecutiveDecisionCenter /></ProtectedRoute>} />
+      <Route path="/super-admin/campaigns" element={<ProtectedRoute allowedRoles={['super_admin']}><GlobalCampaignManager /></ProtectedRoute>} />
+      <Route path="/super-admin/data-quality" element={<ProtectedRoute allowedRoles={['super_admin']}><DataQualityMonitoring /></ProtectedRoute>} />
 
       {/* Admin */}
       <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />

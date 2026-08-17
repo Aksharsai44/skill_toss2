@@ -24,6 +24,15 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       ],
     },
     {
+      group: 'Add-Ons & Modules',
+      items: [
+        { label: 'AI Feature Lab', path: '/product-admin/ai-lab', icon: 'Sparkles' },
+        { label: 'License Optimizer', path: '/product-admin/license-optimizer', icon: 'Target' },
+        { label: 'SLA Dashboard', path: '/product-admin/sla-monitoring', icon: 'Clock' },
+        { label: 'Roadmap Manager', path: '/product-admin/roadmap', icon: 'Map' },
+      ],
+    },
+    {
       group: 'Support',
       items: [
         { label: 'Customer Support', path: '/product-admin/support', icon: 'LifeBuoy' },
@@ -56,6 +65,15 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       items: [
         { label: 'Revenue', path: '/super-admin/revenue', icon: 'TrendingUp' },
         { label: 'Consolidated Reports', path: '/super-admin/reports', icon: 'FileBarChart' },
+      ],
+    },
+    {
+      group: 'Executive Add-Ons',
+      items: [
+        { label: 'Sustainability', path: '/super-admin/sustainability', icon: 'Leaf' },
+        { label: 'Decision Center', path: '/super-admin/executive-center', icon: 'Lightbulb' },
+        { label: 'Campaigns', path: '/super-admin/campaigns', icon: 'Megaphone' },
+        { label: 'Data Quality', path: '/super-admin/data-quality', icon: 'Database' },
       ],
     },
   ],

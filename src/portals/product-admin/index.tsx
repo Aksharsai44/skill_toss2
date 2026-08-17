@@ -176,7 +176,7 @@ export function DemoRequests() {
             const updated = {
               ...selected,
               organization: fd.get('organization') as string,
-              type: fd.get('type') as any,
+              type: fd.get('type') as DemoRequest['type'],
               contact: fd.get('contact') as string,
               email: fd.get('email') as string,
               phone: fd.get('phone') as string,
@@ -231,7 +231,7 @@ export function DemoRequests() {
           const newReq: DemoRequest = {
             id: `req-${Date.now()}`,
             organization: fd.get('organization') as string,
-            type: fd.get('type') as any,
+            type: fd.get('type') as DemoRequest['type'],
             contact: fd.get('contact') as string,
             email: fd.get('email') as string,
             phone: fd.get('phone') as string,
@@ -375,8 +375,8 @@ export function Clients() {
             const updated = {
               ...selected,
               name: fd.get('name') as string,
-              plan: fd.get('plan') as any,
-              status: fd.get('status') as any
+              plan: fd.get('plan') as Client['plan'],
+              status: fd.get('status') as Client['status']
             };
             setLocalClients(localClients.map(c => c.id === selected.id ? updated : c));
             setSelected(updated);
@@ -420,9 +420,9 @@ export function Clients() {
           const newClient: Client = {
             id: `client-${Date.now()}`,
             name: fd.get('name') as string,
-            type: fd.get('type') as any,
-            plan: fd.get('plan') as any,
-            status: fd.get('status') as any,
+            type: fd.get('type') as Client['type'],
+            plan: fd.get('plan') as Client['plan'],
+            status: fd.get('status') as Client['status'],
             students: Number(fd.get('students')),
             teachers: 0,
             mrr: 0,
@@ -958,7 +958,7 @@ export function CustomerSupport() {
             clientName: client?.name || 'Unknown',
             subject: fd.get('subject') as string,
             status: 'Open',
-            priority: fd.get('priority') as any,
+            priority: fd.get('priority') as Ticket['priority'],
             createdAt: new Date().toISOString(),
             messages: [{
               id: `msg-${Date.now()}`,
@@ -1002,3 +1002,5 @@ export function CustomerSupport() {
     </div>
   );
 }
+
+export { AiFeatureLab, LicenseOptimizer, SlaDashboard, RoadmapManager } from './ProductAdminAddons';
