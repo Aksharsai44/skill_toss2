@@ -330,6 +330,19 @@ export type Ticket = {
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 export type SubmissionStatus = 'not-started' | 'in-progress' | 'submitted' | 'graded';
+export type SubmissionAttachment = {
+  id: string;
+  submissionId: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  lastModified: number;
+  storageMode: 'local';
+  createdAt: string;
+  ownerType?: 'assignment' | 'submission' | 'resource' | 'note';
+  ownerId?: string;
+  uploadedBy?: string;
+};
 
 export type LmsStudent = {
   id: string; name: string; rollNo: string; batchId: string; departmentId: string;
@@ -340,8 +353,8 @@ export type LmsTeacher = { id: string; name: string; email: string; phone: strin
 export type LmsBatch = { id: string; name: string; departmentId: string; teacherId: string; schedule: string };
 export type LmsDepartment = { id: string; name: string };
 export type LmsCourse = { id: string; code: string; title: string; departmentId: string; teacherId: string; batchIds: string[] };
-export type LmsAssignment = { id: string; title: string; courseId: string; batchId: string; teacherId: string; instructions: string; dueDate: string; maxMarks: number; attachmentName?: string; status: 'open' | 'archived'; createdAt: string };
-export type LmsSubmission = { id: string; assignmentId: string; studentId: string; response: string; attachmentName?: string; status: SubmissionStatus; submittedAt?: string; marks?: number; feedback?: string; gradedAt?: string };
+export type LmsAssignment = { id: string; title: string; courseId: string; batchId: string; teacherId: string; instructions: string; dueDate: string; maxMarks: number; attachmentName?: string; attachments?: SubmissionAttachment[]; status: 'open' | 'archived'; createdAt: string };
+export type LmsSubmission = { id: string; assignmentId: string; studentId: string; response: string; attachmentName?: string; attachments?: SubmissionAttachment[]; status: SubmissionStatus; submittedAt?: string; updatedAt?: string; marks?: number; feedback?: string; gradedAt?: string };
 export type LmsAttendanceRecord = { id: string; studentId: string; courseId: string; batchId: string; date: string; status: AttendanceStatus };
 export type LmsExam = { id: string; courseId: string; batchId: string; title: string; date: string; startTime: string; durationMinutes: number; maxMarks: number; syllabus: string; status: 'scheduled' | 'completed' };
 export type LmsExamResult = { id: string; examId: string; studentId: string; marks: number; feedback?: string };
@@ -349,8 +362,38 @@ export type LmsFeeInvoice = { id: string; studentId: string; title: string; tota
 export type LmsPayment = { id: string; invoiceId: string; studentId: string; amount: number; method: 'cash' | 'bank-transfer' | 'demo-card'; reference: string; date: string; status: 'completed'; demo: true };
 export type LmsReceipt = { id: string; paymentId: string; invoiceId: string; studentId: string; amount: number; date: string; method: string; reference: string; status: 'completed'; demo: true };
 export type LmsNotification = { id: string; userId: string; type: 'academic' | 'fees' | 'attendance' | 'resource' | 'announcement'; title: string; message: string; timestamp: string; read: boolean; relatedEntityId?: string; path?: string };
-export type LmsResource = { id: string; title: string; description: string; courseId: string; batchId: string; type: 'PDF' | 'DOC' | 'PPT' | 'LINK'; uploadedBy: string; uploadedAt: string };
-export type LmsClassSession = { id: string; courseId: string; batchId: string; teacherId: string; date: string; startTime: string; endTime: string; mode: 'classroom' | 'online'; location: string; status: 'scheduled' | 'completed' | 'live' };
+export type LmsResource = { id: string; title: string; description: string; courseId: string; batchId: string; type: 'PDF' | 'DOC' | 'PPT' | 'LINK'; uploadedBy: string; uploadedAt: string; attachments?: SubmissionAttachment[] };
+export type LmsClassSessionMode = 'classroom' | 'jitsi' | 'online';
+export type LmsClassSessionStatus = 'scheduled' | 'live' | 'completed' | 'cancelled';
+
+export type OnlineAttendanceSession = {
+  id: string;
+  classSessionId: string;
+  studentId: string;
+  jitsiParticipantId?: string;
+  joinedAt: string;
+  leftAt?: string;
+  durationMinutes?: number;
+};
+
+export type LmsClassSession = {
+  id: string;
+  courseId: string;
+  batchId: string;
+  teacherId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  mode: LmsClassSessionMode;
+  location?: string;
+  status: LmsClassSessionStatus;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  endedBy?: string | null;
+  meetingProvider?: 'jitsi';
+  jitsiRoomName?: string;
+  meetingUrl?: string;
+};
 export type LmsGoal = { id: string; studentId: string; title: string; category: string; target: string; deadline: string; progress: number; status: 'active' | 'completed' };
 
 export type LmsState = {
@@ -359,6 +402,7 @@ export type LmsState = {
   departments: LmsDepartment[]; batches: LmsBatch[]; courses: LmsCourse[];
   students: LmsStudent[]; teachers: LmsTeacher[]; parentLinks: ParentStudentLink[];
   assignments: LmsAssignment[]; submissions: LmsSubmission[]; attendance: LmsAttendanceRecord[];
+  onlineAttendance: OnlineAttendanceSession[];
   exams: LmsExam[]; examResults: LmsExamResult[]; feeInvoices: LmsFeeInvoice[];
   payments: LmsPayment[]; receipts: LmsReceipt[]; notifications: LmsNotification[];
   resources: LmsResource[]; classSessions: LmsClassSession[]; goals: LmsGoal[]; events: EventItem[];

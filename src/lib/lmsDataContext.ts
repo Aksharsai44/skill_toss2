@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import type {
   AttendanceStatus, EventItem, LmsAssignment, LmsClassSession, LmsExam, LmsGoal, LmsResource, LmsState, LmsStudent,
-  LmsSubmission,
+  LmsSubmission, OnlineAttendanceSession, SubmissionAttachment,
 } from '@/lib/types';
 
 export type ActionResult = { ok: true; message: string } | { ok: false; message: string };
@@ -23,16 +23,21 @@ export type LmsDataContextValue = {
   getStudentFees: (studentId: string) => FeeView;
   getStudentExams: (studentId: string) => LmsExam[];
   getStudentResources: (studentId: string) => LmsResource[];
+  getOnlineAttendanceForSession: (sessionId: string) => OnlineAttendanceSession[];
   searchRecords: (query: string, studentId?: string) => SearchResult[];
   addStudent: (input: Omit<LmsStudent, 'id' | 'avatar'> & { initialFeeTotal: number }) => ActionResult;
-  createAssignment: (input: Omit<LmsAssignment, 'id' | 'createdAt' | 'status'>) => ActionResult;
-  saveSubmission: (assignmentId: string, studentId: string, response: string, submit: boolean, attachmentName?: string) => ActionResult;
+  createAssignment: (input: Omit<LmsAssignment, 'id' | 'createdAt' | 'status'> & { attachmentFiles?: Array<{ metadata: SubmissionAttachment; file?: File }> }) => Promise<ActionResult>;
+  saveSubmission: (assignmentId: string, studentId: string, response: string, submit: boolean, attachments?: Array<{ metadata: SubmissionAttachment; file?: File }>) => Promise<ActionResult>;
   gradeSubmission: (submissionId: string, marks: number, feedback: string) => ActionResult;
   markAttendance: (studentId: string, courseId: string, batchId: string, date: string, status: AttendanceStatus) => ActionResult;
   recordPayment: (invoiceId: string, studentId: string, amount: number, method: 'cash' | 'bank-transfer' | 'demo-card', reference: string, date: string) => ActionResult;
-  addResource: (input: Omit<LmsResource, 'id' | 'uploadedAt'>) => ActionResult;
+  addResource: (input: Omit<LmsResource, 'id' | 'uploadedAt'> & { attachmentFiles?: Array<{ metadata: SubmissionAttachment; file?: File }> }) => Promise<ActionResult>;
   scheduleExam: (input: Omit<LmsExam, 'id' | 'status'>) => ActionResult;
-  scheduleClass: (input: Omit<LmsClassSession, 'id' | 'status'>) => ActionResult;
+  scheduleClass: (input: Omit<LmsClassSession, 'id' | 'status'> & { id?: string; status?: LmsClassSession['status'] }) => ActionResult;
+  updateClassSessionStatus: (sessionId: string, status: LmsClassSession['status'], metadata?: Pick<LmsClassSession, 'startedAt' | 'endedAt' | 'endedBy'>) => ActionResult;
+  syncClassSession: (session: LmsClassSession) => Promise<boolean>;
+  recordOnlineJoin: (sessionId: string, studentId: string, jitsiParticipantId?: string) => void;
+  recordOnlineLeave: (sessionId: string, studentId: string) => void;
   updateStudentProfile: (studentId: string, updates: Pick<LmsStudent, 'phone' | 'email' | 'address' | 'emergencyContact'>) => ActionResult;
   saveGoal: (input: Omit<LmsGoal, 'id' | 'status'> & { id?: string }) => ActionResult;
   deleteGoal: (id: string) => ActionResult;

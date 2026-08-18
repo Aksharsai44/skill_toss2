@@ -4,14 +4,16 @@ import { LandingPage } from '@/components/LandingPage';
 import { LoginPage } from '@/components/LoginPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { StudentCourses } from '@/components/StudentCourses';
+import { LiveClassroomPage } from '@/components/LiveClassroomPage';
 import { StudentPortalProvider } from '@/lib/studentPortal';
 import { LmsDataProvider } from '@/lib/lmsData';
+import { SkipToContent } from '@/components/SkipToContent';
 
 import { ProductAdminDashboard, DemoRequests, Clients, PlansPricing, FeatureToggles, WhiteLabel, CustomerSupport } from '@/portals/product-admin';
 import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports, InstitutionManagement, AdminManagement, UserManagement } from '@/portals/super-admin';
 import { AdminDashboard, AdminTeachers, AdminStudents, AdminBatches, AdminFees, AdminSalary, AdminAttendance, AdminLeaves, AdminEvents, AdminIntegrations, AdminCertifications, AdminCalendar, AdminCourses } from '@/portals/admin';
 import { TeacherDashboard, TeacherBatches, LiveClasses, TeacherRecordings, TeacherAttendance, TeacherLeaves, TeacherCourses, TeacherAssignments, TeacherExams, TeacherResources, TeacherCommunity, TeacherForum, TeacherCalendar, TeacherSalary, TeacherProfile } from '@/portals/teacher';
-import { StudentDashboard, StudentClasses, StudentRecordings, StudentResources, MyNotes, StudentAssignments, StudentExams, StudentTimetable, StudentDiary, StudentLeaves, StudentCommunity, StudentForum, StudentCalendar, StudentFees, StudentReports, StudentCertifications, AiHub, StudentProfile } from '@/portals/student';
+import { StudentDashboard, StudentClasses, StudentRecordings, StudentResources, MyNotes, StudentAssignments, StudentExams, StudentTimetable, StudentDiary, StudentLeaves, StudentCommunity, StudentForum, StudentCalendar, StudentFees, StudentReports, StudentCertifications, AiHub, StudentProfile, StudentSettings } from '@/portals/student';
 
 function AppRoutes() {
   return (
@@ -57,6 +59,7 @@ function AppRoutes() {
       <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
       <Route path="/teacher/batches" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherBatches /></ProtectedRoute>} />
       <Route path="/teacher/classes" element={<ProtectedRoute allowedRoles={['teacher']}><LiveClasses /></ProtectedRoute>} />
+      <Route path="/teacher/classes/:sessionId/live" element={<ProtectedRoute allowedRoles={['teacher']}><LiveClassroomPage role="teacher" /></ProtectedRoute>} />
       <Route path="/teacher/recordings" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherRecordings /></ProtectedRoute>} />
       <Route path="/teacher/attendance" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherAttendance /></ProtectedRoute>} />
       <Route path="/teacher/leaves" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLeaves /></ProtectedRoute>} />
@@ -73,6 +76,7 @@ function AppRoutes() {
       {/* Student & Parent */}
       <Route path="/student" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentDashboard /></ProtectedRoute>} />
       <Route path="/student/classes" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentClasses /></ProtectedRoute>} />
+      <Route path="/student/classes/:sessionId/live" element={<ProtectedRoute allowedRoles={['student', 'parent']}><LiveClassroomPage role="student" /></ProtectedRoute>} />
       <Route path="/student/recordings" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentRecordings /></ProtectedRoute>} />
       <Route path="/student/resources" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentResources /></ProtectedRoute>} />
       <Route path="/student/my-notes" element={<ProtectedRoute allowedRoles={['student']}><MyNotes /></ProtectedRoute>} />
@@ -90,13 +94,12 @@ function AppRoutes() {
       <Route path="/student/certifications" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentCertifications /></ProtectedRoute>} />
       <Route path="/student/ai-hub" element={<ProtectedRoute allowedRoles={['student']}><AiHub /></ProtectedRoute>} />
       <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentProfile /></ProtectedRoute>} />
+      <Route path="/student/settings" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentSettings /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
-
-import { SkipToContent } from '@/components/SkipToContent';
 
 export default function App() {
   return (

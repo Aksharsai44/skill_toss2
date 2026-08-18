@@ -3,6 +3,8 @@ import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { UserRole, UserProfile } from '@/lib/types';
 import { AuthContext, type AuthContextValue } from '@/lib/authContext';
+import { putAttachment, getAttachment, removeAttachment } from '@/lib/attachmentStorage';
+import type { SubmissionAttachment } from '@/lib/types';
 
 // Fallback mock profiles for quick demo accounts if Supabase profiles table is empty or offline
 const DEMO_PROFILES: Record<string, UserProfile> = {
@@ -55,6 +57,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const updateProfileAvatar = useCallback(async (file: File | null) => {
+    if (!user) return;
+    const id = `profile_avatar_${user.id}`;
+    if (!file) { await removeAttachment(id).catch(() => undefined); localStorage.removeItem(`skill-toss-avatar-${user.id}`); setProfile((current) => current ? { ...current, avatarUrl: null } : current); return; }
+    const metadata: SubmissionAttachment = { id, submissionId: user.id, fileName: file.name, fileType: file.type, fileSize: file.size, lastModified: file.lastModified, storageMode: 'local', createdAt: new Date().toISOString(), ownerType: 'note', ownerId: user.id, uploadedBy: user.id };
+    await putAttachment(metadata, file);
+    localStorage.setItem(`skill-toss-avatar-${user.id}`, id);
+    const stored = await getAttachment(id);
+    setProfile((current) => current ? { ...current, avatarUrl: stored ? URL.createObjectURL(stored.blob) : null } : current);
+  }, [user]);
+  const profileId = profile?.id;
+  useEffect(() => {
+    if (!user || !profileId) return;
+    const id = localStorage.getItem(`skill-toss-avatar-${user.id}`);
+    if (!id) return;
+    let active = true;
+    void getAttachment(id).then((stored) => { if (active && stored) setProfile((current) => current ? { ...current, avatarUrl: URL.createObjectURL(stored.blob) } : current); });
+    return () => { active = false; };
+  }, [user, profileId]);
 
   // Helper function to fetch or resolve profile
   const fetchProfile = useCallback(async (authUser: User): Promise<UserProfile> => {
@@ -204,15 +225,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      session,
-      profile,
-      loading,
-      signIn,
-      signOut,
-    }),
-    [user, session, profile, loading, signIn, signOut],
+    () => ({ user, session, profile, loading, signIn, signOut, updateProfileAvatar }),
+    [user, session, profile, loading, signIn, signOut, updateProfileAvatar],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

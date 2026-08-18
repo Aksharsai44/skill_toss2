@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Video, PlayCircle, NotebookPen, ClipboardList, FileQuestion,
   BookOpen, CreditCard, FileBarChart, Award, Sparkles,
   Download, Play, FileText, Send, Heart,
   Bookmark, MessageCircle, Plus, TrendingUp, Mic, FileSearch, Code2,
   CalendarCheck, ChevronRight, Mail, Phone, Edit, Trash2, Save, CalendarOff,
-  GraduationCap, AlertTriangle, CheckCircle2, ArrowUpRight, ShieldAlert, Activity,
+  GraduationCap, AlertTriangle, CheckCircle2, ArrowUpRight, ShieldAlert, Activity, Paperclip, UploadCloud, X,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';
@@ -19,11 +19,27 @@ import { useAuth } from '@/lib/authContext';
 import { useNavigate } from 'react-router-dom';
 import { useStudentPortal } from '@/lib/studentPortalContext';
 import { useLmsData } from '@/lib/lmsDataContext';
+import type { SubmissionAttachment } from '@/lib/types';
+import { getAttachment, removeAttachment } from '@/lib/attachmentStorage';
+import { MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS, ACCEPTED_ATTACHMENT_EXTENSIONS, formatAttachmentSize as formatSharedAttachmentSize, attachmentExtension as sharedAttachmentExtension, attachmentIdFor as sharedAttachmentIdFor } from '@/lib/attachmentConfig';
+
+const formatFileSize = formatSharedAttachmentSize;
+const extensionFor = sharedAttachmentExtension;
+const attachmentIdFor = (assignmentId: string, studentId: string, file: Pick<File, 'name' | 'size' | 'lastModified'>) => sharedAttachmentIdFor(`${assignmentId}_${studentId}`, 'submission', file);
+const downloadLocalAttachment = async (metadata: SubmissionAttachment, file?: File): Promise<boolean> => {
+  const stored = file || await getAttachment(metadata.id);
+  if (!stored) return false;
+  const url = URL.createObjectURL(stored instanceof File ? stored : stored.blob);
+  const link = document.createElement('a'); link.href = url; link.download = metadata.fileName; link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
+};
 
 export function StudentDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { viewerRole, linkedStudents, selectedStudentId, selectedStudent: currentChild, permissions, selectStudent } = useStudentPortal();
+  const { state } = useLmsData();
   const isParent = viewerRole === 'parent';
 
   if (!currentChild) {
@@ -33,6 +49,10 @@ export function StudentDashboard() {
   const studentName = isParent ? currentChild.name : profile?.fullName || 'Arjun Verma';
   const attendanceVal = isParent ? currentChild.attendance : 92;
   const isAttendanceAtRisk = attendanceVal < 75;
+
+  const currentStudentBatchId = currentChild.batch === 'EE-2024-B' ? 'batch_002' : 'batch_001';
+  const batchSessions = state.classSessions.filter((s) => s.batchId === currentStudentBatchId);
+
   const quickAccessItems = [
     { label: 'Assignments', path: '/student/assignments', icon: ClipboardList },
     { label: 'Exams', path: '/student/exams', icon: FileQuestion },
@@ -65,18 +85,22 @@ export function StudentDashboard() {
             <GraduationCap className="w-5 h-5 text-primary-600" />
             <div className="text-left">
               <p className="text-[10px] uppercase font-semibold text-ink-400">Viewing Child</p>
-              {linkedStudents.length > 1 ? <select
-                aria-label="Select student to view"
-                value={selectedStudentId ?? ''}
-                onChange={(e) => selectStudent(e.target.value)}
-                className="text-sm font-semibold text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-6 min-w-44"
-              >
-                {linkedStudents.map((child) => (
-                  <option key={child.id} value={child.id}>
-                    {child.name} ({child.batch})
-                  </option>
-                ))}
-              </select> : <p className="text-sm font-bold text-ink-900">{currentChild.name}</p>}
+              {linkedStudents.length > 1 ? (
+                <select
+                  aria-label="Select student to view"
+                  value={selectedStudentId ?? ''}
+                  onChange={(e) => selectStudent(e.target.value)}
+                  className="text-sm font-semibold text-ink-900 bg-transparent border-none focus:outline-none cursor-pointer pr-6 min-w-44"
+                >
+                  {linkedStudents.map((child) => (
+                    <option key={child.id} value={child.id}>
+                      {child.name} ({child.batch})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm font-bold text-ink-900">{currentChild.name}</p>
+              )}
             </div>
           </div>
         )}
@@ -164,33 +188,52 @@ export function StudentDashboard() {
         <div className="lg:col-span-2 space-y-6">
           {/* Today Timeline */}
           <Card>
-            <CardHeader title="Today's Schedule & Tasks" subtitle="Friday, 7 August 2026" />
+            <CardHeader title="Today's Schedule & Tasks" subtitle="Live classes, sessions and assignments" />
             <div className="divide-y divide-ink-100">
-              {[
-                { time: '09:00 AM', title: 'Data Structures — Linked Lists', detail: 'Sneha Kapoor · CS-2024-A', type: 'class', status: 'live' },
-                { time: '11:00 AM', title: 'Algorithms — Sorting Techniques', detail: 'Sneha Kapoor · CS-2024-A', type: 'class', status: 'upcoming' },
-                { time: '02:00 PM', title: 'Doubt Clearing Session', detail: 'Sneha Kapoor · Online Meet', type: 'session', status: 'upcoming' },
-                { time: '11:59 PM', title: 'DBMS Assignment 3 (Normalization)', detail: 'Submit before midnight', type: 'assignment', status: 'due' },
-              ].map((item, idx) => (
-                <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 hover:bg-ink-50 transition-colors duration-150">
-                  <div className="text-xs font-bold text-primary-700 sm:w-16 shrink-0">{item.time}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-ink-900 truncate">{item.title}</p>
-                    <p className="text-xs text-ink-400 mt-0.5 truncate">{item.detail}</p>
-                  </div>
-                  {item.status === 'live' && <Badge variant="error" className="animate-pulse">LIVE</Badge>}
-                  {item.status === 'due' && <Badge variant="warning">Due Today</Badge>}
-                  {item.status === 'upcoming' && <Badge variant="primary">Upcoming</Badge>}
+              {batchSessions.length === 0 ? (
+                <div className="p-5 text-center text-xs text-ink-400">No scheduled sessions today.</div>
+              ) : (
+                batchSessions.map((session) => {
+                  const course = state.courses.find((c) => c.id === session.courseId);
+                  const teacher = state.teachers.find((t) => t.id === session.teacherId);
+                  const isJitsi = session.mode === 'jitsi' || session.mode === 'online';
+                  const isLive = session.status === 'live';
 
-                  {item.status === 'live' && permissions.canJoinClass ? (
-                       <button className="btn-danger text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto">Join Class</button>
-                    ) : item.status === 'due' && permissions.canSubmitAssignment ? (
-                       <button onClick={() => navigate('/student/assignments')} className="btn-primary text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto">Submit</button>
-                    ) : !isParent ? (
-                       <button className="btn-secondary text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto">Reminder</button>
-                    ) : <button onClick={() => navigate(item.type === 'assignment' ? '/student/assignments' : '/student/classes')} className="btn-secondary text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto">View Details</button>}
-                </div>
-              ))}
+                  return (
+                    <div key={session.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 hover:bg-ink-50 transition-colors duration-150">
+                      <div className="text-xs font-bold text-primary-700 sm:w-16 shrink-0">{session.startTime}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-ink-900 truncate">{course?.title || 'Class Session'}</p>
+                        <p className="text-xs text-ink-400 mt-0.5 truncate">
+                          {teacher?.name || 'Instructor'} · {isJitsi ? 'Jitsi Meet' : (session.location || 'Classroom')} · {session.date}
+                        </p>
+                      </div>
+                      {isLive && <Badge variant="error" className="animate-pulse">LIVE</Badge>}
+                      {session.status === 'scheduled' && <Badge variant="primary">Scheduled</Badge>}
+                      {session.status === 'completed' && <Badge variant="success">Completed</Badge>}
+                      {session.status === 'cancelled' && <Badge variant="error">Cancelled</Badge>}
+
+                      {session.status !== 'cancelled' && session.status !== 'completed' && (
+                        permissions.canJoinClass ? (
+                          <button
+                            onClick={() => navigate(`/student/classes/${session.id}/live`)}
+                            className={cn('text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto font-semibold', isLive ? 'btn-danger' : 'btn-primary')}
+                          >
+                            {isLive ? 'Join Class' : 'Enter'}
+                          </button>
+                        ) : isParent ? (
+                          <button
+                            onClick={() => navigate('/student/classes')}
+                            className="btn-secondary text-xs px-3 py-1.5 shrink-0 w-full sm:w-auto"
+                          >
+                            View Details
+                          </button>
+                        ) : null
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </Card>
 
@@ -198,20 +241,22 @@ export function StudentDashboard() {
           <Card>
             <CardHeader title="Action Required" subtitle="High-priority items requiring attention" />
             <div className="divide-y divide-ink-100">
-              {currentChild.feePending > 0 && <div className="flex items-center justify-between px-5 py-4 border-l-2 border-l-warning-500">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-warning-100 flex items-center justify-center text-warning-700 font-bold shrink-0">
-                    ₹
+              {currentChild.feePending > 0 && (
+                <div className="flex items-center justify-between px-5 py-4 border-l-2 border-l-warning-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-warning-100 flex items-center justify-center text-warning-700 font-bold shrink-0">
+                      ₹
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-ink-900">Semester 7 Fee Due</p>
+                      <p className="text-xs text-ink-500">₹{currentChild.feePending.toLocaleString('en-IN')} pending</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-ink-900">Semester 7 Fee Due</p>
-                    <p className="text-xs text-ink-500">₹{currentChild.feePending.toLocaleString('en-IN')} pending</p>
-                  </div>
+                  <button onClick={() => navigate('/student/fees')} className="btn-primary text-xs px-3 py-1.5 shrink-0">
+                    {permissions.canPayFees ? 'Pay Now' : 'View Bill'}
+                  </button>
                 </div>
-                <button onClick={() => navigate('/student/fees')} className="btn-primary text-xs px-3 py-1.5 shrink-0">
-                  {permissions.canPayFees ? 'Pay Now' : 'View Bill'}
-                </button>
-              </div>}
+              )}
 
               {isAttendanceAtRisk && (
                 <div className="flex items-center justify-between px-5 py-4 border-l-2 border-l-error-500">
@@ -233,46 +278,51 @@ export function StudentDashboard() {
           </Card>
 
           <Card>
-              <CardHeader title="Course Progress" subtitle={`Current learning progress for ${studentName}`} />
-              <div className="p-5 space-y-4">
-                <div className="py-1 text-ink-900 flex items-center justify-between gap-4">
-                  <div>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-700">Video Recording</span>
-                    <h4 className="font-bold text-base mt-0.5">Data Structures — Linked Lists (Lecture 8)</h4>
-                    <p className="text-xs text-ink-500 mt-1">Progress: 68% (32 mins remaining)</p>
-                  </div>
-                  {permissions.canJoinClass ? <button onClick={() => navigate('/student/recordings')} className="btn-primary text-xs px-4 py-2 shrink-0 flex items-center gap-1.5">
+            <CardHeader title="Course Progress" subtitle={`Current learning progress for ${studentName}`} />
+            <div className="p-5 space-y-4">
+              <div className="py-1 text-ink-900 flex items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-700">Video Recording</span>
+                  <h4 className="font-bold text-base mt-0.5">Data Structures — Linked Lists (Lecture 8)</h4>
+                  <p className="text-xs text-ink-500 mt-1">Progress: 68% (32 mins remaining)</p>
+                </div>
+                {permissions.canJoinClass ? (
+                  <button onClick={() => navigate('/student/recordings')} className="btn-primary text-xs px-4 py-2 shrink-0 flex items-center gap-1.5">
                     <Play className="w-4 h-4 fill-current" /> Resume
-                  </button> : <button onClick={() => navigate('/student/recordings')} className="btn-secondary text-xs px-4 py-2 shrink-0">View Progress</button>}
-                </div>
+                  </button>
+                ) : (
+                  <button onClick={() => navigate('/student/recordings')} className="btn-secondary text-xs px-4 py-2 shrink-0">View Progress</button>
+                )}
               </div>
+            </div>
           </Card>
+
           <Card>
-              <CardHeader title="Academic Progress" subtitle={`Performance overview for ${studentName}`} />
-              <div className="p-5 grid sm:grid-cols-4 gap-4">
-                <div className="py-2 border-r border-ink-200 text-left">
-                  <p className="text-xs text-ink-500">Overall Grade</p>
-                   <p className="text-2xl font-bold text-primary-600 font-display mt-1">{currentChild.overallPerformance}%</p>
-                  <span className="text-[10px] text-success-600 font-semibold">Grade A</span>
-                </div>
-                <div className="py-2 sm:pl-4 border-r border-ink-200 text-left">
-                  <p className="text-xs text-ink-500">Strongest Subject</p>
-                   <p className="text-base font-bold text-ink-900 mt-1 truncate">{currentChild.strongestSubject}</p>
-                  <span className="text-[10px] text-success-600 font-semibold">89% Score</span>
-                </div>
-                <div className="py-2 sm:pl-4 border-r border-ink-200 text-left">
-                  <p className="text-xs text-ink-500">Needs Attention</p>
-                   <p className="text-base font-bold text-error-600 mt-1 truncate">{currentChild.needsAttention}</p>
-                  <span className="text-[10px] text-error-600 font-semibold">72% Score</span>
-                </div>
-                <div className="py-2 sm:pl-4 text-left">
-                  <p className="text-xs text-ink-500">Semester Trend</p>
-                  <p className="text-base font-bold text-success-600 mt-1 flex items-center justify-center gap-1">
-                     <TrendingUp className="w-4 h-4" /> +{currentChild.semesterTrend}%
-                  </p>
-                  <span className="text-[10px] text-ink-400">Improving</span>
-                </div>
+            <CardHeader title="Academic Progress" subtitle={`Performance overview for ${studentName}`} />
+            <div className="p-5 grid sm:grid-cols-4 gap-4">
+              <div className="py-2 border-r border-ink-200 text-left">
+                <p className="text-xs text-ink-500">Overall Grade</p>
+                <p className="text-2xl font-bold text-primary-600 font-display mt-1">{currentChild.overallPerformance}%</p>
+                <span className="text-[10px] text-success-600 font-semibold">Grade A</span>
               </div>
+              <div className="py-2 sm:pl-4 border-r border-ink-200 text-left">
+                <p className="text-xs text-ink-500">Strongest Subject</p>
+                <p className="text-base font-bold text-ink-900 mt-1 truncate">{currentChild.strongestSubject}</p>
+                <span className="text-[10px] text-success-600 font-semibold">89% Score</span>
+              </div>
+              <div className="py-2 sm:pl-4 border-r border-ink-200 text-left">
+                <p className="text-xs text-ink-500">Needs Attention</p>
+                <p className="text-base font-bold text-error-600 mt-1 truncate">{currentChild.needsAttention}</p>
+                <span className="text-[10px] text-error-600 font-semibold">72% Score</span>
+              </div>
+              <div className="py-2 sm:pl-4 text-left">
+                <p className="text-xs text-ink-500">Semester Trend</p>
+                <p className="text-base font-bold text-success-600 mt-1 flex items-center justify-center gap-1">
+                  <TrendingUp className="w-4 h-4" /> +{currentChild.semesterTrend}%
+                </p>
+                <span className="text-[10px] text-ink-400">Improving</span>
+              </div>
+            </div>
           </Card>
 
           {/* Attendance Intelligence Widget */}
@@ -321,11 +371,13 @@ export function StudentDashboard() {
             <div className="divide-y divide-ink-100">
               {quickAccessItems.map((item) => {
                 const Icon = item.icon;
-                return <button key={item.path} onClick={() => navigate(item.path)} className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-ink-50 duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/30 active:bg-ink-100">
-                  <Icon className="w-4 h-4 text-ink-500" />
-                  <span className="text-xs font-medium text-ink-800">{item.label}</span>
-                  <ChevronRight className="w-3.5 h-3.5 ml-auto text-ink-300" />
-                </button>;
+                return (
+                  <button key={item.path} onClick={() => navigate(item.path)} className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-ink-50 duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/30 active:bg-ink-100">
+                    <Icon className="w-4 h-4 text-ink-500" />
+                    <span className="text-xs font-medium text-ink-800">{item.label}</span>
+                    <ChevronRight className="w-3.5 h-3.5 ml-auto text-ink-300" />
+                  </button>
+                );
               })}
             </div>
           </Card>
@@ -350,35 +402,36 @@ export function StudentDashboard() {
             </div>
           </Card>
 
+          {/* Weekly Summary Card */}
           <Card className="bg-ink-900 text-white border-ink-800">
-              <div className="p-5 space-y-3">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <h3 className="font-bold text-sm font-display text-white">Weekly Summary</h3>
-                  <span className="text-[10px] text-primary-200">1 Aug – 7 Aug</span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-ink-300">Attendance Rate:</span>
-                    <span className="font-bold text-white">91%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-ink-300">Assignments Completed:</span>
-                    <span className="font-bold text-white">4 / 5</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-ink-300">Latest DBMS Quiz:</span>
-                    <span className="font-bold text-success-400">18 / 20</span>
-                  </div>
-                </div>
-                <div className="pt-2 border-t border-white/10">
-                  <p className="text-[11px] text-ink-300 italic">
-                    {`“Sneha Kapoor: ${studentName} is performing well in practical labs. Continue revising ${currentChild.needsAttention}.”`}
-                  </p>
-                </div>
-                <button onClick={() => navigate('/student/reports')} className="w-full btn-secondary text-xs py-2 mt-2">
-                  View Full Report
-                </button>
+            <div className="p-5 space-y-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <h3 className="font-bold text-sm font-display text-white">Weekly Summary</h3>
+                <span className="text-[10px] text-primary-200">1 Aug – 7 Aug</span>
               </div>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-ink-300">Attendance Rate:</span>
+                  <span className="font-bold text-white">91%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink-300">Assignments Completed:</span>
+                  <span className="font-bold text-white">4 / 5</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink-300">Latest DBMS Quiz:</span>
+                  <span className="font-bold text-success-400">18 / 20</span>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-white/10">
+                <p className="text-[11px] text-ink-300 italic">
+                  {`“Sneha Kapoor: ${studentName} is performing well in practical labs. Continue revising ${currentChild.needsAttention}.”`}
+                </p>
+              </div>
+              <button onClick={() => navigate('/student/reports')} className="w-full btn-secondary text-xs py-2 mt-2">
+                View Full Report
+              </button>
+            </div>
           </Card>
         </div>
       </div>
@@ -387,51 +440,159 @@ export function StudentDashboard() {
 }
 
 export function StudentClasses() {
+  const navigate = useNavigate();
   const { viewerRole, permissions, selectedStudent } = useStudentPortal();
   const { state, getStudentSummary } = useLmsData();
   const [reminders, setReminders] = useState<string[]>([]);
   const summary = selectedStudent ? getStudentSummary(selectedStudent.id) : null;
-  const sessions = state.classSessions.filter((session) => session.batchId === summary?.student.batchId);
+  const batchId = summary?.student.batchId || (selectedStudent?.batch === 'EE-2024-B' ? 'batch_002' : 'batch_001');
+  const sessions = state.classSessions.filter((session) => session.batchId === batchId);
+  const liveSession = sessions.find((session) => session.status === 'live');
+  const isParent = viewerRole === 'parent';
+
   return (
     <div>
-      <PageHeader title="Live Classes" subtitle={viewerRole === 'parent' ? `Class schedule for ${selectedStudent?.name ?? 'selected student'}` : 'Join your scheduled classes & view upcoming sessions'} />
-      {summary && <Card className="p-5 mb-4"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-sm text-ink-500">Attendance</p><p className="text-3xl font-bold text-ink-900">{summary.attendance}%</p></div><div className="text-sm text-ink-600"><strong>{summary.attended}</strong> attended of <strong>{summary.conducted}</strong> conducted{summary.recoveryClasses > 0 && <p className="text-error-600 mt-1">Attend the next {summary.recoveryClasses} consecutive classes to reach 75%.</p>}</div></div></Card>}
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader title="Live Now" subtitle="Class in progress" />
-          <div className="p-5">
-            <div className="rounded-lg bg-primary-700 p-6 text-white">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-2.5 h-2.5 rounded-full bg-error-400 animate-pulse" />
-                <span className="text-sm font-medium">LIVE</span>
-                <span className="text-xs text-primary-100 ml-auto">28 watching</span>
-              </div>
-              <h3 className="text-lg font-bold">Data Structures — Linked Lists</h3>
-              <p className="text-sm text-primary-100 mt-1">Sneha Kapoor · CS-2024-A</p>
-              {permissions.canJoinClass ? <button className="mt-4 w-full bg-white text-primary-700 font-semibold py-2.5 rounded-xl hover:bg-primary-50 transition flex items-center justify-center gap-2">
-                <Video className="w-5 h-5" /> Join Class
-              </button> : <div className="mt-4 rounded-xl bg-white/15 px-3 py-2 text-center text-sm font-medium">Live class in progress · View only</div>}
+      <PageHeader
+        title="Live Classes"
+        subtitle={isParent ? `Class schedule for ${selectedStudent?.name ?? 'selected student'} (View only)` : 'Join your scheduled classes & view upcoming sessions'}
+      />
+      {summary && (
+        <Card className="p-5 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-ink-500">Attendance</p>
+              <p className="text-3xl font-bold text-ink-900">{summary.attendance}%</p>
+            </div>
+            <div className="text-sm text-ink-600">
+              <strong>{summary.attended}</strong> attended of <strong>{summary.conducted}</strong> conducted
+              {summary.recoveryClasses > 0 && <p className="text-error-600 mt-1">Attend the next {summary.recoveryClasses} consecutive classes to reach 75%.</p>}
             </div>
           </div>
         </Card>
+      )}
+      <div className="grid lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader title="Upcoming" subtitle="Next classes this week" />
-          <div className="p-4 space-y-2">
-            {sessions.filter((session) => session.status === 'scheduled').map((session) => {
-              const course = state.courses.find((item) => item.id === session.courseId);
-              const reminderSet = reminders.includes(session.id);
-              return <div key={session.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50">
-                <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center"><Video className="w-5 h-5 text-primary-600" /></div>
-                <div className="flex-1"><p className="text-sm font-medium text-ink-800">{course?.title}</p><p className="text-xs text-ink-400">{session.date} {session.startTime} · {session.mode} · {session.location}</p></div>
-                {permissions.canJoinClass ? <button onClick={() => setReminders((items) => reminderSet ? items.filter((id) => id !== session.id) : [...items, session.id])} className="btn-secondary text-xs px-3 py-1.5">{reminderSet ? 'Reminder set' : 'Remind Me'}</button> : <button className="btn-secondary text-xs px-3 py-1.5">View Details</button>}
-              </div>;
-            })}
+          <CardHeader title="Live Now" subtitle="Class currently in progress" />
+          <div className="p-5">
+            {liveSession ? (
+              <div className="rounded-2xl bg-gradient-to-br from-primary-700 to-primary-900 p-6 text-white shadow-lg space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-error-500 text-white text-xs font-bold uppercase tracking-wider animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-white" /> LIVE NOW
+                  </span>
+                  <span className="text-xs text-primary-200 font-mono">
+                    {liveSession.mode === 'jitsi' ? 'Jitsi Meet' : 'Classroom'}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold font-display">
+                    {state.courses.find((c) => c.id === liveSession.courseId)?.title || 'Live Class Session'}
+                  </h3>
+                  <p className="text-xs text-primary-200 mt-1">
+                    {state.teachers.find((t) => t.id === liveSession.teacherId)?.name || 'Instructor'} · {state.batches.find((b) => b.id === liveSession.batchId)?.name || 'Batch'} · {liveSession.startTime}–{liveSession.endTime}
+                  </p>
+                </div>
+
+                {permissions.canJoinClass ? (
+                  <button
+                    onClick={() => navigate(`/student/classes/${liveSession.id}/live`)}
+                    className="w-full bg-white text-primary-800 font-bold py-3 px-4 rounded-xl hover:bg-primary-50 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.99]"
+                  >
+                    <Video className="w-5 h-5 text-primary-700" /> Join Live Classroom
+                  </button>
+                ) : (
+                  <div className="rounded-xl bg-white/15 backdrop-blur-sm px-4 py-2.5 text-center text-xs font-medium text-white border border-white/20">
+                    Live class in progress · View-only parent access
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl bg-ink-50 p-8 text-center space-y-2 border border-dashed border-ink-200">
+                <div className="w-10 h-10 rounded-full bg-ink-200/70 flex items-center justify-center mx-auto text-ink-500">
+                  <Video className="w-5 h-5" />
+                </div>
+                <p className="text-sm font-semibold text-ink-700">No live class right now</p>
+                <p className="text-xs text-ink-400">Scheduled classes will appear here when they start.</p>
+              </div>
+            )}
+          </div>
+        </Card>
+        <Card>
+          <CardHeader title="Upcoming & Scheduled Classes" subtitle="Classes scheduled for your batch" />
+          <div className="p-4 space-y-3">
+            {sessions.length === 0 ? (
+              <p className="text-xs text-ink-400 py-4 text-center">No class sessions scheduled for your batch.</p>
+            ) : (
+              sessions.map((session) => {
+                const course = state.courses.find((item) => item.id === session.courseId);
+                const teacher = state.teachers.find((item) => item.id === session.teacherId);
+                const reminderSet = reminders.includes(session.id);
+                const isJitsi = session.mode === 'jitsi' || session.mode === 'online';
+
+                return (
+                  <div key={session.id} className="p-3 rounded-xl bg-ink-50/70 border border-ink-100 hover:bg-ink-50 transition space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', session.status === 'live' ? 'bg-error-100 text-error-600' : 'bg-primary-50 text-primary-600')}>
+                          <Video className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-ink-900 truncate">{course?.title}</p>
+                          <p className="text-xs text-ink-400">
+                            {teacher?.name} · {session.date} {session.startTime}–{session.endTime}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        {session.status === 'live' ? (
+                          <Badge variant="error" className="animate-pulse">LIVE</Badge>
+                        ) : session.status === 'completed' ? (
+                          <Badge variant="success">Completed</Badge>
+                        ) : session.status === 'cancelled' ? (
+                          <Badge variant="error">Cancelled</Badge>
+                        ) : (
+                          <Badge variant="primary">{isJitsi ? 'Jitsi Meet' : 'Classroom'}</Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-ink-200/60 text-xs">
+                      <span className="text-[11px] text-ink-500 font-mono">
+                        {isJitsi ? 'Live Video Classroom' : session.location || 'Classroom'}
+                      </span>
+                      <div className="flex gap-2">
+                        {permissions.canJoinClass && session.status !== 'cancelled' && (
+                          <button
+                            onClick={() => navigate(`/student/classes/${session.id}/live`)}
+                            className={cn('text-xs px-3 py-1 font-semibold rounded-lg transition', session.status === 'live' ? 'btn-danger' : 'btn-primary')}
+                          >
+                            {session.status === 'live' ? 'Join LIVE' : 'Join Class'}
+                          </button>
+                        )}
+                        {!permissions.canJoinClass && (
+                          <span className="text-[11px] text-ink-400 py-1">View only</span>
+                        )}
+                        {permissions.canJoinClass && session.status === 'scheduled' && (
+                          <button
+                            onClick={() => setReminders((items) => reminderSet ? items.filter((id) => id !== session.id) : [...items, session.id])}
+                            className="btn-secondary text-xs px-2.5 py-1"
+                          >
+                            {reminderSet ? 'Reminder set' : 'Remind'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </Card>
       </div>
     </div>
   );
 }
+
 
 export function StudentRecordings() {
   return (
@@ -476,6 +637,7 @@ export function StudentResources() {
                 <p className="text-sm font-medium text-ink-800 truncate">{r.title}</p>
                 <p className="text-xs text-ink-400">{state.courses.find((course) => course.id === r.courseId)?.title} · {r.type} · Shared {new Date(r.uploadedAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p>
                 <p className="text-xs text-ink-500 mt-1">{r.description}</p>
+                {r.attachments?.map((attachment) => <button key={attachment.id} type="button" onClick={() => void downloadLocalAttachment(attachment)} className="mt-2 flex max-w-full items-center gap-1 text-xs font-medium text-primary-700 hover:text-primary-800"><Download className="w-3.5 h-3.5" /><span className="truncate">{attachment.fileName}</span><span className="text-ink-400">({formatFileSize(attachment.fileSize)})</span></button>)}
               </div>
               <Badge variant="primary">Demo metadata</Badge>
             </div>
@@ -688,7 +850,11 @@ export function StudentAssignments() {
   const [tab, setTab] = useState('All');
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [response, setResponse] = useState('');
-  const [attachmentName, setAttachmentName] = useState('');
+  const [attachments, setAttachments] = useState<Array<{ metadata: SubmissionAttachment; file?: File }>>([]);
+  const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const allAssignments = selectedStudent ? getStudentAssignments(selectedStudent.id) : [];
   const selectedAssignment = allAssignments.find((item) => item.id === selectedAssignmentId);
   const visibleAssignments = allAssignments.filter((assignment) => {
@@ -701,11 +867,37 @@ export function StudentAssignments() {
     const assignment = allAssignments.find((item) => item.id === id);
     setSelectedAssignmentId(id);
     setResponse(assignment?.submission?.response ?? '');
-    setAttachmentName(assignment?.submission?.attachmentName ?? '');
+    setAttachments((assignment?.submission?.attachments ?? []).map((metadata) => ({ metadata })));
+    setUploadError('');
   };
-  const save = (submit: boolean) => {
+  const addFiles = (files: FileList | File[]) => {
     if (!selectedAssignment || !selectedStudent) return;
-    const saved = saveSubmission(selectedAssignment.id, selectedStudent.id, response, submit, attachmentName || undefined);
+    setUploadError('');
+    const next = [...attachments];
+    for (const file of Array.from(files)) {
+      const extension = extensionFor(file.name);
+      if (!ACCEPTED_ATTACHMENT_EXTENSIONS.includes(extension)) { setUploadError(`${file.name}: This file type is not supported.`); continue; }
+      if (file.size > MAX_ATTACHMENT_SIZE) { setUploadError(`${file.name} exceeds the 10 MB size limit.`); continue; }
+      const id = attachmentIdFor(selectedAssignment.id, selectedStudent.id, file);
+      if (next.some((item) => item.metadata.id === id)) { setUploadError(`${file.name} is already attached.`); continue; }
+      if (next.length >= MAX_ATTACHMENTS) { setUploadError(`You can attach up to ${MAX_ATTACHMENTS} files.`); break; }
+      next.push({ metadata: { id, submissionId: selectedAssignment.submission?.id ?? `submission_${selectedAssignment.id}_${selectedStudent.id}`, fileName: file.name, fileType: file.type || extension.toUpperCase(), fileSize: file.size, lastModified: file.lastModified, storageMode: 'local', createdAt: new Date().toISOString() }, file });
+    }
+    setAttachments(next);
+  };
+  const removeFile = async (id: string) => {
+    const item = attachments.find((entry) => entry.metadata.id === id);
+    if (item && !item.file) await removeAttachment(id).catch(() => undefined);
+    setAttachments((current) => current.filter((entry) => entry.metadata.id !== id));
+  };
+  const downloadFile = async (item: { metadata: SubmissionAttachment; file?: File }) => {
+    if (!await downloadLocalAttachment(item.metadata, item.file)) { setUploadError('This attachment was stored locally in another browser profile and is not available here.'); }
+  };
+  const save = async (submit: boolean) => {
+    if (!selectedAssignment || !selectedStudent) return;
+    setSaving(true);
+    const saved = await saveSubmission(selectedAssignment.id, selectedStudent.id, response, submit, attachments);
+    setSaving(false);
     if (saved.ok && submit) setSelectedAssignmentId(null);
   };
 
@@ -749,12 +941,25 @@ export function StudentAssignments() {
       <Modal open={!!selectedAssignment} onClose={() => setSelectedAssignmentId(null)} title={selectedAssignment?.title ?? 'Assignment'} size="lg">
         {selectedAssignment && <div className="space-y-4">
           <div className="card p-4 bg-ink-50"><p className="text-sm text-ink-700">{selectedAssignment.instructions}</p><p className="text-xs text-ink-400 mt-2">Maximum marks: {selectedAssignment.maxMarks}</p></div>
+          {(selectedAssignment.attachments?.length ?? 0) > 0 && <div className="rounded-xl border border-primary-100 bg-primary-50/50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-primary-700">Teacher Materials</p><div className="mt-2 space-y-2">{selectedAssignment.attachments?.map((attachment) => <div key={attachment.id} className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary-600" /><span className="min-w-0 flex-1 truncate text-sm text-ink-800" title={attachment.fileName}>{attachment.fileName}<span className="block text-[11px] text-ink-400">{formatFileSize(attachment.fileSize)} · {extensionFor(attachment.fileName).toUpperCase()}</span></span><button type="button" onClick={() => void downloadFile({ metadata: attachment })} className="btn-secondary px-2 py-1 text-xs"><Download className="w-3.5 h-3.5" /> Download</button></div>)}</div></div>}
           {permissions.canSubmitAssignment && selectedAssignment.submission?.status !== 'graded' ? <>
             <div><label className="label">Your response</label><textarea className="input min-h-36" value={response} onChange={(event) => setResponse(event.target.value)} placeholder="Enter your assignment response…" /></div>
-            <div><label className="label">Demo attachment name (optional)</label><input className="input" value={attachmentName} onChange={(event) => setAttachmentName(event.target.value)} placeholder="example.pdf — metadata only" /></div>
-            <p className="text-xs text-ink-500">Files are not uploaded in demo mode; only attachment metadata is recorded.</p>
-            <div className="flex gap-2"><button onClick={() => save(false)} className="btn-secondary flex-1"><Save className="w-4 h-4" /> Save Draft</button><button onClick={() => save(true)} className="btn-primary flex-1"><Send className="w-4 h-4" /> Submit</button></div>
-          </> : <div className="space-y-3"><p className="text-sm"><strong>Status:</strong> <span className="capitalize">{selectedAssignment.submission?.status ?? 'Not started'}</span></p><p className="text-sm whitespace-pre-wrap">{selectedAssignment.submission?.response || 'No response submitted.'}</p>{selectedAssignment.submission?.feedback && <div className="bg-success-50 rounded-lg p-3 text-sm"><strong>Grade: {selectedAssignment.submission.marks}/{selectedAssignment.maxMarks}</strong><p>{selectedAssignment.submission.feedback}</p></div>}</div>}
+            <div>
+              <label className="label" htmlFor="assignment-file-input">Attachments</label>
+              <div onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={(event) => { event.preventDefault(); setIsDragging(false); addFiles(event.dataTransfer.files); }} className={cn('rounded-xl border-2 border-dashed p-5 text-center transition-colors', isDragging ? 'border-primary-500 bg-primary-50' : 'border-ink-200 bg-ink-50/50')}>
+                <UploadCloud className="w-6 h-6 mx-auto text-primary-600" />
+                <p className="mt-2 text-sm font-medium text-ink-700">Drag &amp; drop files here</p>
+                <p className="text-xs text-ink-400">or</p>
+                <input ref={fileInputRef} id="assignment-file-input" type="file" multiple className="sr-only" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.jpg,.jpeg,.png,image/*" onChange={(event) => { if (event.target.files) addFiles(event.target.files); event.target.value = ''; }} />
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-secondary mt-2 text-xs"><Paperclip className="w-3.5 h-3.5" /> Choose Files</button>
+                <p className="mt-3 text-[11px] text-ink-400">PDF, DOCX, PPTX, XLSX, TXT, ZIP, JPG, PNG · 10 MB each · up to 5 files</p>
+              </div>
+              {uploadError && <p role="alert" className="mt-2 text-xs text-error-600">{uploadError}</p>}
+              {attachments.length > 0 && <div className="mt-3 space-y-2"><p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Attached Files</p>{attachments.map((item) => <div key={item.metadata.id} className="flex items-center gap-3 rounded-lg border border-ink-100 px-3 py-2"><FileText className="w-4 h-4 shrink-0 text-primary-600" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-ink-800" title={item.metadata.fileName}>{item.metadata.fileName}</p><p className="text-[11px] text-ink-400">{formatFileSize(item.metadata.fileSize)} · {extensionFor(item.metadata.fileName).toUpperCase()}</p></div><button type="button" onClick={() => void downloadFile(item)} className="btn-ghost p-1.5 text-primary-600" aria-label={`Download ${item.metadata.fileName}`} title="Download"><Download className="w-4 h-4" /></button><button type="button" onClick={() => void removeFile(item.metadata.id)} className="btn-ghost p-1.5 text-error-600" aria-label={`Remove ${item.metadata.fileName}`} title="Remove"><X className="w-4 h-4" /></button></div>)}</div>}
+            </div>
+            <p className="text-xs text-ink-500">Saved locally in this browser using IndexedDB. Files are not uploaded to the server.</p>
+            <div className="flex gap-2"><button onClick={() => void save(false)} disabled={saving} className="btn-secondary flex-1"><Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save Draft'}</button><button onClick={() => void save(true)} disabled={saving} className="btn-primary flex-1"><Send className="w-4 h-4" /> {saving ? 'Saving…' : 'Submit'}</button></div>
+          </> : <div className="space-y-3"><p className="text-sm"><strong>Status:</strong> <span className="capitalize">{selectedAssignment.submission?.status ?? 'Not started'}</span></p><p className="text-sm whitespace-pre-wrap">{selectedAssignment.submission?.response || 'No response submitted.'}</p>{selectedAssignment.submission?.attachments?.length ? <p className="text-sm"><strong>Attachments:</strong> {selectedAssignment.submission.attachments.length}</p> : null}{selectedAssignment.submission?.feedback && <div className="bg-success-50 rounded-lg p-3 text-sm"><strong>Grade: {selectedAssignment.submission.marks}/{selectedAssignment.maxMarks}</strong><p>{selectedAssignment.submission.feedback}</p></div>}</div>}
         </div>}
       </Modal>
     </div>
@@ -1270,6 +1475,7 @@ export function AiHub() {
 
 export function StudentProfile() {
   const { selectedStudent } = useStudentPortal();
+  const { profile, updateProfileAvatar } = useAuth();
   const { state, getStudentSummary, updateStudentProfile } = useLmsData();
   const [editing, setEditing] = useState(false);
   const student = selectedStudent ? state.students.find((item) => item.id === selectedStudent.id) : undefined;
@@ -1278,6 +1484,8 @@ export function StudentProfile() {
   const department = state.departments.find((item) => item.id === student?.departmentId);
   const teacher = state.teachers.find((item) => item.id === batch?.teacherId);
   const [form, setForm] = useState({ phone: '', email: '', address: '', emergencyContact: '' });
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarError, setAvatarError] = useState('');
   if (!student || !summary) return <EmptyState icon={GraduationCap} title="Profile unavailable" description="No student profile is linked to this account." />;
   const openEdit = () => { setForm({ phone: student.phone, email: student.email, address: student.address, emergencyContact: student.emergencyContact }); setEditing(true); };
   const saveProfile = () => { if (updateStudentProfile(student.id, form).ok) setEditing(false); };
@@ -1286,7 +1494,10 @@ export function StudentProfile() {
       <PageHeader title="My Profile" subtitle="Your complete information" actions={<button onClick={openEdit} className="btn-primary"><Edit className="w-4 h-4" /> Edit Profile</button>} />
       <div className="grid lg:grid-cols-3 gap-4">
         <Card className="p-6 text-center">
-          <img src={student.avatar} alt="Profile" className="w-24 h-24 rounded-2xl bg-ink-100 mx-auto mb-4" />
+          <img src={profile?.avatarUrl || student.avatar} alt="Profile" className="w-24 h-24 rounded-2xl bg-ink-100 mx-auto mb-4 object-cover" />
+          <input ref={avatarInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="sr-only" onChange={async (event) => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setAvatarError('Choose a JPG, PNG, or WEBP image up to 5 MB.'); return; } setAvatarError(''); await updateProfileAvatar(file); }} />
+          <div className="flex justify-center gap-2"><button type="button" onClick={() => avatarInputRef.current?.click()} className="btn-secondary text-xs">Change Photo</button><button type="button" onClick={() => void updateProfileAvatar(null)} className="btn-ghost text-xs text-error-600">Remove Photo</button></div>
+          {avatarError && <p role="alert" className="mt-2 text-xs text-error-600">{avatarError}</p>}
           <h3 className="text-lg font-bold font-display text-ink-900">{student.name}</h3>
           <p className="text-sm text-ink-500">Student · {batch?.name}</p>
           <p className="text-xs text-ink-400 mt-1">{state.institution.name}</p>
@@ -1339,4 +1550,11 @@ export function StudentProfile() {
       </div></Modal>
     </div>
   );
+}
+
+export function StudentSettings() {
+  const [assignmentNotifications, setAssignmentNotifications] = useState(() => localStorage.getItem('skill-toss-assignment-notifications') !== 'false');
+  const [examReminders, setExamReminders] = useState(() => localStorage.getItem('skill-toss-exam-reminders') !== 'false');
+  const update = (key: string, value: boolean, setter: (next: boolean) => void) => { setter(value); localStorage.setItem(key, String(value)); };
+  return <div><PageHeader title="Settings" subtitle="Manage your Skill Toss preferences" /><div className="max-w-2xl space-y-4"><Card className="p-5"><h2 className="font-semibold text-ink-900">Notifications</h2><p className="mt-1 text-xs text-ink-500">These preferences apply to in-app reminders.</p><div className="mt-4 space-y-3"><label className="flex items-center justify-between gap-4 text-sm text-ink-700"><span>Assignment notifications</span><input type="checkbox" checked={assignmentNotifications} onChange={(event) => update('skill-toss-assignment-notifications', event.target.checked, setAssignmentNotifications)} /></label><label className="flex items-center justify-between gap-4 text-sm text-ink-700"><span>Exam reminders</span><input type="checkbox" checked={examReminders} onChange={(event) => update('skill-toss-exam-reminders', event.target.checked, setExamReminders)} /></label></div></Card><Card className="p-5"><h2 className="font-semibold text-ink-900">Account</h2><p className="mt-2 text-sm text-ink-600">Password changes are managed by the configured authentication provider.</p></Card></div></div>;
 }

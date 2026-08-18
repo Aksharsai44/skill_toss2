@@ -11,6 +11,7 @@ export type AuthContextValue = {
   user: User | null; session: Session | null; profile: UserProfile | null; loading: boolean;
   signIn: (email: string, password: string) => Promise<{ user: User; profile: UserProfile }>;
   signOut: () => Promise<void>;
+  updateProfileAvatar: (file: File | null) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

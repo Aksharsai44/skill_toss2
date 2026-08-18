@@ -282,10 +282,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                     <p className="text-sm font-semibold text-ink-800">{displayName}</p>
                     <p className="text-xs text-ink-400">{user?.email}</p>
                   </div>
-                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-ink-600 hover:bg-ink-50 transition">
+                  <button onClick={() => { setShowProfile(false); navigate(profile.role === 'teacher' ? '/teacher/profile' : profile.role === 'student' || profile.role === 'parent' ? '/student/profile' : `/${profile.role}/profile`); }} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-ink-600 hover:bg-ink-50 transition">
                     <UserCircle className="w-4 h-4" /> My Profile
                   </button>
-                  <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-ink-600 hover:bg-ink-50 transition">
+                  <button onClick={() => { setShowProfile(false); navigate(profile.role === 'student' || profile.role === 'parent' ? '/student/settings' : profile.role === 'teacher' ? '/teacher/profile' : `/${profile.role}`); }} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-ink-600 hover:bg-ink-50 transition">
                     <Settings className="w-4 h-4" /> Settings
                   </button>
                   <button

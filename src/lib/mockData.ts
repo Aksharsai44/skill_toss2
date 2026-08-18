@@ -264,7 +264,7 @@ export const supportTickets: Ticket[] = [
 ];
 
 export const lmsDemoSeed: LmsState = {
-  version: 3,
+  version: 4,
   nextId: 100,
   institution: { id: 'institution_001', name: 'Skill Toss Demo College' },
   departments: [
@@ -344,12 +344,16 @@ export const lmsDemoSeed: LmsState = {
     { id: 'resource_001', title: 'DBMS Normalization Notes', description: 'Worked normalization examples through 3NF.', courseId: 'course_dbms', batchId: 'batch_001', type: 'PDF', uploadedBy: 'teacher_003', uploadedAt: '2026-08-10T09:00:00+05:30' },
     { id: 'resource_002', title: 'Graph Algorithms Reference', description: 'Complexity and pseudocode reference.', courseId: 'course_algo', batchId: 'batch_001', type: 'LINK', uploadedBy: 'teacher_001', uploadedAt: '2026-08-09T09:00:00+05:30' },
   ],
+  onlineAttendance: [],
   classSessions: [
-    { id: 'class_001', courseId: 'course_ds', batchId: 'batch_001', teacherId: 'teacher_001', date: '2026-08-12', startTime: '09:00', endTime: '10:00', mode: 'classroom', location: 'Room CS-301', status: 'completed' },
-    { id: 'class_002', courseId: 'course_algo', batchId: 'batch_001', teacherId: 'teacher_001', date: '2026-08-12', startTime: '11:00', endTime: '12:00', mode: 'classroom', location: 'Room CS-301', status: 'scheduled' },
+    { id: 'class_001', courseId: 'course_ds', batchId: 'batch_001', teacherId: 'teacher_001', date: '2026-08-12', startTime: '09:00', endTime: '10:00', mode: 'jitsi', meetingProvider: 'jitsi', jitsiRoomName: 'skilltoss-institution_001-class_001', location: 'Jitsi Live Room', status: 'live' },
+    { id: 'class_002', courseId: 'course_algo', batchId: 'batch_001', teacherId: 'teacher_001', date: '2026-08-12', startTime: '11:00', endTime: '12:00', mode: 'jitsi', meetingProvider: 'jitsi', jitsiRoomName: 'skilltoss-institution_001-class_002', location: 'Jitsi Live Room', status: 'scheduled' },
+    { id: 'class_003', courseId: 'course_dbms', batchId: 'batch_001', teacherId: 'teacher_003', date: '2026-08-13', startTime: '14:00', endTime: '15:00', mode: 'jitsi', meetingProvider: 'jitsi', jitsiRoomName: 'skilltoss-institution_001-class_003', location: 'Jitsi Live Room', status: 'scheduled' },
+    { id: 'class_004', courseId: 'course_os', batchId: 'batch_001', teacherId: 'teacher_003', date: '2026-08-14', startTime: '10:00', endTime: '11:00', mode: 'classroom', location: 'Room CS-301', status: 'scheduled' },
   ],
   goals: [
     { id: 'goal_001', studentId: 'student_001', title: 'Complete all DBMS assignments', category: 'Academic', target: '4 assignments', deadline: '2026-08-31', progress: 50, status: 'active' },
   ],
   events: events.map((event) => ({ ...event })),
 };
+

@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { lmsDemoSeed } from '@/lib/mockData';
 import { LmsDataContext, type ActionResult, type Feedback, type LmsDataContextValue } from '@/lib/lmsDataContext';
-import type { AttendanceStatus, LmsAssignment, LmsExam, LmsResource, LmsState, LmsStudent } from '@/lib/types';
+import type { AttendanceStatus, LmsAssignment, LmsClassSession, LmsExam, LmsResource, LmsState, LmsStudent, OnlineAttendanceSession } from '@/lib/types';
+import { generateDeterministicRoomName } from '@/lib/jitsiConfig';
+import { supabase } from '@/lib/supabase';
+import { putAttachment } from '@/lib/attachmentStorage';
+import type { SubmissionAttachment } from '@/lib/types';
 
-const STORAGE_KEY = 'skill-toss-lms-demo-v3';
+const STORAGE_KEY = 'skill-toss-lms-demo-v4';
 const DEMO_NOW = '2026-08-12T12:00:00+05:30';
+
 
 const cloneSeed = (): LmsState => JSON.parse(JSON.stringify(lmsDemoSeed)) as LmsState;
 const loadState = (): LmsState => {
@@ -12,7 +17,15 @@ const loadState = (): LmsState => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return cloneSeed();
     const parsed = JSON.parse(raw) as LmsState;
-    return parsed.version === lmsDemoSeed.version ? parsed : cloneSeed();
+    if (parsed.version !== lmsDemoSeed.version) return cloneSeed();
+    return {
+      ...parsed,
+      onlineAttendance: parsed.onlineAttendance || [],
+      classSessions: (parsed.classSessions || []).map((session) => ({
+        ...session,
+        jitsiRoomName: session.jitsiRoomName || (session.mode === 'jitsi' || session.mode === 'online' ? generateDeterministicRoomName(parsed.institution?.id || 'demo', session.id) : undefined),
+      })),
+    };
   } catch {
     return cloneSeed();
   }
@@ -23,6 +36,29 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
   const [feedback, setFeedback] = useState<Feedback>(null);
 
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }, [state]);
+  useEffect(() => {
+    const channel = supabase.channel('skill-toss-class-sessions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'class_sessions' }, (payload) => {
+        const row = payload.new as { id?: string; status?: LmsClassSession['status']; started_at?: string | null; ended_at?: string | null; ended_by?: string | null };
+        if (!row.id || !row.status) return;
+        if (import.meta.env.DEV) console.info('[Skill Toss session realtime] received', { channel: 'skill-toss-class-sessions', sessionId: row.id, status: row.status, endedAt: row.ended_at });
+        setState((current) => ({
+          ...current,
+          classSessions: current.classSessions.map((session) => session.id === row.id ? {
+            ...session, status: row.status as LmsClassSession['status'], startedAt: row.started_at ?? session.startedAt,
+            endedAt: row.ended_at ?? session.endedAt, endedBy: row.ended_by ?? session.endedBy,
+          } : session),
+          onlineAttendance: row.status === 'completed' ? (current.onlineAttendance || []).map((record) => {
+            if (record.classSessionId !== row.id || record.leftAt) return record;
+            const leftAt = row.ended_at || new Date().toISOString();
+            return { ...record, leftAt, durationMinutes: Math.max(1, Math.round((new Date(leftAt).getTime() - new Date(record.joinedAt).getTime()) / 60000)) };
+          }) : current.onlineAttendance,
+        }));
+      }).subscribe((status) => {
+        if (import.meta.env.DEV) console.info('[Skill Toss session realtime] subscription state', { channel: 'skill-toss-class-sessions', status });
+      });
+    return () => { void supabase.removeChannel(channel); };
+  }, []);
   useEffect(() => {
     if (!feedback) return;
     const timer = window.setTimeout(() => setFeedback(null), 4000);
@@ -101,20 +137,30 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     return result(true, `${input.name} was added successfully.`);
   }, [bump, nextId, result, state.students]);
 
-  const createAssignment = useCallback((input: Omit<LmsAssignment, 'id' | 'createdAt' | 'status'>) => {
+  const createAssignment = useCallback(async (input: Omit<LmsAssignment, 'id' | 'createdAt' | 'status'> & { attachmentFiles?: Array<{ metadata: SubmissionAttachment; file?: File }> }) => {
     if (!input.title.trim() || !input.instructions.trim() || !input.dueDate || input.maxMarks <= 0) return result(false, 'Title, instructions, due date, and valid marks are required.');
     const id = nextId('assignment');
+    const attachments = (input.attachmentFiles || []).map((entry) => ({ ...entry, metadata: { ...entry.metadata, ownerType: 'assignment' as const, ownerId: id, uploadedBy: input.teacherId } }));
+    try { await Promise.all(attachments.filter((entry) => Boolean(entry.file)).map((entry) => putAttachment(entry.metadata, entry.file as File))); } catch { return result(false, 'Assignment materials could not be saved locally.'); }
     const targets = state.students.filter((student) => student.batchId === input.batchId);
-    setState((current) => bump({ ...current, assignments: [...current.assignments, { ...input, id, createdAt: DEMO_NOW, status: 'open' }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index + 1}`, userId: student.id, type: 'academic' as const, title: 'New assignment', message: `${input.title} is now available.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/assignments' }))] }));
+    setState((current) => bump({ ...current, assignments: [...current.assignments, { ...input, attachments: attachments.map((entry) => entry.metadata), id, createdAt: DEMO_NOW, status: 'open' }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index + 1}`, userId: student.id, type: 'academic' as const, title: 'New assignment', message: `${input.title} is now available.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/assignments' }))] }));
     return result(true, 'Assignment created and shared with the batch.');
   }, [bump, nextId, result, state.students]);
 
-  const saveSubmission = useCallback((assignmentId: string, studentId: string, response: string, submit: boolean, attachmentName?: string) => {
-    if (!response.trim() && !attachmentName) return result(false, 'Add a response or attachment before saving.');
+  const saveSubmission = useCallback(async (assignmentId: string, studentId: string, response: string, submit: boolean, attachments: Array<{ metadata: SubmissionAttachment; file?: File }> = []) => {
+    if (!response.trim() && attachments.length === 0) return result(false, 'Add a response or attachment before saving.');
     const existing = state.submissions.find((item) => item.assignmentId === assignmentId && item.studentId === studentId);
     if (existing?.status === 'graded') return result(false, 'A graded submission cannot be changed.');
+    const submissionId = existing?.id || nextId('submission');
+    const normalizedAttachments = attachments.map((item) => ({ ...item, metadata: { ...item.metadata, submissionId } }));
+    try {
+      await Promise.all(normalizedAttachments.filter((item): item is { metadata: SubmissionAttachment; file: File } => Boolean(item.file)).map((item) => putAttachment(item.metadata, item.file)));
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('[Skill Toss attachments] local save failed', error);
+      return result(false, 'The attachment could not be saved locally. Please try again.');
+    }
     const status = submit ? 'submitted' as const : 'in-progress' as const;
-    setState((current) => ({ ...current, submissions: existing ? current.submissions.map((item) => item.id === existing.id ? { ...item, response, attachmentName, status, submittedAt: submit ? DEMO_NOW : item.submittedAt } : item) : [...current.submissions, { id: nextId('submission'), assignmentId, studentId, response, attachmentName, status, submittedAt: submit ? DEMO_NOW : undefined }], nextId: existing ? current.nextId : current.nextId + 1 }));
+    setState((current) => ({ ...current, submissions: existing ? current.submissions.map((item) => item.id === existing.id ? { ...item, response, attachments: normalizedAttachments.map((entry) => entry.metadata), status, updatedAt: new Date().toISOString(), submittedAt: submit ? DEMO_NOW : item.submittedAt } : item) : [...current.submissions, { id: submissionId, assignmentId, studentId, response, attachments: normalizedAttachments.map((entry) => entry.metadata), status, updatedAt: new Date().toISOString(), submittedAt: submit ? DEMO_NOW : undefined }], nextId: existing ? current.nextId : current.nextId + 1 }));
     return result(true, submit ? 'Assignment submitted successfully.' : 'Draft saved.');
   }, [nextId, result, state.submissions]);
 
@@ -146,11 +192,13 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     return result(true, 'Demo payment recorded and receipt created.');
   }, [bump, getStudentFees, nextId, result, state.feeInvoices]);
 
-  const addResource = useCallback((input: Omit<LmsResource, 'id' | 'uploadedAt'>) => {
+  const addResource = useCallback(async (input: Omit<LmsResource, 'id' | 'uploadedAt'> & { attachmentFiles?: Array<{ metadata: SubmissionAttachment; file?: File }> }) => {
     if (!input.title.trim() || !input.description.trim()) return result(false, 'Resource title and description are required.');
     const id = nextId('resource');
+    const attachments = (input.attachmentFiles || []).map((entry) => ({ ...entry, metadata: { ...entry.metadata, ownerType: 'resource' as const, ownerId: id, uploadedBy: input.uploadedBy } }));
+    try { await Promise.all(attachments.filter((entry) => Boolean(entry.file)).map((entry) => putAttachment(entry.metadata, entry.file as File))); } catch { return result(false, 'Resource files could not be saved locally.'); }
     const targets = state.students.filter((student) => student.batchId === input.batchId);
-    setState((current) => bump({ ...current, resources: [...current.resources, { ...input, id, uploadedAt: DEMO_NOW }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index}`, userId: student.id, type: 'resource' as const, title: 'New resource', message: `${input.title} was added to your resources.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/resources' }))] }));
+    setState((current) => bump({ ...current, resources: [...current.resources, { ...input, attachments: attachments.map((entry) => entry.metadata), id, uploadedAt: DEMO_NOW }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index}`, userId: student.id, type: 'resource' as const, title: 'New resource', message: `${input.title} was added to your resources.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/resources' }))] }));
     return result(true, 'Resource metadata shared with the batch.');
   }, [bump, nextId, result, state.students]);
 
@@ -162,12 +210,152 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     return result(true, 'Exam scheduled and students notified.');
   }, [bump, nextId, result, state.students]);
 
-  const scheduleClass = useCallback((input: { courseId: string; batchId: string; teacherId: string; date: string; startTime: string; endTime: string; mode: 'classroom' | 'online'; location: string }) => {
-    if (!input.courseId || !input.batchId || !input.date || !input.startTime || !input.endTime || !input.location.trim()) return result(false, 'Complete all class schedule fields.');
-    const id = nextId('class');
-    setState((current) => bump({ ...current, classSessions: [...current.classSessions, { ...input, id, status: 'scheduled' }], notifications: [...current.notifications, ...current.students.filter((student) => student.batchId === input.batchId).map((student, index) => ({ id: `${id}_notification_${index}`, userId: student.id, type: 'academic' as const, title: 'Class scheduled', message: `A class is scheduled for ${input.date} at ${input.startTime}.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/classes' }))] }));
-    return result(true, 'Class scheduled and internal reminders created.');
-  }, [bump, nextId, result]);
+  const scheduleClass = useCallback((input: Omit<LmsClassSession, 'id' | 'status'> & { id?: string; status?: LmsClassSession['status'] }) => {
+    if (!input.courseId || !input.batchId || !input.date || !input.startTime || !input.endTime) return result(false, 'Complete all class schedule fields.');
+    const id = input.id || nextId('class');
+    const isJitsi = input.mode === 'jitsi' || input.mode === 'online';
+    const roomName = input.jitsiRoomName || (isJitsi ? generateDeterministicRoomName(state.institution?.id || 'institution_001', id) : undefined);
+    const location = input.location?.trim() || (isJitsi ? 'Jitsi Live Meeting' : 'Classroom');
+    const sessionRecord: LmsClassSession = {
+      ...input,
+      id,
+      mode: isJitsi ? 'jitsi' : 'classroom',
+      location,
+      meetingProvider: isJitsi ? 'jitsi' : undefined,
+      jitsiRoomName: roomName,
+      status: input.status || 'scheduled',
+    };
+
+    const course = state.courses.find((c) => c.id === input.courseId);
+    const courseTitle = course?.title || 'Class';
+
+    setState((current) => bump({
+      ...current,
+      classSessions: [...current.classSessions, sessionRecord],
+      notifications: [
+        ...current.notifications,
+        ...current.students.filter((student) => student.batchId === input.batchId).map((student, index) => ({
+          id: `${id}_notification_${index}`,
+          userId: student.id,
+          type: 'academic' as const,
+          title: isJitsi ? 'New live class scheduled' : 'Class scheduled',
+          message: `${courseTitle} is scheduled on ${input.date} at ${input.startTime}${isJitsi ? ' via Jitsi Meet.' : '.'}`,
+          timestamp: DEMO_NOW,
+          read: false,
+          relatedEntityId: id,
+          path: '/student/classes',
+        })),
+      ],
+    }));
+    return result(true, isJitsi ? 'Live class scheduled with Jitsi Meet.' : 'Class scheduled.');
+  }, [bump, nextId, result, state.courses, state.institution?.id]);
+
+  const updateClassSessionStatus = useCallback((sessionId: string, status: LmsClassSession['status'], metadata?: Pick<LmsClassSession, 'startedAt' | 'endedAt' | 'endedBy'>) => {
+    const session = state.classSessions.find((s) => s.id === sessionId);
+    if (!session) return result(false, 'Class session not found.');
+
+    const course = state.courses.find((c) => c.id === session.courseId);
+    const courseTitle = course?.title || 'Class';
+
+    setState((current) => {
+      let notifications = current.notifications;
+      if (status === 'cancelled') {
+        const batchStudents = current.students.filter((s) => s.batchId === session.batchId);
+        notifications = [
+          ...notifications,
+          ...batchStudents.map((s, idx) => ({
+            id: `cancel_${sessionId}_${idx}`,
+            userId: s.id,
+            type: 'academic' as const,
+            title: 'Class cancelled',
+            message: `${courseTitle} scheduled for ${session.date} at ${session.startTime} has been cancelled.`,
+            timestamp: new Date().toISOString(),
+            read: false,
+            relatedEntityId: sessionId,
+            path: '/student/classes',
+          })),
+        ];
+      }
+      return {
+        ...current,
+        classSessions: current.classSessions.map((s) => (s.id === sessionId ? { ...s, status, ...metadata } : s)),
+        notifications,
+      };
+    });
+    return result(true, `Class status updated to ${status}.`);
+  }, [result, state.classSessions, state.courses]);
+
+  const syncClassSession = useCallback(async (session: LmsClassSession) => {
+    const { data: existing, error: readError } = await supabase.from('class_sessions').select('status, started_at, ended_at, ended_by').eq('id', session.id).maybeSingle();
+    if (readError && import.meta.env.DEV) console.warn('[Skill Toss session realtime]', readError.message);
+    if (existing?.status === 'completed' && session.status !== 'completed') {
+      setState((current) => ({ ...current, classSessions: current.classSessions.map((item) => item.id === session.id ? {
+        ...item, status: 'completed', endedAt: existing.ended_at, endedBy: existing.ended_by,
+      } : item) }));
+      return true;
+    }
+    const { error } = await supabase.from('class_sessions').upsert({
+      id: session.id, course_id: session.courseId, teacher_id: session.teacherId, batch_id: session.batchId,
+      status: session.status, jitsi_room_name: session.jitsiRoomName, scheduled_start: `${session.date}T${session.startTime}`,
+      scheduled_end: `${session.date}T${session.endTime}`, started_at: session.startedAt ?? null, ended_at: session.endedAt ?? null,
+      ended_by: session.endedBy ?? null, updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+    if (error) {
+      if (import.meta.env.DEV) console.error('[Skill Toss session realtime] session write failed', { sessionId: session.id, status: session.status, message: error.message });
+      return false;
+    }
+    return true;
+  }, []);
+
+  const recordOnlineJoin = useCallback((sessionId: string, studentId: string, jitsiParticipantId?: string) => {
+    if (!sessionId || !studentId) return;
+    const nowIso = new Date().toISOString();
+    setState((current) => {
+      // Create new join entry (supports multiple joins if reconnected)
+      const newAttendanceRecord: OnlineAttendanceSession = {
+        id: `att_${sessionId}_${studentId}_${Date.now()}`,
+        classSessionId: sessionId,
+        studentId,
+        jitsiParticipantId,
+        joinedAt: nowIso,
+      };
+      return {
+        ...current,
+        onlineAttendance: [...(current.onlineAttendance || []), newAttendanceRecord],
+      };
+    });
+  }, []);
+
+  const recordOnlineLeave = useCallback((sessionId: string, studentId: string) => {
+    if (!sessionId || !studentId) return;
+    const nowIso = new Date().toISOString();
+    setState((current) => {
+      const records = current.onlineAttendance || [];
+      // Find latest unclosed session for this student and class session
+      const matchingIdx = [...records].reverse().findIndex((r) => r.classSessionId === sessionId && r.studentId === studentId && !r.leftAt);
+      if (matchingIdx === -1) return current;
+      const actualIdx = records.length - 1 - matchingIdx;
+      const target = records[actualIdx];
+      const joinedTime = new Date(target.joinedAt).getTime();
+      const leftTime = new Date(nowIso).getTime();
+      const durationMinutes = Math.max(1, Math.round((leftTime - joinedTime) / (1000 * 60)));
+
+      const updated = [...records];
+      updated[actualIdx] = {
+        ...target,
+        leftAt: nowIso,
+        durationMinutes,
+      };
+      return {
+        ...current,
+        onlineAttendance: updated,
+      };
+    });
+  }, []);
+
+  const getOnlineAttendanceForSession = useCallback((sessionId: string) => {
+    return (state.onlineAttendance || []).filter((item) => item.classSessionId === sessionId);
+  }, [state.onlineAttendance]);
 
   const updateStudentProfile = useCallback((studentId: string, updates: Pick<LmsStudent, 'phone' | 'email' | 'address' | 'emergencyContact'>) => {
     if (!updates.email.includes('@') || !updates.phone.trim() || !updates.emergencyContact.trim()) return result(false, 'Enter a valid email, phone, and emergency contact.');
@@ -210,11 +398,11 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<LmsDataContextValue>(() => ({
     state, feedback, clearFeedback: () => setFeedback(null), resetDemoData: () => { setState(cloneSeed()); setFeedback({ kind: 'success', message: 'Demo data reset.' }); },
-    getStudentSummary, getStudentAssignments, getStudentFees, getStudentExams, getStudentResources, searchRecords,
-    addStudent, createAssignment, saveSubmission, gradeSubmission, markAttendance, recordPayment, addResource, scheduleExam, scheduleClass, updateStudentProfile, saveGoal, deleteGoal, addEvent,
+    getStudentSummary, getStudentAssignments, getStudentFees, getStudentExams, getStudentResources, getOnlineAttendanceForSession, searchRecords, syncClassSession,
+    addStudent, createAssignment, saveSubmission, gradeSubmission, markAttendance, recordPayment, addResource, scheduleExam, scheduleClass, updateClassSessionStatus, recordOnlineJoin, recordOnlineLeave, updateStudentProfile, saveGoal, deleteGoal, addEvent,
     markNotificationRead: (id) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.id === id ? { ...item, read: true } : item) })),
     markAllNotificationsRead: (userId) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.userId === userId ? { ...item, read: true } : item) })),
-  }), [addEvent, addResource, addStudent, createAssignment, deleteGoal, feedback, getStudentAssignments, getStudentExams, getStudentFees, getStudentResources, getStudentSummary, gradeSubmission, markAttendance, recordPayment, saveGoal, saveSubmission, scheduleClass, scheduleExam, searchRecords, state, updateStudentProfile]);
+  }), [addEvent, addResource, addStudent, createAssignment, deleteGoal, feedback, getOnlineAttendanceForSession, getStudentAssignments, getStudentExams, getStudentFees, getStudentResources, getStudentSummary, gradeSubmission, markAttendance, recordOnlineJoin, recordOnlineLeave, recordPayment, saveGoal, saveSubmission, scheduleClass, scheduleExam, searchRecords, state, syncClassSession, updateClassSessionStatus, updateStudentProfile]);
 
   return <LmsDataContext.Provider value={value}>{children}</LmsDataContext.Provider>;
 }
