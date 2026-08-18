@@ -1,6 +1,6 @@
 import {
   TrendingUp, Users, Building2, Wallet, Network, Target,
-  MapPin, ArrowUpRight, ArrowDownRight, Download, Filter, Star,
+  MapPin, ArrowUpRight, ArrowDownRight, Download, Filter, Star, Plus, Search,
 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader, Card, CardHeader } from '@/components/ui/Layout';
@@ -23,10 +23,10 @@ export function SuperAdminDashboard() {
     <div>
       <PageHeader title="Super Admin Dashboard" subtitle="Consolidated view across all branches & departments" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Revenue" value={`₹${(totalRevenue / 1000).toFixed(0)}k`} icon={Wallet} trend={15} trendLabel="vs last month" color="primary" />
-        <StatCard label="Total Students" value={totalStudents.toLocaleString()} icon={Users} trend={8} color="accent" />
-        <StatCard label="Total Faculty" value={totalTeachers} icon={Building2} trend={4} color="success" />
-        <StatCard label="Active Branches" value={branches.length} icon={Network} color="warning" />
+        <StatCard label="Total Revenue" value={`₹${(totalRevenue / 1000).toFixed(0)}k`} icon={Wallet} trend={15} trendLabel="vs last month" color="primary" to="/super-admin/revenue" />
+        <StatCard label="Total Students" value={totalStudents.toLocaleString()} icon={Users} trend={8} color="accent" to="/super-admin/users" />
+        <StatCard label="Total Faculty" value={totalTeachers} icon={Building2} trend={4} color="success" to="/super-admin/reports" />
+        <StatCard label="Active Branches" value={branches.length} icon={Network} color="warning" to="/super-admin/branches" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
@@ -74,12 +74,27 @@ export function SuperAdminDashboard() {
 
 export function Branches() {
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  const [localBranches, setLocalBranches] = useState(branches);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+
+  const filteredBranches = localBranches.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()) || b.location.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div>
-      <PageHeader title="Branches" subtitle="All campuses under the institution group" />
+      <PageHeader title="Branches" subtitle="All campuses under the institution group" actions={
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+          <input 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search branches..." 
+            className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+          />
+        </div>
+      } />
       <div className="grid sm:grid-cols-2 gap-4">
-        {branches.map((b) => (
+        {filteredBranches.map((b) => (
           <button key={b.id} onClick={() => setSelectedBranch(b)} className="card card-hover p-5 text-left w-full relative">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -145,6 +160,14 @@ export function Branches() {
                 </div>
               </div>
             </div>
+            
+            <div className="flex justify-end gap-2">
+              <button className="btn-secondary text-error-600 hover:bg-error-50 hover:border-error-200" onClick={() => {
+                setLocalBranches(localBranches.filter(b => b.id !== selectedBranch.id));
+                setSelectedBranch(null);
+              }}>Delete Branch</button>
+              <button className="btn-secondary" onClick={() => setIsEditing(true)}>Edit Branch</button>
+            </div>
 
             <div className="grid grid-cols-2 gap-6">
               <Card className="shadow-none border-ink-100">
@@ -194,6 +217,33 @@ export function Branches() {
               )}
             </Card>
           </div>
+        )}
+        {selectedBranch && isEditing && (
+          <form className="space-y-4" onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const updated = {
+              ...selectedBranch,
+              name: fd.get('name') as string,
+              location: fd.get('location') as string,
+            };
+            setLocalBranches(localBranches.map(b => b.id === selectedBranch.id ? updated : b));
+            setSelectedBranch(updated);
+            setIsEditing(false);
+          }}>
+            <div>
+              <label className="label">Branch Name</label>
+              <input name="name" required className="input" defaultValue={selectedBranch.name} />
+            </div>
+            <div>
+              <label className="label">Location</label>
+              <input name="location" required className="input" defaultValue={selectedBranch.location} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" className="btn-secondary" onClick={() => setIsEditing(false)}>Cancel</button>
+              <button type="submit" className="btn-primary">Save Changes</button>
+            </div>
+          </form>
         )}
       </Modal>
     </div>
@@ -286,17 +336,71 @@ export function LeadsReport() {
 
 export function ConsolidatedReports() {
   const [reportType, setReportType] = useState('students');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredStudents = students.filter(s => 
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    s.department.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredFaculty = teachers.filter(t => 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    t.subjects.some(sub => sub.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const handleDownload = () => {
+    let dataToDownload: Record<string, unknown>[] = [];
+    if (reportType === 'students') {
+      dataToDownload = filteredStudents;
+    } else if (reportType === 'faculty') {
+      dataToDownload = filteredFaculty;
+    } else {
+      alert('Finance reports are currently generated separately.');
+      return;
+    }
+    
+    if (dataToDownload.length === 0) {
+      alert('No data to download.');
+      return;
+    }
+
+    const headers = Object.keys(dataToDownload[0]).join(',');
+    const rows = dataToDownload.map(row => 
+      Object.values(row).map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    const csv = `${headers}\n${rows}`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportType}-report.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
       <PageHeader title="Consolidated Reports" subtitle="Cross-branch reports for students, faculty & finance" actions={
-        <>
+        <div className="flex gap-3">
+          {(reportType === 'students' || reportType === 'faculty') && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+              <input 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search..." 
+                className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" 
+              />
+            </div>
+          )}
           <Select value={reportType} onChange={setReportType} options={[
             { value: 'students', label: 'Student Report' },
             { value: 'faculty', label: 'Faculty Report' },
             { value: 'finance', label: 'Finance Report' },
           ]} />
-          <button className="btn-primary"><Download className="w-4 h-4" /> Download</button>
-        </>
+          <button className="btn-primary" onClick={handleDownload}><Download className="w-4 h-4" /> Download</button>
+        </div>
       } />
       {reportType === 'students' && (
         <Card>
@@ -315,7 +419,7 @@ export function ConsolidatedReports() {
               { key: 'feePaid', label: 'Fee Paid', render: (s) => `₹${(s.feePaid / 1000).toFixed(0)}k / ₹${(s.feeTotal / 1000).toFixed(0)}k` },
               { key: 'status', label: 'Status', render: (s) => <StatusBadge status={s.status} /> },
             ]}
-            data={students}
+            data={filteredStudents}
           />
         </Card>
       )}
@@ -336,7 +440,7 @@ export function ConsolidatedReports() {
               { key: 'salary', label: 'Salary', render: (t) => `₹${(t.salary / 1000).toFixed(0)}k` },
               { key: 'status', label: 'Status', render: (t) => <StatusBadge status={t.status} /> },
             ]}
-            data={teachers}
+            data={filteredFaculty}
           />
         </Card>
       )}
@@ -353,10 +457,31 @@ export function ConsolidatedReports() {
 }
 
 export function InstitutionManagement() {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingInst, setEditingInst] = useState<Institution | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [localInstitutions, setLocalInstitutions] = useState(institutions);
+
+  const filteredInstitutions = localInstitutions.filter(i => 
+    i.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    i.location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div>
-      <PageHeader title="Institution Management" subtitle="Manage all institutions across the platform" />
+      <PageHeader title="Institution Management" subtitle="Manage all institutions across the platform" actions={<button className="btn-primary" onClick={() => setIsAdding(true)}><Plus className="w-4 h-4" /> Add Institution</button>} />
       <Card>
+        <CardHeader title="All Institutions" action={
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+            <input 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search institutions..." 
+              className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+            />
+          </div>
+        } />
         <DataTable<Institution>
           columns={[
             { key: 'name', label: 'Institution Name', render: (i) => <span className="font-medium text-ink-800">{i.name}</span> },
@@ -364,19 +489,109 @@ export function InstitutionManagement() {
             { key: 'location', label: 'Location' },
             { key: 'joinedDate', label: 'Joined Date' },
             { key: 'status', label: 'Status', render: (i) => <StatusBadge status={i.status} /> },
+            { key: 'actions', label: '', render: (i) => (
+              <div className="flex gap-2 justify-end">
+                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium" onClick={() => setEditingInst(i)}>Edit</button>
+                <button className="text-error-600 hover:text-error-700 text-sm font-medium" onClick={() => setLocalInstitutions(localInstitutions.filter(x => x.id !== i.id))}>Delete</button>
+              </div>
+            ) },
           ]}
-          data={institutions}
+          data={filteredInstitutions}
         />
       </Card>
+
+      <Modal open={isAdding || !!editingInst} onClose={() => { setIsAdding(false); setEditingInst(null); }} title={editingInst ? "Edit Institution" : "Add Institution"} size="md">
+        <form className="space-y-4" onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          
+          if (editingInst) {
+            const updated = {
+              ...editingInst,
+              name: fd.get('name') as string,
+              type: fd.get('type') as string,
+              location: fd.get('location') as string,
+              status: fd.get('status') as Institution['status'],
+            };
+            setLocalInstitutions(localInstitutions.map(i => i.id === editingInst.id ? updated : i));
+            setEditingInst(null);
+          } else {
+            const newInst: Institution = {
+              id: `inst-${Date.now()}`,
+              name: fd.get('name') as string,
+              type: fd.get('type') as string,
+              location: fd.get('location') as string,
+              status: fd.get('status') as Institution['status'],
+              joinedDate: new Date().toISOString().split('T')[0]
+            };
+            setLocalInstitutions([newInst, ...localInstitutions]);
+            setIsAdding(false);
+          }
+        }}>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="label">Institution Name</label>
+              <input name="name" required className="input" defaultValue={editingInst?.name} placeholder="e.g. Apex Global School" />
+            </div>
+            <div>
+              <label className="label">Type</label>
+              <select name="type" className="input" defaultValue={editingInst?.type}>
+                <option value="School">School</option>
+                <option value="College">College</option>
+                <option value="University">University</option>
+                <option value="Training Center">Training Center</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Status</label>
+              <select name="status" className="input" defaultValue={editingInst?.status}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="onboarding">Onboarding</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="label">Location</label>
+              <input name="location" required className="input" defaultValue={editingInst?.location} placeholder="e.g. Mumbai, Maharashtra" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className="btn-secondary" onClick={() => { setIsAdding(false); setEditingInst(null); }}>Cancel</button>
+            <button type="submit" className="btn-primary">{editingInst ? "Save Changes" : "Add Institution"}</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
 
 export function AdminManagement() {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [localAdmins, setLocalAdmins] = useState(adminUsers);
+
+  const filteredAdmins = localAdmins.filter(u => 
+    u.role !== 'admin' && 
+    (u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <div>
-      <PageHeader title="Admin Management" subtitle="Manage super admins and product admins" />
+      <PageHeader title="Admin Management" subtitle="Manage super admins and product admins" actions={<button className="btn-primary" onClick={() => setIsAdding(true)}><Plus className="w-4 h-4" /> Add Admin</button>} />
       <Card>
+        <CardHeader title="All Admins" action={
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+            <input 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search admins..." 
+              className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+            />
+          </div>
+        } />
         <DataTable<AdminUser>
           columns={[
             { key: 'name', label: 'Name', render: (u) => <span className="font-medium text-ink-800">{u.name}</span> },
@@ -388,19 +603,103 @@ export function AdminManagement() {
             ) },
             { key: 'institution', label: 'Institution' },
             { key: 'status', label: 'Status', render: (u) => <StatusBadge status={u.status} /> },
+            { key: 'actions', label: '', render: (u) => (
+              <div className="flex gap-2 justify-end">
+                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium" onClick={() => setEditingAdmin(u)}>Edit</button>
+                <button className="text-error-600 hover:text-error-700 text-sm font-medium" onClick={() => setLocalAdmins(localAdmins.filter(x => x.id !== u.id))}>Delete</button>
+              </div>
+            ) },
           ]}
-          data={adminUsers.filter(u => u.role !== 'admin')}
+          data={filteredAdmins}
         />
       </Card>
+
+      <Modal open={isAdding || !!editingAdmin} onClose={() => { setIsAdding(false); setEditingAdmin(null); }} title={editingAdmin ? "Edit Admin" : "Add Admin"} size="md">
+        <form className="space-y-4" onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          
+          if (editingAdmin) {
+            const updated = {
+              ...editingAdmin,
+              name: fd.get('name') as string,
+              email: fd.get('email') as string,
+              role: fd.get('role') as AdminUser['role'],
+              institution: fd.get('institution') as string,
+            };
+            setLocalAdmins(localAdmins.map(a => a.id === editingAdmin.id ? updated : a));
+            setEditingAdmin(null);
+          } else {
+            const newAdmin: AdminUser = {
+              id: `usr-${Date.now()}`,
+              name: fd.get('name') as string,
+              email: fd.get('email') as string,
+              role: fd.get('role') as AdminUser['role'],
+              institution: fd.get('institution') as string,
+              status: 'active'
+            };
+            setLocalAdmins([newAdmin, ...localAdmins]);
+            setIsAdding(false);
+          }
+        }}>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="label">Full Name</label>
+              <input name="name" required className="input" defaultValue={editingAdmin?.name} placeholder="e.g. Sarah Connor" />
+            </div>
+            <div className="col-span-2">
+              <label className="label">Email Address</label>
+              <input name="email" type="email" required className="input" defaultValue={editingAdmin?.email} placeholder="sarah@example.com" />
+            </div>
+            <div>
+              <label className="label">Role</label>
+              <select name="role" className="input" defaultValue={editingAdmin?.role}>
+                <option value="super_admin">Super Admin</option>
+                <option value="product_admin">Product Admin</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Institution</label>
+              <select name="institution" className="input" defaultValue={editingAdmin?.institution || 'None (Global)'}>
+                <option value="None (Global)">None (Global)</option>
+                {institutions.map(i => <option key={i.id} value={i.name}>{i.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className="btn-secondary" onClick={() => { setIsAdding(false); setEditingAdmin(null); }}>Cancel</button>
+            <button type="submit" className="btn-primary">{editingAdmin ? "Save Changes" : "Add Admin"}</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
 
 export function UserManagement() {
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const filteredUsers = adminUsers.filter(u => 
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.institution.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div>
       <PageHeader title="All Users" subtitle="View all admins and institution staff" />
       <Card>
+        <CardHeader title="Directory" action={
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+            <input 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search users..." 
+              className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+            />
+          </div>
+        } />
         <DataTable<AdminUser>
           columns={[
             { key: 'name', label: 'Name', render: (u) => <span className="font-medium text-ink-800">{u.name}</span> },
@@ -411,9 +710,11 @@ export function UserManagement() {
             { key: 'institution', label: 'Institution' },
             { key: 'status', label: 'Status', render: (u) => <StatusBadge status={u.status} /> },
           ]}
-          data={adminUsers}
+          data={filteredUsers}
         />
       </Card>
     </div>
   );
 }
+
+export { SustainabilityDashboard, ExecutiveDecisionCenter, GlobalCampaignManager, DataQualityMonitoring } from './SuperAdminAddons';

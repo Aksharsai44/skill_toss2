@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn';
 import type { LucideIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function StatCard({
   label,
@@ -8,6 +9,7 @@ export function StatCard({
   trend,
   trendLabel,
   color = 'primary',
+  to,
 }: {
   label: string;
   value: string | number;
@@ -15,6 +17,7 @@ export function StatCard({
   trend?: number;
   trendLabel?: string;
   color?: 'primary' | 'accent' | 'success' | 'warning' | 'error';
+  to?: string;
 }) {
   const colorMap = {
     primary: { bg: 'bg-primary-50', text: 'text-primary-600', ring: 'ring-primary-100' },
@@ -25,8 +28,8 @@ export function StatCard({
   };
   const c = colorMap[color];
 
-  return (
-    <div className="card card-hover p-5 lg:p-6">
+  const content = (
+    <div className={cn("card p-5 lg:p-6 h-full", to && "card-hover transition cursor-pointer")}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.08em] text-ink-500 font-semibold">{label}</p>
@@ -48,4 +51,6 @@ export function StatCard({
       )}
     </div>
   );
+
+  return to ? <Link to={to} className="block h-full">{content}</Link> : content;
 }

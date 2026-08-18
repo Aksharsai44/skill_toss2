@@ -192,6 +192,14 @@ export const featureCatalog = [
   { key: 'biometric', label: 'Biometric Attendance', icon: 'Fingerprint', desc: 'Hardware attendance integration' },
   { key: 'certification', label: 'Certification Courses', icon: 'Award', desc: 'Udemy-style course certificates' },
   { key: 'forum', label: 'Discussion Forum', icon: 'MessagesSquare', desc: 'Quora-style Q&A across branches' },
+  { key: 'library', label: 'Library Management', icon: 'BookOpen', desc: 'Issue, track & manage library books' },
+  { key: 'hostel', label: 'Hostel Management', icon: 'Home', desc: 'Room allocation & hostel fee tracking' },
+  { key: 'transport', label: 'Transport Management', icon: 'Bus', desc: 'Route tracking & transport fees' },
+  { key: 'attendance', label: 'Student Attendance', icon: 'Users', desc: 'Daily attendance & absent alerts' },
+  { key: 'timetable', label: 'Timetable Scheduling', icon: 'Clock', desc: 'Class schedules & teacher mapping' },
+  { key: 'exams', label: 'Examination System', icon: 'Check', desc: 'Report cards & grading scales' },
+  { key: 'payroll', label: 'Staff Payroll', icon: 'CreditCard', desc: 'Salary slips & staff attendance' },
+  { key: 'noticeboard', label: 'Digital Notice Board', icon: 'Inbox', desc: 'Announcements & circulars' },
 ];
 
 export const aiTools = [

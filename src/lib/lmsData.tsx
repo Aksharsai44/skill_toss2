@@ -397,7 +397,7 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   const value = useMemo<LmsDataContextValue>(() => ({
-    state, feedback, clearFeedback: () => setFeedback(null), resetDemoData: () => { setState(cloneSeed()); setFeedback({ kind: 'success', message: 'Demo data reset.' }); },
+    state, feedback, setFeedback, clearFeedback: () => setFeedback(null), resetDemoData: () => { setState(cloneSeed()); setFeedback({ kind: 'success', message: 'Demo data reset.' }); },
     getStudentSummary, getStudentAssignments, getStudentFees, getStudentExams, getStudentResources, getOnlineAttendanceForSession, searchRecords, syncClassSession,
     addStudent, createAssignment, saveSubmission, gradeSubmission, markAttendance, recordPayment, addResource, scheduleExam, scheduleClass, updateClassSessionStatus, recordOnlineJoin, recordOnlineLeave, updateStudentProfile, saveGoal, deleteGoal, addEvent,
     markNotificationRead: (id) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.id === id ? { ...item, read: true } : item) })),

@@ -5,7 +5,7 @@ import type {
 } from '@/lib/types';
 
 export type ActionResult = { ok: true; message: string } | { ok: false; message: string };
-export type Feedback = { kind: 'success' | 'error'; message: string } | null;
+export type Feedback = { kind: 'success' | 'error' | 'info'; message: string } | null;
 export type StudentSummary = {
   student: LmsStudent; attendance: number; attended: number; conducted: number;
   recoveryClasses: number; feeTotal: number; feePaid: number; feePending: number;
@@ -17,7 +17,7 @@ export type FeeView = { invoices: Array<{ id: string; title: string; total: numb
 export type SearchResult = { id: string; type: 'course' | 'assignment' | 'resource' | 'exam' | 'student' | 'batch'; title: string; subtitle: string; path: string };
 
 export type LmsDataContextValue = {
-  state: LmsState; feedback: Feedback; clearFeedback: () => void; resetDemoData: () => void;
+  state: LmsState; feedback: Feedback; setFeedback: (f: Feedback) => void; clearFeedback: () => void; resetDemoData: () => void;
   getStudentSummary: (studentId: string) => StudentSummary | null;
   getStudentAssignments: (studentId: string) => StudentAssignmentView[];
   getStudentFees: (studentId: string) => FeeView;
