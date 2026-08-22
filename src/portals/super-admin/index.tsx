@@ -252,6 +252,15 @@ export function Branches() {
 
 export function Revenue() {
   const [period, setPeriod] = useState('monthly');
+
+  const dynamicRevenueData = period === 'weekly' 
+    ? [{ month: 'Week 1', revenue: 20000, students: 3000 }, { month: 'Week 2', revenue: 35000, students: 3100 }, { month: 'Week 3', revenue: 45000, students: 3200 }, { month: 'Week 4', revenue: 60000, students: 3300 }]
+    : period === 'quarterly'
+    ? [{ month: 'Q1', revenue: 400000, students: 3000 }, { month: 'Q2', revenue: 500000, students: 3100 }, { month: 'Q3', revenue: 650000, students: 3200 }, { month: 'Q4', revenue: 750000, students: 3300 }]
+    : period === 'yearly'
+    ? [{ month: '2021', revenue: 1500000, students: 2500 }, { month: '2022', revenue: 2200000, students: 2800 }, { month: '2023', revenue: 3400000, students: 3200 }]
+    : revenueData;
+
   return (
     <div>
       <PageHeader title="Revenue Analytics" subtitle="Detailed revenue breakdown across branches" actions={
@@ -270,7 +279,7 @@ export function Revenue() {
       </div>
       <Card className="mb-6">
         <CardHeader title="Revenue Trend" subtitle={`${period} revenue across all branches`} />
-        <div className="p-5"><RevenueAreaChart data={revenueData} /></div>
+        <div className="p-5"><RevenueAreaChart data={dynamicRevenueData} /></div>
       </Card>
       <Card>
         <CardHeader title="Branch-wise Revenue" />
@@ -717,4 +726,5 @@ export function UserManagement() {
   );
 }
 
-export { SustainabilityDashboard, ExecutiveDecisionCenter, GlobalCampaignManager, DataQualityMonitoring } from './SuperAdminAddons';
+export { InterBranchTransfer, ExecutiveDecisionCenter, GlobalCampaignManager, DataQualityMonitoring, AuditLogs, BranchTheming } from './SuperAdminAddons';
+export { RoleBuilder } from './RoleBuilder';

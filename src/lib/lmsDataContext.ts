@@ -2,6 +2,8 @@ import { createContext, useContext } from 'react';
 import type {
   AttendanceStatus, EventItem, LmsAssignment, LmsClassSession, LmsExam, LmsGoal, LmsResource, LmsState, LmsStudent,
   LmsSubmission, OnlineAttendanceSession, SubmissionAttachment,
+  LmsBetaProgram, LmsRoadmapFeature, LmsExecutiveDecision, LmsGlobalCampaign,
+  LmsCustomRole, LmsRoleRequest, LmsAuditLog, LmsWorkflowRule, LmsIntegration, LmsBranchTheme
 } from '@/lib/types';
 
 export type ActionResult = { ok: true; message: string } | { ok: false; message: string };
@@ -43,6 +45,19 @@ export type LmsDataContextValue = {
   deleteGoal: (id: string) => ActionResult;
   addEvent: (input: Omit<EventItem, 'id'>) => ActionResult;
   markNotificationRead: (id: string) => void; markAllNotificationsRead: (userId: string) => void;
+  addBetaProgram: (input: Omit<LmsBetaProgram, 'id'>) => ActionResult;
+  updateBetaProgram: (id: string, updates: Partial<LmsBetaProgram>) => ActionResult;
+  addRoadmapFeature: (input: Omit<LmsRoadmapFeature, 'id'>) => ActionResult;
+  updateRoadmapFeature: (id: string, updates: Partial<LmsRoadmapFeature>) => ActionResult;
+  addGlobalCampaign: (input: Omit<LmsGlobalCampaign, 'id'>) => ActionResult;
+  updateGlobalCampaign: (id: string, updates: Partial<LmsGlobalCampaign>) => ActionResult;
+  resolveExecutiveDecision: (id: string, strategy: string) => ActionResult;
+  createRoleFromRequest: (requestId: string) => ActionResult;
+  rejectRoleRequest: (requestId: string) => ActionResult;
+  createWorkflow: (input: Omit<LmsWorkflowRule, 'id'>) => ActionResult;
+  updateWorkflow: (id: string, updates: Partial<LmsWorkflowRule>) => ActionResult;
+  updateIntegration: (id: string, updates: Partial<LmsIntegration>) => ActionResult;
+  updateBranchTheme: (id: string, updates: Partial<LmsBranchTheme>) => ActionResult;
 };
 
 export const LmsDataContext = createContext<LmsDataContextValue | null>(null);

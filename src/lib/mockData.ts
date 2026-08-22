@@ -272,7 +272,7 @@ export const supportTickets: Ticket[] = [
 ];
 
 export const lmsDemoSeed: LmsState = {
-  version: 4,
+  version: 6,
   nextId: 100,
   institution: { id: 'institution_001', name: 'Skill Toss Demo College' },
   departments: [
@@ -363,5 +363,15 @@ export const lmsDemoSeed: LmsState = {
     { id: 'goal_001', studentId: 'student_001', title: 'Complete all DBMS assignments', category: 'Academic', target: '4 assignments', deadline: '2026-08-31', progress: 50, status: 'active' },
   ],
   events: events.map((event) => ({ ...event })),
+  betaPrograms: [],
+  roadmapFeatures: [],
+  executiveDecisions: [],
+  globalCampaigns: [],
+  customRoles: [],
+  roleRequests: [],
+  auditLogs: [],
+  workflows: [],
+  integrations: [],
+  branchThemes: [],
 };
 

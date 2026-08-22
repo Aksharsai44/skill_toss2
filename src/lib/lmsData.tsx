@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { lmsDemoSeed } from '@/lib/mockData';
 import { LmsDataContext, type ActionResult, type Feedback, type LmsDataContextValue } from '@/lib/lmsDataContext';
-import type { AttendanceStatus, LmsAssignment, LmsClassSession, LmsExam, LmsResource, LmsState, LmsStudent, OnlineAttendanceSession } from '@/lib/types';
+import type { AttendanceStatus, LmsAssignment, LmsClassSession, LmsExam, LmsResource, LmsState, LmsStudent, OnlineAttendanceSession, LmsBetaProgram, LmsRoadmapFeature, LmsGlobalCampaign, LmsExecutiveDecision, LmsWorkflowRule, LmsIntegration, LmsBranchTheme } from '@/lib/types';
 import { generateDeterministicRoomName } from '@/lib/jitsiConfig';
 import { supabase } from '@/lib/supabase';
 import { putAttachment } from '@/lib/attachmentStorage';
@@ -381,6 +381,41 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     return result(true, 'Event published to shared calendars.');
   }, [bump, nextId, result]);
 
+  const addBetaProgram = useCallback((input: Omit<LmsBetaProgram, 'id'>) => {
+    setState((current) => bump({ ...current, betaPrograms: [{ ...input, id: nextId('beta') }, ...current.betaPrograms] }));
+    return result(true, 'Beta program added.');
+  }, [bump, nextId, result]);
+  
+  const updateBetaProgram = useCallback((id: string, updates: Partial<LmsBetaProgram>) => {
+    setState((current) => ({ ...current, betaPrograms: current.betaPrograms.map(p => p.id === id ? { ...p, ...updates } : p) }));
+    return result(true, 'Beta program updated.');
+  }, [result]);
+
+  const addRoadmapFeature = useCallback((input: Omit<LmsRoadmapFeature, 'id'>) => {
+    setState((current) => bump({ ...current, roadmapFeatures: [...current.roadmapFeatures, { ...input, id: nextId('roadmap') }] }));
+    return result(true, 'Roadmap feature added.');
+  }, [bump, nextId, result]);
+
+  const updateRoadmapFeature = useCallback((id: string, updates: Partial<LmsRoadmapFeature>) => {
+    setState((current) => ({ ...current, roadmapFeatures: current.roadmapFeatures.map(f => f.id === id ? { ...f, ...updates } : f) }));
+    return result(true, 'Roadmap feature updated.');
+  }, [result]);
+
+  const addGlobalCampaign = useCallback((input: Omit<LmsGlobalCampaign, 'id'>) => {
+    setState((current) => bump({ ...current, globalCampaigns: [{ ...input, id: nextId('campaign') }, ...current.globalCampaigns] }));
+    return result(true, 'Campaign created.');
+  }, [bump, nextId, result]);
+
+  const updateGlobalCampaign = useCallback((id: string, updates: Partial<LmsGlobalCampaign>) => {
+    setState((current) => ({ ...current, globalCampaigns: current.globalCampaigns.map(c => c.id === id ? { ...c, ...updates } : c) }));
+    return result(true, 'Campaign updated.');
+  }, [result]);
+
+  const resolveExecutiveDecision = useCallback((id: string, strategy: string) => {
+    setState((current) => ({ ...current, executiveDecisions: current.executiveDecisions.map(d => d.id === id ? { ...d, strategy, status: 'resolved' } : d) }));
+    return result(true, 'Decision resolved and logged.');
+  }, [result]);
+
   const searchRecords = useCallback((query: string, studentId?: string) => {
     const term = query.trim().toLowerCase();
     if (term.length < 2) return [];
@@ -396,13 +431,63 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     ].slice(0, 12);
   }, [state]);
 
+  const createRoleFromRequest = useCallback((requestId: string) => {
+    setState((current) => {
+      const request = current.roleRequests.find(r => r.id === requestId);
+      if (!request) return current;
+      const newRole = {
+        id: nextId('role'),
+        name: request.requestedRole,
+        institutionId: 'institution_001', // demo
+        permissions: request.requestedPermissions,
+        status: 'active' as const
+      };
+      return bump({
+        ...current,
+        roleRequests: current.roleRequests.map(r => r.id === requestId ? { ...r, status: 'approved' } : r),
+        customRoles: [...current.customRoles, newRole]
+      });
+    });
+    return result(true, 'Role created based on request.');
+  }, [bump, nextId, result]);
+
+  const rejectRoleRequest = useCallback((requestId: string) => {
+    setState((current) => ({
+      ...current,
+      roleRequests: current.roleRequests.map(r => r.id === requestId ? { ...r, status: 'rejected' } : r)
+    }));
+    return result(true, 'Role request rejected.');
+  }, [result]);
+
+  const createWorkflow = useCallback((input: Omit<LmsWorkflowRule, 'id'>) => {
+    setState((current) => bump({ ...current, workflows: [...current.workflows, { ...input, id: nextId('wf') } as LmsWorkflowRule] }));
+    return result(true, 'Workflow created.');
+  }, [bump, nextId, result]);
+
+  const updateWorkflow = useCallback((id: string, updates: Partial<LmsWorkflowRule>) => {
+    setState((current) => ({ ...current, workflows: current.workflows.map(w => w.id === id ? { ...w, ...updates } : w) }));
+    return result(true, 'Workflow updated.');
+  }, [result]);
+
+  const updateIntegration = useCallback((id: string, updates: Partial<LmsIntegration>) => {
+    setState((current) => ({ ...current, integrations: current.integrations.map(i => i.id === id ? { ...i, ...updates } : i) }));
+    return result(true, 'Integration updated.');
+  }, [result]);
+
+  const updateBranchTheme = useCallback((id: string, updates: Partial<LmsBranchTheme>) => {
+    setState((current) => ({ ...current, branchThemes: current.branchThemes.map(t => t.id === id ? { ...t, ...updates } : t) }));
+    return result(true, 'Branch theme updated.');
+  }, [result]);
+
   const value = useMemo<LmsDataContextValue>(() => ({
     state, feedback, setFeedback, clearFeedback: () => setFeedback(null), resetDemoData: () => { setState(cloneSeed()); setFeedback({ kind: 'success', message: 'Demo data reset.' }); },
     getStudentSummary, getStudentAssignments, getStudentFees, getStudentExams, getStudentResources, getOnlineAttendanceForSession, searchRecords, syncClassSession,
     addStudent, createAssignment, saveSubmission, gradeSubmission, markAttendance, recordPayment, addResource, scheduleExam, scheduleClass, updateClassSessionStatus, recordOnlineJoin, recordOnlineLeave, updateStudentProfile, saveGoal, deleteGoal, addEvent,
+    addBetaProgram, updateBetaProgram, addRoadmapFeature, updateRoadmapFeature, addGlobalCampaign, updateGlobalCampaign, resolveExecutiveDecision,
     markNotificationRead: (id) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.id === id ? { ...item, read: true } : item) })),
     markAllNotificationsRead: (userId) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.userId === userId ? { ...item, read: true } : item) })),
-  }), [addEvent, addResource, addStudent, createAssignment, deleteGoal, feedback, getOnlineAttendanceForSession, getStudentAssignments, getStudentExams, getStudentFees, getStudentResources, getStudentSummary, gradeSubmission, markAttendance, recordOnlineJoin, recordOnlineLeave, recordPayment, saveGoal, saveSubmission, scheduleClass, scheduleExam, searchRecords, state, syncClassSession, updateClassSessionStatus, updateStudentProfile]);
+    createRoleFromRequest, rejectRoleRequest, createWorkflow, updateWorkflow, updateIntegration, updateBranchTheme
+  }), [addBetaProgram, addEvent, addGlobalCampaign, addResource, addRoadmapFeature, addStudent, createAssignment, deleteGoal, feedback, getOnlineAttendanceForSession, getStudentAssignments, getStudentExams, getStudentFees, getStudentResources, getStudentSummary, gradeSubmission, markAttendance, recordOnlineJoin, recordOnlineLeave, recordPayment, resolveExecutiveDecision, saveGoal, saveSubmission, scheduleClass, scheduleExam, searchRecords, state, syncClassSession, updateBetaProgram, updateClassSessionStatus, updateGlobalCampaign, updateRoadmapFeature, updateStudentProfile, createRoleFromRequest, rejectRoleRequest, createWorkflow, updateWorkflow, updateIntegration, updateBranchTheme]);
 
   return <LmsDataContext.Provider value={value}>{children}</LmsDataContext.Provider>;
 }

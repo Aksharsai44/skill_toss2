@@ -1003,4 +1003,4 @@ export function CustomerSupport() {
   );
 }
 
-export { AiFeatureLab, LicenseOptimizer, SlaDashboard, RoadmapManager } from './ProductAdminAddons';
+export { AiFeatureLab, SystemHealthMap, SlaDashboard, RoadmapManager, WorkflowAutomation, IntegrationHub } from './ProductAdminAddons';
