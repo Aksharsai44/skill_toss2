@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { lmsDemoSeed } from '@/lib/mockData';
-import { LmsDataContext, type ActionResult, type Feedback, type LmsDataContextValue } from '@/lib/lmsDataContext';
-import type { AttendanceStatus, LmsAssignment, LmsClassSession, LmsExam, LmsResource, LmsState, LmsStudent, OnlineAttendanceSession } from '@/lib/types';
+import { LmsDataContext, type ActionResult, type Feedback, type LmsDataContextValue, type StudentPortalInsights } from '@/lib/lmsDataContext';
+import type { AttendanceStatus, LmsAssignment, LmsClassSession, LmsExam, LmsResource, LmsState, LmsStudent, OnlineAttendanceSession, Role } from '@/lib/types';
 import { generateDeterministicRoomName } from '@/lib/jitsiConfig';
-import { supabase } from '@/lib/supabase';
+import { isClassSessionSyncEnabled, supabase } from '@/lib/supabase';
 import { putAttachment } from '@/lib/attachmentStorage';
 import type { SubmissionAttachment } from '@/lib/types';
 
 const STORAGE_KEY = 'skill-toss-lms-demo-v4';
-const DEMO_NOW = '2026-08-12T12:00:00+05:30';
+export const LMS_DEMO_NOW = '2026-08-12T12:00:00+05:30';
+const DEMO_NOW = LMS_DEMO_NOW;
 
 
 const cloneSeed = (): LmsState => JSON.parse(JSON.stringify(lmsDemoSeed)) as LmsState;
@@ -20,7 +21,10 @@ const loadState = (): LmsState => {
     if (parsed.version !== lmsDemoSeed.version) return cloneSeed();
     return {
       ...parsed,
+      resourceBookmarks: parsed.resourceBookmarks || [],
       onlineAttendance: parsed.onlineAttendance || [],
+      // Defaulted rather than version-gated so adding a collection never wipes saved demo work.
+      notes: parsed.notes || [],
       classSessions: (parsed.classSessions || []).map((session) => ({
         ...session,
         jitsiRoomName: session.jitsiRoomName || (session.mode === 'jitsi' || session.mode === 'online' ? generateDeterministicRoomName(parsed.institution?.id || 'demo', session.id) : undefined),
@@ -37,6 +41,8 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }, [state]);
   useEffect(() => {
+    if (!isClassSessionSyncEnabled) return;
+
     const channel = supabase.channel('skill-toss-class-sessions')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'class_sessions' }, (payload) => {
         const row = payload.new as { id?: string; status?: LmsClassSession['status']; started_at?: string | null; ended_at?: string | null; ended_by?: string | null };
@@ -127,6 +133,95 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     return { student, attendance, attended, conducted, recoveryClasses, feeTotal: fees.total, feePaid: fees.paid, feePending: fees.pending, pendingAssignments, upcomingExams, overallPerformance, strongestSubject: ranked[0]?.subject ?? 'No results yet', needsAttention: ranked[ranked.length - 1]?.subject ?? 'No results yet' };
   }, [getStudentAssignments, getStudentExams, getStudentFees, state.attendance, state.courses, state.examResults, state.exams, state.students]);
 
+  const getStudentPortalInsights = useCallback((studentId: string): StudentPortalInsights | null => {
+    const student = state.students.find((item) => item.id === studentId);
+    if (!student) return null;
+    const courseById = new Map(state.courses.map((course) => [course.id, course]));
+    const studentAttendance = state.attendance.filter((record) => record.studentId === studentId);
+    const attendanceSubjects = state.courses.filter((course) => course.batchIds.includes(student.batchId)).map((course) => {
+      const records = studentAttendance.filter((record) => record.courseId === course.id);
+      const attended = records.filter((record) => record.status === 'present' || record.status === 'late').length;
+      const conducted = records.filter((record) => record.status !== 'excused').length;
+      const percentage = conducted ? Math.round((attended / conducted) * 100) : 0;
+      return {
+        courseId: course.id, code: course.code, subject: course.title, attended, conducted,
+        absent: records.filter((record) => record.status === 'absent').length,
+        late: records.filter((record) => record.status === 'late').length,
+        excused: records.filter((record) => record.status === 'excused').length,
+        percentage, risk: conducted > 0 && percentage < 75 ? 'at-risk' as const : 'safe' as const,
+        recoveryClasses: conducted > 0 && percentage < 75 ? Math.ceil((0.75 * conducted - attended) / 0.25) : 0,
+      };
+    }).filter((item) => item.conducted > 0).sort((a, b) => a.percentage - b.percentage);
+    const monthPrefix = DEMO_NOW.slice(0, 7);
+    const monthRecords = studentAttendance.filter((record) => record.date.startsWith(monthPrefix));
+    const monthConducted = monthRecords.filter((record) => record.status !== 'excused').length;
+    const monthAttended = monthRecords.filter((record) => record.status === 'present' || record.status === 'late').length;
+    const monthAttendance = monthConducted ? Math.round((monthAttended / monthConducted) * 100) : 0;
+    const recentAbsences = studentAttendance.filter((record) => record.status !== 'present').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map((record) => ({
+      id: record.id, date: record.date, subject: courseById.get(record.courseId)?.title ?? 'Course', status: record.status,
+    }));
+    const examAssessments = state.examResults.filter((result) => result.studentId === studentId).map((result) => {
+      const exam = state.exams.find((item) => item.id === result.examId);
+      const course = courseById.get(exam?.courseId ?? '');
+      const total = exam?.maxMarks ?? 0;
+      return { id: result.id, kind: 'exam' as const, title: exam?.title ?? 'Assessment', subject: course?.title ?? 'Course', score: result.marks, total, percentage: total ? Math.round((result.marks / total) * 100) : 0, date: exam?.date ?? '', feedback: result.feedback };
+    });
+    const assignmentAssessments = getStudentAssignments(studentId).filter((assignment) => assignment.submission?.status === 'graded' && assignment.submission.marks !== undefined).map((assignment) => ({
+      id: assignment.submission?.id ?? assignment.id, kind: 'assignment' as const, title: assignment.title, subject: assignment.courseTitle,
+      score: assignment.submission?.marks ?? 0, total: assignment.maxMarks, percentage: Math.round(((assignment.submission?.marks ?? 0) / assignment.maxMarks) * 100),
+      date: assignment.submission?.gradedAt ?? assignment.submission?.submittedAt ?? assignment.dueDate, feedback: assignment.submission?.feedback,
+    }));
+    const assessments = [...examAssessments, ...assignmentAssessments].sort((a, b) => b.date.localeCompare(a.date));
+    const subjectMap = new Map<string, { courseId: string; code: string; values: number[] }>();
+    assessments.forEach((assessment) => {
+      const course = state.courses.find((item) => item.title === assessment.subject);
+      const current = subjectMap.get(assessment.subject) ?? { courseId: course?.id ?? assessment.subject, code: course?.code ?? '', values: [] };
+      current.values.push(assessment.percentage);
+      subjectMap.set(assessment.subject, current);
+    });
+    const subjectPerformance = [...subjectMap].map(([subject, item]) => ({ courseId: item.courseId, code: item.code, subject, percentage: Math.round(item.values.reduce((sum, value) => sum + value, 0) / item.values.length), assessmentCount: item.values.length })).sort((a, b) => b.percentage - a.percentage);
+    const semesterAverage = assessments.length ? Math.round(assessments.reduce((sum, assessment) => sum + assessment.percentage, 0) / assessments.length) : 0;
+    const chronological = [...assessments].reverse();
+    const midpoint = Math.max(1, Math.floor(chronological.length / 2));
+    const average = (items: typeof chronological) => items.length ? items.reduce((sum, item) => sum + item.percentage, 0) / items.length : 0;
+    const performanceTrend = chronological.length > 1 ? Math.round(average(chronological.slice(midpoint)) - average(chronological.slice(0, midpoint))) : 0;
+    const weekStart = new Date(DEMO_NOW); weekStart.setDate(weekStart.getDate() - 6);
+    const weekStartIso = weekStart.toISOString().slice(0, 10);
+    const weeklyRecords = studentAttendance.filter((record) => record.date >= weekStartIso && record.date <= DEMO_NOW.slice(0, 10));
+    const weeklyConducted = weeklyRecords.filter((record) => record.status !== 'excused').length;
+    const weeklyAttended = weeklyRecords.filter((record) => record.status === 'present' || record.status === 'late').length;
+    const assignments = getStudentAssignments(studentId);
+    const weeklyCompletedAssignments = assignments.filter((assignment) => {
+      const date = assignment.submission?.submittedAt?.slice(0, 10);
+      return date && date >= weekStartIso && date <= DEMO_NOW.slice(0, 10);
+    }).length;
+    const weeklyPendingAssignments = assignments.filter((assignment) => !assignment.submission || !['submitted', 'graded'].includes(assignment.submission.status)).length;
+    const fees = getStudentFees(studentId);
+    const deadlines = [
+      ...assignments.filter((assignment) => !assignment.submission || !['submitted', 'graded'].includes(assignment.submission.status)).map((assignment) => ({ id: assignment.id, kind: 'assignment' as const, title: assignment.title, date: assignment.dueDate, detail: courseById.get(assignment.courseId)?.title ?? 'Assignment', path: '/student/assignments', urgent: assignment.dueDate.slice(0, 10) <= DEMO_NOW.slice(0, 10) })),
+      ...state.exams.filter((exam) => exam.batchId === student.batchId && exam.status === 'scheduled').map((exam) => ({ id: exam.id, kind: 'exam' as const, title: exam.title, date: `${exam.date}T${exam.startTime}:00+05:30`, detail: courseById.get(exam.courseId)?.title ?? 'Exam', path: '/student/exams', urgent: exam.date <= DEMO_NOW.slice(0, 10) })),
+      ...fees.invoices.filter((invoice) => invoice.pending > 0).map((invoice) => ({ id: invoice.id, kind: 'fee' as const, title: invoice.title, date: `${invoice.dueDate}T23:59:00+05:30`, detail: `₹${invoice.pending.toLocaleString('en-IN')} pending`, path: '/student/fees', urgent: invoice.dueDate <= DEMO_NOW.slice(0, 10) })),
+      ...state.classSessions.filter((session) => session.batchId === student.batchId && ['scheduled', 'live'].includes(session.status)).map((session) => ({ id: session.id, kind: 'class' as const, title: `${courseById.get(session.courseId)?.title ?? 'Class'} class`, date: `${session.date}T${session.startTime}:00+05:30`, detail: session.status === 'live' ? 'Live now' : `${session.startTime}–${session.endTime}`, path: '/student/classes', urgent: session.status === 'live' || session.date === DEMO_NOW.slice(0, 10) })),
+      ...state.events.filter((event) => !event.batch || event.batch === state.batches.find((batch) => batch.id === student.batchId)?.name).filter((event) => event.date >= DEMO_NOW.slice(0, 10)).map((event) => ({ id: event.id, kind: 'event' as const, title: event.title, date: `${event.date}T09:00:00+05:30`, detail: event.type, path: '/student/calendar', urgent: event.date === DEMO_NOW.slice(0, 10) })),
+    ].filter((deadline) => deadline.date.slice(0, 10) >= DEMO_NOW.slice(0, 10)).sort((a, b) => a.date.localeCompare(b.date));
+    const courseProgress = state.courses.filter((course) => course.batchIds.includes(student.batchId)).map((course) => {
+      const courseAssignments = assignments.filter((assignment) => assignment.courseId === course.id);
+      const courseExams = state.exams.filter((exam) => exam.courseId === course.id && exam.batchId === student.batchId && exam.status === 'completed');
+      const completedAssignments = courseAssignments.filter((assignment) => assignment.submission && ['submitted', 'graded'].includes(assignment.submission.status)).length;
+      const completedExams = courseExams.filter((exam) => state.examResults.some((result) => result.examId === exam.id && result.studentId === studentId)).length;
+      const total = courseAssignments.length + courseExams.length;
+      const completed = completedAssignments + completedExams;
+      return { courseId: course.id, code: course.code, title: course.title, completed, total, percentage: total ? Math.round((completed / total) * 100) : 0 };
+    }).filter((course) => course.total > 0).sort((a, b) => b.percentage - a.percentage);
+    return {
+      attendanceSubjects, monthAttendance, monthMissed: monthRecords.filter((record) => record.status === 'absent').length,
+      monthLate: monthRecords.filter((record) => record.status === 'late').length, monthExcused: monthRecords.filter((record) => record.status === 'excused').length,
+      recentAbsences, assessments, subjectPerformance, teacherFeedback: assessments.filter((assessment) => Boolean(assessment.feedback)), semesterAverage, performanceTrend,
+      weeklyAttendance: weeklyConducted ? Math.round((weeklyAttended / weeklyConducted) * 100) : 0, weeklyCompletedAssignments, weeklyPendingAssignments,
+      deadlines, courseProgress,
+    };
+  }, [getStudentAssignments, getStudentFees, state]);
+
   const addStudent = useCallback((input: Omit<LmsStudent, 'id' | 'avatar'> & { initialFeeTotal: number }) => {
     if (!input.name.trim() || !input.rollNo.trim() || !input.email.trim()) return result(false, 'Name, roll number, and email are required.');
     if (state.students.some((student) => student.rollNo.toLowerCase() === input.rollNo.toLowerCase() || student.email.toLowerCase() === input.email.toLowerCase())) return result(false, 'A student with this roll number or email already exists.');
@@ -143,7 +238,7 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     const attachments = (input.attachmentFiles || []).map((entry) => ({ ...entry, metadata: { ...entry.metadata, ownerType: 'assignment' as const, ownerId: id, uploadedBy: input.teacherId } }));
     try { await Promise.all(attachments.filter((entry) => Boolean(entry.file)).map((entry) => putAttachment(entry.metadata, entry.file as File))); } catch { return result(false, 'Assignment materials could not be saved locally.'); }
     const targets = state.students.filter((student) => student.batchId === input.batchId);
-    setState((current) => bump({ ...current, assignments: [...current.assignments, { ...input, attachments: attachments.map((entry) => entry.metadata), id, createdAt: DEMO_NOW, status: 'open' }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index + 1}`, userId: student.id, type: 'academic' as const, title: 'New assignment', message: `${input.title} is now available.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/assignments' }))] }));
+    setState((current) => bump({ ...current, assignments: [...current.assignments, { ...input, attachments: attachments.map((entry) => entry.metadata), id, createdAt: DEMO_NOW, status: 'open' }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index + 1}`, userId: student.id, type: 'assignment' as const, title: 'New assignment', message: `${input.title} is now available.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/assignments' }))] }));
     return result(true, 'Assignment created and shared with the batch.');
   }, [bump, nextId, result, state.students]);
 
@@ -169,14 +264,28 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     const assignment = state.assignments.find((item) => item.id === submission?.assignmentId);
     if (!submission || !assignment) return result(false, 'Submission not found.');
     if (marks < 0 || marks > assignment.maxMarks || !feedbackText.trim()) return result(false, `Enter marks between 0 and ${assignment.maxMarks} and include feedback.`);
-    setState((current) => bump({ ...current, submissions: current.submissions.map((item) => item.id === submissionId ? { ...item, status: 'graded', marks, feedback: feedbackText, gradedAt: DEMO_NOW } : item), notifications: [...current.notifications, { id: nextId('notification'), userId: submission.studentId, type: 'academic', title: 'Assignment graded', message: `${assignment.title}: ${marks}/${assignment.maxMarks}`, timestamp: DEMO_NOW, read: false, relatedEntityId: assignment.id, path: '/student/assignments' }] }));
+    const notificationId = `notification_grade_${submissionId}`;
+    setState((current) => bump({ ...current, submissions: current.submissions.map((item) => item.id === submissionId ? { ...item, status: 'graded', marks, feedback: feedbackText, gradedAt: DEMO_NOW } : item), notifications: [...current.notifications.filter((item) => item.id !== notificationId), { id: notificationId, userId: submission.studentId, type: 'assignment', title: 'Assignment graded', message: `${assignment.title}: ${marks}/${assignment.maxMarks}`, timestamp: DEMO_NOW, read: false, relatedEntityId: assignment.id, path: '/student/assignments' }] }));
     return result(true, 'Grade published to the student and parent view.');
-  }, [bump, nextId, result, state.assignments, state.submissions]);
+  }, [bump, result, state.assignments, state.submissions]);
 
   const markAttendance = useCallback((studentId: string, courseId: string, batchId: string, date: string, status: AttendanceStatus) => {
     if (!date) return result(false, 'Select an attendance date.');
     const existing = state.attendance.find((item) => item.studentId === studentId && item.courseId === courseId && item.date === date);
-    setState((current) => ({ ...current, attendance: existing ? current.attendance.map((item) => item.id === existing.id ? { ...item, status } : item) : [...current.attendance, { id: `${nextId('attendance')}_${studentId}_${date}`, studentId, courseId, batchId, date, status }], nextId: existing ? current.nextId : current.nextId + 1 }));
+    setState((current) => {
+      const attendance = existing ? current.attendance.map((item) => item.id === existing.id ? { ...item, status } : item) : [...current.attendance, { id: `${nextId('attendance')}_${studentId}_${date}`, studentId, courseId, batchId, date, status }];
+      const courseRecords = attendance.filter((item) => item.studentId === studentId && item.courseId === courseId);
+      const attended = courseRecords.filter((item) => item.status === 'present' || item.status === 'late').length;
+      const conducted = courseRecords.filter((item) => item.status !== 'excused').length;
+      const percentage = conducted ? Math.round((attended / conducted) * 100) : 0;
+      const warningId = `attendance_warning_${studentId}_${courseId}_${date}`;
+      const shouldWarn = percentage < 75 && status === 'absent' && !current.notifications.some((item) => item.id === warningId);
+      const courseTitle = current.courses.find((course) => course.id === courseId)?.title ?? 'Course';
+      return {
+        ...current, attendance, nextId: existing ? current.nextId : current.nextId + 1,
+        notifications: shouldWarn ? [...current.notifications, { id: warningId, userId: studentId, type: 'attendance', title: 'Attendance warning', message: `${courseTitle} attendance is ${percentage}%.`, timestamp: DEMO_NOW, read: false, relatedEntityId: courseId, path: '/student/attendance' }] : current.notifications,
+      };
+    });
     return result(true, 'Attendance updated across student, parent, and reports.');
   }, [nextId, result, state.attendance]);
 
@@ -206,7 +315,7 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     if (!input.title.trim() || !input.date || input.maxMarks <= 0 || input.durationMinutes <= 0) return result(false, 'Complete all exam fields with valid marks and duration.');
     const id = nextId('exam');
     const targets = state.students.filter((student) => student.batchId === input.batchId);
-    setState((current) => bump({ ...current, exams: [...current.exams, { ...input, id, status: 'scheduled' }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index}`, userId: student.id, type: 'academic' as const, title: 'Exam scheduled', message: `${input.title} is scheduled for ${input.date}.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/exams' }))] }));
+    setState((current) => bump({ ...current, exams: [...current.exams, { ...input, id, status: 'scheduled' }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index}`, userId: student.id, type: 'exam' as const, title: 'Exam scheduled', message: `${input.title} is scheduled for ${input.date}.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/exams' }))] }));
     return result(true, 'Exam scheduled and students notified.');
   }, [bump, nextId, result, state.students]);
 
@@ -229,24 +338,28 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     const course = state.courses.find((c) => c.id === input.courseId);
     const courseTitle = course?.title || 'Class';
 
-    setState((current) => bump({
+    setState((current) => {
+      const targetNotifications = current.students.filter((student) => student.batchId === input.batchId).map((student, index) => ({
+        id: `${id}_notification_${index}`,
+        userId: student.id,
+        type: 'class' as const,
+        title: isJitsi ? 'New live class scheduled' : 'Class scheduled',
+        message: `${courseTitle} is scheduled on ${input.date} at ${input.startTime}${isJitsi ? ' via Jitsi Meet.' : '.'}`,
+        timestamp: DEMO_NOW,
+        read: false,
+        relatedEntityId: id,
+        path: '/student/classes',
+      }));
+      const targetIds = new Set(targetNotifications.map((notification) => notification.id));
+      return bump({
       ...current,
-      classSessions: [...current.classSessions, sessionRecord],
+      classSessions: current.classSessions.some((session) => session.id === id) ? current.classSessions.map((session) => session.id === id ? sessionRecord : session) : [...current.classSessions, sessionRecord],
       notifications: [
-        ...current.notifications,
-        ...current.students.filter((student) => student.batchId === input.batchId).map((student, index) => ({
-          id: `${id}_notification_${index}`,
-          userId: student.id,
-          type: 'academic' as const,
-          title: isJitsi ? 'New live class scheduled' : 'Class scheduled',
-          message: `${courseTitle} is scheduled on ${input.date} at ${input.startTime}${isJitsi ? ' via Jitsi Meet.' : '.'}`,
-          timestamp: DEMO_NOW,
-          read: false,
-          relatedEntityId: id,
-          path: '/student/classes',
-        })),
+        ...current.notifications.filter((notification) => !targetIds.has(notification.id)),
+        ...targetNotifications,
       ],
-    }));
+    });
+    });
     return result(true, isJitsi ? 'Live class scheduled with Jitsi Meet.' : 'Class scheduled.');
   }, [bump, nextId, result, state.courses, state.institution?.id]);
 
@@ -266,7 +379,7 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
           ...batchStudents.map((s, idx) => ({
             id: `cancel_${sessionId}_${idx}`,
             userId: s.id,
-            type: 'academic' as const,
+            type: 'class' as const,
             title: 'Class cancelled',
             message: `${courseTitle} scheduled for ${session.date} at ${session.startTime} has been cancelled.`,
             timestamp: new Date().toISOString(),
@@ -286,6 +399,8 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
   }, [result, state.classSessions, state.courses]);
 
   const syncClassSession = useCallback(async (session: LmsClassSession) => {
+    if (!isClassSessionSyncEnabled) return true;
+
     const { data: existing, error: readError } = await supabase.from('class_sessions').select('status, started_at, ended_at, ended_by').eq('id', session.id).maybeSingle();
     if (readError && import.meta.env.DEV) console.warn('[Skill Toss session realtime]', readError.message);
     if (existing?.status === 'completed' && session.status !== 'completed') {
@@ -375,34 +490,80 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     return result(true, 'Goal deleted.');
   }, [result]);
 
+  const getStudentNotes = useCallback((studentId: string) => state.notes
+    .filter((note) => note.studentId === studentId)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [state.notes]);
+
+  const saveNote = useCallback((input: { id?: string; studentId: string; title: string; content: string }) => {
+    if (!input.title.trim()) return result(false, 'Give the note a title before saving.');
+    if (!input.studentId) return result(false, 'No student record is linked to this account, so the note cannot be saved.');
+    const now = new Date().toISOString();
+    if (input.id) {
+      const existing = state.notes.find((note) => note.id === input.id);
+      if (!existing) return result(false, 'That note no longer exists.');
+      setState((current) => ({ ...current, notes: current.notes.map((note) => note.id === input.id ? { ...note, title: input.title.trim(), content: input.content, updatedAt: now } : note) }));
+      return result(true, 'Note updated.');
+    }
+    setState((current) => bump({ ...current, notes: [...current.notes, { id: nextId('note'), studentId: input.studentId, title: input.title.trim(), content: input.content, createdAt: now, updatedAt: now }] }));
+    return result(true, 'Note saved.');
+  }, [bump, nextId, result, state.notes]);
+
+  const deleteNote = useCallback((id: string) => {
+    if (!state.notes.some((note) => note.id === id)) return result(false, 'That note no longer exists.');
+    setState((current) => ({ ...current, notes: current.notes.filter((note) => note.id !== id) }));
+    return result(true, 'Note deleted.');
+  }, [result, state.notes]);
+
   const addEvent = useCallback((input: { title: string; date: string; type: 'class' | 'exam' | 'event' | 'holiday' | 'meeting'; batch?: string }) => {
     if (!input.title.trim() || !input.date) return result(false, 'Event title and date are required.');
     setState((current) => bump({ ...current, events: [...current.events, { ...input, id: nextId('event') }] }));
     return result(true, 'Event published to shared calendars.');
   }, [bump, nextId, result]);
 
-  const searchRecords = useCallback((query: string, studentId?: string) => {
+  const toggleResourceBookmark = useCallback((studentId: string, resourceId: string) => {
+    if (!state.students.some((student) => student.id === studentId) || !state.resources.some((resource) => resource.id === resourceId)) {
+      return result(false, 'Resource could not be found.');
+    }
+    const existing = state.resourceBookmarks.some((bookmark) => bookmark.studentId === studentId && bookmark.resourceId === resourceId);
+    setState((current) => ({
+      ...current,
+      resourceBookmarks: existing
+        ? current.resourceBookmarks.filter((bookmark) => !(bookmark.studentId === studentId && bookmark.resourceId === resourceId))
+        : [...current.resourceBookmarks, { id: `bookmark_${studentId}_${resourceId}`, studentId, resourceId, createdAt: DEMO_NOW }],
+    }));
+    return result(true, existing ? 'Resource removed from Saved.' : 'Resource saved.');
+  }, [result, state.resourceBookmarks, state.resources, state.students]);
+
+  /*
+   * Global search is shared by every portal, so the caller has to say who is asking. Only the
+   * Admin portal has routes that list students and batches (`/admin/students`, `/admin/batches`),
+   * and only Admin is allowed to see other people's records — so those two result kinds are
+   * emitted for Admin alone. Everyone else gets academic records scoped to their own batch.
+   */
+  const searchRecords = useCallback((query: string, options?: { studentId?: string; role?: Role }) => {
     const term = query.trim().toLowerCase();
     if (term.length < 2) return [];
-    const student = state.students.find((item) => item.id === studentId);
+    const student = state.students.find((item) => item.id === options?.studentId);
     const batchId = student?.batchId;
+    const canSeeDirectory = options?.role === 'admin';
     return [
       ...state.courses.filter((item) => (!batchId || item.batchIds.includes(batchId)) && `${item.code} ${item.title}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'course' as const, title: item.title, subtitle: item.code, path: '/student/courses' })),
       ...state.assignments.filter((item) => (!batchId || item.batchId === batchId) && `${item.title} ${state.courses.find((course) => course.id === item.courseId)?.title}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'assignment' as const, title: item.title, subtitle: 'Assignment', path: '/student/assignments' })),
       ...state.resources.filter((item) => (!batchId || item.batchId === batchId) && `${item.title} ${item.description}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'resource' as const, title: item.title, subtitle: item.type, path: '/student/resources' })),
       ...state.exams.filter((item) => (!batchId || item.batchId === batchId) && `${item.title} ${item.syllabus}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'exam' as const, title: item.title, subtitle: item.date, path: '/student/exams' })),
-      ...state.students.filter((item) => `${item.name} ${item.rollNo} ${item.email}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'student' as const, title: item.name, subtitle: item.rollNo, path: '/admin/students' })),
-      ...state.batches.filter((item) => item.name.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'batch' as const, title: item.name, subtitle: state.departments.find((department) => department.id === item.departmentId)?.name ?? 'Batch', path: '/admin/batches' })),
+      ...(canSeeDirectory ? state.students.filter((item) => `${item.name} ${item.rollNo} ${item.email}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'student' as const, title: item.name, subtitle: item.rollNo, path: '/admin/students' })) : []),
+      ...(canSeeDirectory ? state.batches.filter((item) => item.name.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'batch' as const, title: item.name, subtitle: state.departments.find((department) => department.id === item.departmentId)?.name ?? 'Batch', path: '/admin/batches' })) : []),
     ].slice(0, 12);
   }, [state]);
 
   const value = useMemo<LmsDataContextValue>(() => ({
     state, feedback, setFeedback, clearFeedback: () => setFeedback(null), resetDemoData: () => { setState(cloneSeed()); setFeedback({ kind: 'success', message: 'Demo data reset.' }); },
-    getStudentSummary, getStudentAssignments, getStudentFees, getStudentExams, getStudentResources, getOnlineAttendanceForSession, searchRecords, syncClassSession,
-    addStudent, createAssignment, saveSubmission, gradeSubmission, markAttendance, recordPayment, addResource, scheduleExam, scheduleClass, updateClassSessionStatus, recordOnlineJoin, recordOnlineLeave, updateStudentProfile, saveGoal, deleteGoal, addEvent,
+    getStudentSummary, getStudentAssignments, getStudentFees, getStudentExams, getStudentResources, getStudentPortalInsights, getOnlineAttendanceForSession, searchRecords, syncClassSession,
+    addStudent, createAssignment, saveSubmission, gradeSubmission, markAttendance, recordPayment, addResource, scheduleExam, scheduleClass, updateClassSessionStatus, recordOnlineJoin, recordOnlineLeave, updateStudentProfile, saveGoal, deleteGoal, addEvent, toggleResourceBookmark,
+    getStudentNotes, saveNote, deleteNote,
     markNotificationRead: (id) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.id === id ? { ...item, read: true } : item) })),
     markAllNotificationsRead: (userId) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.userId === userId ? { ...item, read: true } : item) })),
-  }), [addEvent, addResource, addStudent, createAssignment, deleteGoal, feedback, getOnlineAttendanceForSession, getStudentAssignments, getStudentExams, getStudentFees, getStudentResources, getStudentSummary, gradeSubmission, markAttendance, recordOnlineJoin, recordOnlineLeave, recordPayment, saveGoal, saveSubmission, scheduleClass, scheduleExam, searchRecords, state, syncClassSession, updateClassSessionStatus, updateStudentProfile]);
+  }), [addEvent, addResource, addStudent, createAssignment, deleteGoal, deleteNote, feedback, getOnlineAttendanceForSession, getStudentAssignments, getStudentExams, getStudentFees, getStudentNotes, getStudentPortalInsights, getStudentResources, getStudentSummary, gradeSubmission, markAttendance, recordOnlineJoin, recordOnlineLeave, recordPayment, saveGoal, saveNote, saveSubmission, scheduleClass, scheduleExam, searchRecords, state, syncClassSession, toggleResourceBookmark, updateClassSessionStatus, updateStudentProfile]);
 
   return <LmsDataContext.Provider value={value}>{children}</LmsDataContext.Provider>;
 }

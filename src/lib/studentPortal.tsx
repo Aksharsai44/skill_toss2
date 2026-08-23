@@ -11,12 +11,14 @@ const VIEWER_PERMISSIONS: Record<StudentViewerRole, StudentPortalPermissions> = 
     canEditPersonalNotes: true, canParticipateInCommunity: true, canRequestLeave: true,
     canUseAiStudyHub: true, canViewAttendance: true, canViewResults: true,
     canViewAssignments: true, canViewFees: true, canPayFees: false, canViewCertificates: true,
+    canEditProfile: true, canBookmarkResources: true, canEditGoals: true,
   },
   parent: {
     canJoinClass: false, canSubmitAssignment: false, canTakeExam: false,
     canEditPersonalNotes: false, canParticipateInCommunity: false, canRequestLeave: false,
     canUseAiStudyHub: false, canViewAttendance: true, canViewResults: true,
     canViewAssignments: true, canViewFees: true, canPayFees: true, canViewCertificates: true,
+    canEditProfile: false, canBookmarkResources: false, canEditGoals: false,
   },
 };
 
@@ -32,9 +34,16 @@ export function StudentPortalProvider({ children }: { children: ReactNode }) {
     const department = state.departments.find((item) => item.id === summary.student.departmentId);
     return { id: summary.student.id, name: summary.student.name, rollNo: summary.student.rollNo, batch: batch?.name ?? '', department: department?.name ?? '', attendance: summary.attendance, feePending: summary.feePending, assignmentsPending: summary.pendingAssignments, upcomingExams: summary.upcomingExams, overallPerformance: summary.overallPerformance, strongestSubject: summary.strongestSubject, needsAttention: summary.needsAttention, semesterTrend: 0, relationship } satisfies LinkedStudent;
   }, [getStudentSummary, state.batches, state.departments]);
-  const linkedStudents = useMemo(() => isParent
-    ? state.parentLinks.filter((link) => link.parentId === 'demo-parent-id').map((link) => toLinkedStudent(link.studentId, link.relationship)).filter((item): item is LinkedStudent => item !== null)
-    : [], [isParent, state.parentLinks, toLinkedStudent]);
+  /*
+   * Linkage is by profile id only. The previous fallback to a hardcoded 'demo-parent-id' meant a
+   * real parent with no links was shown another family's children, and matching students by
+   * display name meant two people with the same name shared one academic record. When no record
+   * matches, the portal shows an honest "not linked yet" state instead of borrowed data.
+   */
+  const parentLinkId = profile?.id ?? null;
+  const linkedStudents = useMemo(() => isParent && parentLinkId
+    ? state.parentLinks.filter((link) => link.parentId === parentLinkId).map((link) => toLinkedStudent(link.studentId, link.relationship)).filter((item): item is LinkedStudent => item !== null)
+    : [], [isParent, parentLinkId, state.parentLinks, toLinkedStudent]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,10 +53,13 @@ export function StudentPortalProvider({ children }: { children: ReactNode }) {
     if (!isParent && selectedStudentId !== null) setSelectedStudentId(null);
   }, [isParent, linkedStudents, selectedStudentId]);
 
+  const ownStudentId = profile?.role === 'student' && profile.id
+    ? state.students.find((student) => student.profileId === profile.id || student.id === profile.id)?.id ?? null
+    : null;
   const selectedStudent = useMemo(() => isParent
     ? linkedStudents.find((student) => student.id === selectedStudentId) ?? null
-    : profile?.role === 'student' ? toLinkedStudent('student_001') : null,
-  [isParent, linkedStudents, profile?.role, selectedStudentId, toLinkedStudent]);
+    : ownStudentId ? toLinkedStudent(ownStudentId) : null,
+  [isParent, linkedStudents, ownStudentId, selectedStudentId, toLinkedStudent]);
 
   const value = useMemo<StudentPortalContextValue>(() => ({
     viewerRole,

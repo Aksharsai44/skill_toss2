@@ -23,12 +23,12 @@ export function DataTable<T extends { id: string }>({
     <div className="overflow-x-auto scrollbar-thin" role="region" aria-label="Data table" tabIndex={0}>
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="border-b border-ink-200 bg-ink-50/70 text-left">
+          <tr className="border-b border-ink-200 bg-ink-50/60 text-left">
             {columns.map((col) => (
               <th
                 key={col.key}
                 scope="col"
-                className={cn('py-2.5 px-4 font-semibold text-ink-600 text-[11px] uppercase tracking-[0.08em] whitespace-nowrap', col.className)}
+                className={cn('table-head-cell', col.className)}
               >
                 {col.label}
               </th>
@@ -38,7 +38,7 @@ export function DataTable<T extends { id: string }>({
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="py-12 text-center text-ink-400">
+              <td colSpan={columns.length} className="py-14 px-4 text-center text-sm text-ink-400">
                 {emptyMessage}
               </td>
             </tr>
@@ -54,10 +54,10 @@ export function DataTable<T extends { id: string }>({
                   }
                 }}
                 tabIndex={onRowClick ? 0 : undefined}
-                className={cn('border-b border-ink-100 last:border-0 table-row-hover focus-visible:outline-none focus-visible:bg-primary-50/60', onRowClick && 'cursor-pointer')}
+                className={cn('border-b border-ink-100 last:border-0 table-row-hover', onRowClick && 'cursor-pointer')}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={cn('py-3 px-4 text-ink-700 whitespace-nowrap align-middle', col.className)}>
+                  <td key={col.key} className={cn('py-3.5 px-4 text-ink-700 whitespace-nowrap align-middle', col.className)}>
                     {col.render ? col.render(row) : (row as Record<string, ReactNode>)[col.key]}
                   </td>
                 ))}

@@ -88,19 +88,33 @@ export default {
         },
       },
       boxShadow: {
-        soft: '0 1px 2px rgba(15, 23, 42, 0.04)',
-        card: '0 4px 14px -8px rgba(15, 23, 42, 0.18)',
-        pop: '0 16px 36px -16px rgba(15, 23, 42, 0.28)',
+        // Two-layer elevation: a hairline contact shadow plus a soft ambient one.
+        // Depth scales with surface size — chips/rows stay flat, dialogs lift most.
+        soft: '0 1px 1px rgba(15, 23, 42, 0.03), 0 1px 2px rgba(15, 23, 42, 0.05)',
+        card: '0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.16)',
+        pop: '0 1px 2px rgba(15, 23, 42, 0.06), 0 18px 40px -18px rgba(15, 23, 42, 0.26)',
       },
       borderRadius: {
         sm: '0.125rem', // 2px
-        md: '0.25rem', // 4px
-        lg: '0.375rem', // 6px
-        xl: '0.5rem',
-        '2xl': '0.875rem',
-        control: '0.25rem',
-        card: '0.25rem',
-        dialog: '0.375rem',
+        md: '0.375rem', // 6px
+        lg: '0.5rem', // 8px — icon tiles, avatars, icon buttons
+        xl: '0.625rem', // 10px — larger tiles, menus, banners
+        '2xl': '1rem', // 16px
+        // Semantic tokens — consumed by .card / .btn / .input / .sidebar-link
+        // in src/index.css. Change these to retune the product's corner language.
+        control: '0.5rem', // 8px — buttons, inputs, nav links
+        card: '0.625rem', // 10px — surfaces
+        dialog: '0.875rem', // 14px — modals, popovers
+      },
+      fontSize: {
+        // Size-specific optical tuning: letter-spacing tightens and leading
+        // compresses as type scales up. Body sizes keep Tailwind's defaults.
+        '2xl': ['1.5rem', { lineHeight: '1.9rem', letterSpacing: '-0.018em' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.021em' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.024em' }],
+        '5xl': ['3rem', { lineHeight: '1.06', letterSpacing: '-0.028em' }],
+        '6xl': ['3.75rem', { lineHeight: '1.04', letterSpacing: '-0.03em' }],
+        '7xl': ['4.5rem', { lineHeight: '1.02', letterSpacing: '-0.032em' }],
       },
       animation: {
         'fade-in': 'fadeIn 180ms cubic-bezier(0.23, 1, 0.32, 1)',

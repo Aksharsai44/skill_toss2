@@ -13,7 +13,7 @@ import { ProductAdminDashboard, DemoRequests, Clients, PlansPricing, FeatureTogg
 import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports, InstitutionManagement, AdminManagement, UserManagement, SustainabilityDashboard, ExecutiveDecisionCenter, GlobalCampaignManager, DataQualityMonitoring } from '@/portals/super-admin';
 import { AdminDashboard, AdminTeachers, AdminStudents, AdminBatches, AdminFees, AdminSalary, AdminAttendance, AdminLeaves, AdminEvents, AdminIntegrations, AdminCertifications, AdminCalendar, AdminCourses } from '@/portals/admin';
 import { TeacherDashboard, TeacherBatches, LiveClasses, TeacherRecordings, TeacherAttendance, TeacherLeaves, TeacherCourses, TeacherAssignments, TeacherExams, TeacherResources, TeacherCommunity, TeacherForum, TeacherCalendar, TeacherSalary, TeacherProfile } from '@/portals/teacher';
-import { StudentDashboard, StudentClasses, StudentRecordings, StudentResources, MyNotes, StudentAssignments, StudentExams, StudentTimetable, StudentDiary, StudentLeaves, StudentCommunity, StudentForum, StudentCalendar, StudentFees, StudentReports, StudentCertifications, AiHub, StudentProfile, StudentSettings } from '@/portals/student';
+import { StudentDashboard, StudentClasses, StudentRecordings, StudentResources, MyNotes, StudentAssignments, StudentExams, StudentTimetable, StudentLeaves, StudentCommunity, StudentForum, StudentCalendar, StudentFees, StudentReports, StudentCertifications, StudentProfile, StudentSettings, StudentAttendance, StudentResults, StudentNotifications, StudentSaved, StudentDigitalLocker, StudentGoals } from '@/portals/student';
 
 function AppRoutes() {
   return (
@@ -84,14 +84,18 @@ function AppRoutes() {
       {/* Student & Parent */}
       <Route path="/student" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentDashboard /></ProtectedRoute>} />
       <Route path="/student/classes" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentClasses /></ProtectedRoute>} />
+      <Route path="/student/attendance" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentAttendance /></ProtectedRoute>} />
+      <Route path="/student/results" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentResults /></ProtectedRoute>} />
+      <Route path="/student/notifications" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentNotifications /></ProtectedRoute>} />
       <Route path="/student/classes/:sessionId/live" element={<ProtectedRoute allowedRoles={['student', 'parent']}><LiveClassroomPage role="student" /></ProtectedRoute>} />
       <Route path="/student/recordings" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentRecordings /></ProtectedRoute>} />
       <Route path="/student/resources" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentResources /></ProtectedRoute>} />
+      <Route path="/student/saved" element={<ProtectedRoute allowedRoles={['student']}><StudentSaved /></ProtectedRoute>} />
       <Route path="/student/my-notes" element={<ProtectedRoute allowedRoles={['student']}><MyNotes /></ProtectedRoute>} />
       <Route path="/student/assignments" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentAssignments /></ProtectedRoute>} />
       <Route path="/student/exams" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentExams /></ProtectedRoute>} />
       <Route path="/student/timetable" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentTimetable /></ProtectedRoute>} />
-      <Route path="/student/diary" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentDiary /></ProtectedRoute>} />
+      <Route path="/student/goals" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentGoals /></ProtectedRoute>} />
       <Route path="/student/leaves" element={<ProtectedRoute allowedRoles={['student']}><StudentLeaves /></ProtectedRoute>} />
       <Route path="/student/courses" element={<ProtectedRoute allowedRoles={['student']}><StudentCourses /></ProtectedRoute>} />
       <Route path="/student/community" element={<ProtectedRoute allowedRoles={['student']}><StudentCommunity /></ProtectedRoute>} />
@@ -100,7 +104,7 @@ function AppRoutes() {
       <Route path="/student/fees" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentFees /></ProtectedRoute>} />
       <Route path="/student/reports" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentReports /></ProtectedRoute>} />
       <Route path="/student/certifications" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentCertifications /></ProtectedRoute>} />
-      <Route path="/student/ai-hub" element={<ProtectedRoute allowedRoles={['student']}><AiHub /></ProtectedRoute>} />
+      <Route path="/student/locker" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentDigitalLocker /></ProtectedRoute>} />
       <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentProfile /></ProtectedRoute>} />
       <Route path="/student/settings" element={<ProtectedRoute allowedRoles={['student', 'parent']}><StudentSettings /></ProtectedRoute>} />
 

@@ -29,28 +29,30 @@ export function StatCard({
   const c = colorMap[color];
 
   const content = (
-    <div className={cn("card p-5 lg:p-6 h-full", to && "card-hover transition cursor-pointer")}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.08em] text-ink-500 font-semibold">{label}</p>
-          <p data-kpi-value className="text-2xl font-bold font-display text-ink-950 mt-1.5 leading-none tabular-nums">{value}</p>
+    <div className={cn("card p-5 lg:p-6 h-full", to && "card-hover cursor-pointer")}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-ink-500">{label}</p>
+          <p data-kpi-value className="text-2xl font-bold font-display text-ink-950 mt-2 leading-none tabular-nums">{value}</p>
         </div>
-        <div className={cn('rounded-lg p-2.5 ring-1 ring-inset', c.bg, c.ring)}>
+        <div className={cn('rounded-lg p-2.5 ring-1 ring-inset shrink-0', c.bg, c.ring)}>
           <Icon className={cn('w-5 h-5', c.text)} />
         </div>
       </div>
       {(trend !== undefined || trendLabel) && (
-        <div className="mt-3 flex items-center gap-1.5 text-xs">
+        <div className="mt-3.5 flex items-center gap-1.5 text-xs">
           {trend !== undefined && (
-            <span className={cn('font-semibold', trend >= 0 ? 'text-success-600' : 'text-error-600')}>
+            <span className={cn('font-semibold tabular-nums', trend >= 0 ? 'text-success-600' : 'text-error-600')}>
               {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
             </span>
           )}
-          {trendLabel && <span className="text-ink-400">{trendLabel}</span>}
+          {trendLabel && <span className="text-ink-500">{trendLabel}</span>}
         </div>
       )}
     </div>
   );
 
-  return to ? <Link to={to} className="block h-full">{content}</Link> : content;
+  // No `focus-ring` here: it pins a white ring-offset, which disappears on the bg-ink-50
+  // dashboard pages. The global :focus-visible outline is background-independent.
+  return to ? <Link to={to} className="block h-full rounded-card">{content}</Link> : content;
 }

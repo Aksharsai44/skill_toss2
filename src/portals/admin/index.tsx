@@ -5,7 +5,7 @@ import {
   Check, X, MessageCircle, Mail, Smartphone, Video,
   Clock, Phone, ChevronRight,
 } from 'lucide-react';
-import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';
+import { PageHeader, Card, CardHeader, EmptyState, LoadingState } from '@/components/ui/Layout';
 import { StatCard } from '@/components/ui/StatCard';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
@@ -55,15 +55,15 @@ export function AdminDashboard() {
           <CardHeader title="Pending Approvals" subtitle="Leave requests awaiting action" />
           <div className="p-3 space-y-2">
             {leaveRequests.filter((l) => l.status === 'pending').map((l) => (
-              <div key={l.id} className="flex items-center gap-3 p-3 rounded-xl bg-ink-50">
-                <div className="w-9 h-9 rounded-lg bg-warning-50 flex items-center justify-center"><CalendarOff className="w-4 h-4 text-warning-600" /></div>
+              <div key={l.id} className="flex items-center gap-3 p-3 rounded-control bg-ink-50 border border-ink-100">
+                <div className="w-9 h-9 rounded-lg bg-warning-50 flex items-center justify-center shrink-0"><CalendarOff className="w-4 h-4 text-warning-600" /></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink-800">{l.student}</p>
-                  <p className="text-xs text-ink-400">{l.from} → {l.to} · {l.reason}</p>
+                  <p className="text-sm font-medium text-ink-800 truncate">{l.student}</p>
+                  <p className="text-xs text-ink-500 truncate">{l.from} → {l.to} · {l.reason}</p>
                 </div>
-                <div className="flex gap-1">
-                  <button className="p-1.5 rounded-lg bg-success-50 text-success-600 hover:bg-success-100"><Check className="w-4 h-4" /></button>
-                  <button className="p-1.5 rounded-lg bg-error-50 text-error-600 hover:bg-error-100"><X className="w-4 h-4" /></button>
+                <div className="flex gap-1.5 shrink-0">
+                  <button title="Approve request" aria-label={`Approve leave request from ${l.student}`} className="p-1.5 rounded-control bg-success-50 text-success-600 hover:bg-success-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-500/40 focus-visible:ring-offset-1 focus-visible:ring-offset-ink-50"><Check className="w-4 h-4" /></button>
+                  <button title="Reject request" aria-label={`Reject leave request from ${l.student}`} className="p-1.5 rounded-control bg-error-50 text-error-600 hover:bg-error-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500/40 focus-visible:ring-offset-1 focus-visible:ring-offset-ink-50"><X className="w-4 h-4" /></button>
                 </div>
               </div>
             ))}
@@ -82,8 +82,8 @@ export function AdminTeachers() {
       <PageHeader title="Teachers & Mentors" subtitle="Manage faculty members, subjects & batches" actions={
         <>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input placeholder="Search teachers..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" aria-hidden="true" />
+            <input type="search" aria-label="Search teachers" placeholder="Search teachers..." className="input pl-9 w-full sm:w-56" />
           </div>
           <button onClick={() => setShowAdd(true)} className="btn-primary"><Plus className="w-4 h-4" /> Add Teacher</button>
         </>
@@ -95,7 +95,7 @@ export function AdminTeachers() {
               <img src={t.avatar} alt={t.name} className="w-12 h-12 rounded-xl bg-ink-100" />
               <div>
                 <h3 className="font-semibold text-ink-900">{t.name}</h3>
-                <p className="text-xs text-ink-400">{t.subjects.join(', ')}</p>
+                <p className="text-xs text-ink-500">{t.subjects.join(', ')}</p>
               </div>
               <div className="ml-auto"><StatusBadge status={t.status} /></div>
             </div>
@@ -105,8 +105,8 @@ export function AdminTeachers() {
               <div className="flex items-center gap-2 text-ink-500"><Layers className="w-3.5 h-3.5" /> {t.batches.join(', ')}</div>
             </div>
             <div className="mt-3 pt-3 border-t border-ink-100 flex justify-between text-sm">
-              <span className="text-ink-400">Salary: <span className="font-semibold text-ink-800">₹{(t.salary / 1000).toFixed(0)}k</span></span>
-              <span className="text-ink-400">Attendance: <span className="font-semibold text-ink-800">{t.attendance}%</span></span>
+              <span className="text-ink-500">Salary: <span className="font-semibold text-ink-800 tabular-nums">₹{(t.salary / 1000).toFixed(0)}k</span></span>
+              <span className="text-ink-500">Attendance: <span className="font-semibold text-ink-800 tabular-nums">{t.attendance}%</span></span>
             </div>
           </button>
         ))}
@@ -117,16 +117,16 @@ export function AdminTeachers() {
             <div className="flex items-center gap-4">
               <img src={selected.avatar} alt={selected.name} className="w-16 h-16 rounded-xl bg-ink-100" />
               <div>
-                <h3 className="text-xl font-bold font-display text-ink-900">{selected.name}</h3>
+                <h3 className="text-xl font-semibold font-display text-ink-950">{selected.name}</h3>
                 <p className="text-sm text-ink-500">{selected.subjects.join(', ')}</p>
                 <div className="mt-1"><StatusBadge status={selected.status} /></div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="card p-3"><p className="text-ink-400 text-xs">Email</p><p className="font-medium text-ink-800">{selected.email}</p></div>
-              <div className="card p-3"><p className="text-ink-400 text-xs">Phone</p><p className="font-medium text-ink-800">{selected.phone}</p></div>
-              <div className="card p-3"><p className="text-ink-400 text-xs">Salary</p><p className="font-medium text-ink-800">₹{(selected.salary / 1000).toFixed(0)}k/month</p></div>
-              <div className="card p-3"><p className="text-ink-400 text-xs">Attendance</p><p className="font-medium text-ink-800">{selected.attendance}%</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Email</p><p className="font-medium text-ink-800 mt-0.5 truncate" title={selected.email}>{selected.email}</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Phone</p><p className="font-medium text-ink-800 mt-0.5 tabular-nums">{selected.phone}</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Salary</p><p className="font-medium text-ink-800 mt-0.5 tabular-nums">₹{(selected.salary / 1000).toFixed(0)}k/month</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Attendance</p><p className="font-medium text-ink-800 mt-0.5 tabular-nums">{selected.attendance}%</p></div>
             </div>
             <div>
               <p className="text-sm font-medium text-ink-700 mb-2">Assigned Batches</p>
@@ -182,8 +182,8 @@ export function AdminStudents() {
       <PageHeader title="Students" subtitle="Manage student profiles, batches & fee status" actions={
         <>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search students..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" aria-hidden="true" />
+            <input type="search" aria-label="Search students" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search students..." className="input pl-9 w-full sm:w-56" />
           </div>
           <button onClick={() => setShowAdd(true)} className="btn-primary"><Plus className="w-4 h-4" /> Add Student</button>
         </>
@@ -196,7 +196,7 @@ export function AdminStudents() {
                 <img src={s.avatar} alt={s.name} className="w-8 h-8 rounded-lg bg-ink-100" />
                 <div>
                   <p className="font-medium text-ink-800">{s.name}</p>
-                  <p className="text-xs text-ink-400">{s.rollNo}</p>
+                  <p className="text-xs text-ink-500">{s.rollNo}</p>
                 </div>
               </div>
             ) },
@@ -204,15 +204,15 @@ export function AdminStudents() {
             { key: 'department', label: 'Department' },
             { key: 'attendance', label: 'Attendance', render: (s) => (
               <div className="flex items-center gap-2">
-                <div className="w-16 h-1.5 bg-ink-100 rounded-full overflow-hidden">
+                <div className="w-16 h-1.5 bg-ink-100 rounded-full overflow-hidden shrink-0">
                   <div className={cn('h-full rounded-full', s.attendance >= 75 ? 'bg-success-500' : 'bg-error-500')} style={{ width: `${s.attendance}%` }} />
                 </div>
-                <span className="text-xs text-ink-600">{s.attendance}%</span>
+                <span className="text-xs text-ink-600 tabular-nums">{s.attendance}%</span>
               </div>
             ) },
             { key: 'fee', label: 'Fee Status', render: (s) => {
               const pct = (s.feePaid / s.feeTotal) * 100;
-              return <span className={cn('text-xs font-medium', pct === 100 ? 'text-success-600' : pct > 0 ? 'text-warning-600' : 'text-error-600')}>
+              return <span className={cn('text-xs font-medium tabular-nums whitespace-nowrap', pct === 100 ? 'text-success-600' : pct > 0 ? 'text-warning-600' : 'text-error-600')}>
                 ₹{(s.feePaid / 1000).toFixed(0)}k / ₹{(s.feeTotal / 1000).toFixed(0)}k
               </span>;
             } },
@@ -228,16 +228,16 @@ export function AdminStudents() {
             <div className="flex items-center gap-4">
               <img src={selected.avatar} alt={selected.name} className="w-16 h-16 rounded-xl bg-ink-100" />
               <div>
-                <h3 className="text-xl font-bold font-display text-ink-900">{selected.name}</h3>
+                <h3 className="text-xl font-semibold font-display text-ink-950">{selected.name}</h3>
                 <p className="text-sm text-ink-500">{selected.rollNo} · {selected.department}</p>
                 <div className="mt-1 flex gap-2"><Badge variant="primary">{selected.batch}</Badge><StatusBadge status={selected.status} /></div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="card p-3"><p className="text-ink-400 text-xs">Email</p><p className="font-medium text-ink-800">{selected.email}</p></div>
-              <div className="card p-3"><p className="text-ink-400 text-xs">Phone</p><p className="font-medium text-ink-800">{selected.phone}</p></div>
-              <div className="card p-3"><p className="text-ink-400 text-xs">Parent Phone</p><p className="font-medium text-ink-800">{selected.parentPhone}</p></div>
-              <div className="card p-3"><p className="text-ink-400 text-xs">Attendance</p><p className="font-medium text-ink-800">{selected.attendance}%</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Email</p><p className="font-medium text-ink-800 mt-0.5 truncate" title={selected.email}>{selected.email}</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Phone</p><p className="font-medium text-ink-800 mt-0.5 tabular-nums">{selected.phone}</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Parent Phone</p><p className="font-medium text-ink-800 mt-0.5 tabular-nums">{selected.parentPhone}</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Attendance</p><p className="font-medium text-ink-800 mt-0.5 tabular-nums">{selected.attendance}%</p></div>
             </div>
             <div className="card p-4">
               <div className="flex items-center justify-between mb-2">
@@ -246,10 +246,10 @@ export function AdminStudents() {
                   {selected.feePaid >= selected.feeTotal ? 'Fully Paid' : 'Pending'}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-ink-500">Paid: ₹{selected.feePaid.toLocaleString()}</span>
-                <span className="text-ink-500">Total: ₹{selected.feeTotal.toLocaleString()}</span>
-                <span className="font-semibold text-error-600">Pending: ₹{(selected.feeTotal - selected.feePaid).toLocaleString()}</span>
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+                <span className="text-ink-500">Paid: <span className="font-medium text-ink-800 tabular-nums">₹{selected.feePaid.toLocaleString()}</span></span>
+                <span className="text-ink-500">Total: <span className="font-medium text-ink-800 tabular-nums">₹{selected.feeTotal.toLocaleString()}</span></span>
+                <span className="text-ink-500">Pending: <span className="font-semibold text-error-600 tabular-nums">₹{(selected.feeTotal - selected.feePaid).toLocaleString()}</span></span>
               </div>
               <div className="mt-2 h-2 bg-ink-100 rounded-full overflow-hidden">
                 <div className="h-full bg-success-500 rounded-full" style={{ width: `${(selected.feePaid / selected.feeTotal) * 100}%` }} />
@@ -275,7 +275,7 @@ export function AdminStudents() {
           <div><label className="label">Parent Phone</label><input className="input" value={form.parentPhone} onChange={(event) => setForm({ ...form, parentPhone: event.target.value })} placeholder="+91 98765 43211" /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Batch</label>
-              <Select value={form.batchId} onChange={(value) => setForm({ ...form, batchId: value })} options={state.batches.map((batch) => ({ value: batch.id, label: batch.name }))} />
+              <Select label="Batch" value={form.batchId} onChange={(value) => setForm({ ...form, batchId: value })} options={state.batches.map((batch) => ({ value: batch.id, label: batch.name }))} />
             </div>
             <div><label className="label">Total Fee (₹)</label><input className="input" type="number" value={form.feeTotal} onChange={(event) => setForm({ ...form, feeTotal: event.target.value })} /></div>
           </div>
@@ -305,7 +305,7 @@ export function AdminBatches() {
               <Badge variant="primary">{department?.name}</Badge>
             </div>
             <h3 className="font-semibold text-ink-900">{b.name}</h3>
-            <p className="text-xs text-ink-400 mb-3">{b.schedule}</p>
+            <p className="text-xs text-ink-500 mb-3">{b.schedule}</p>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-ink-500 flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> Students</span>
@@ -375,16 +375,16 @@ export function AdminFees() {
             <div className="card p-4 bg-ink-50">
               <p className="text-sm text-ink-500">Student</p>
               <p className="font-semibold text-ink-900">{showPay.student}</p>
-              <p className="text-xs text-ink-400">{showPay.batch} · {showPay.term}</p>
+              <p className="text-xs text-ink-500">{showPay.batch} · {showPay.term}</p>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="card p-3"><p className="text-ink-400 text-xs">Total Fee</p><p className="font-semibold text-ink-900">₹{showPay.total.toLocaleString()}</p></div>
-              <div className="card p-3"><p className="text-ink-400 text-xs">Already Paid</p><p className="font-semibold text-success-600">₹{showPay.paid.toLocaleString()}</p></div>
-              <div className="card p-3"><p className="text-ink-400 text-xs">Pending</p><p className="font-semibold text-error-600">₹{showPay.pending.toLocaleString()}</p></div>
-              <div className="card p-3"><p className="text-ink-400 text-xs">Due Date</p><p className="font-semibold text-ink-900">{showPay.dueDate}</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Total Fee</p><p className="font-semibold text-ink-900 mt-0.5 tabular-nums">₹{showPay.total.toLocaleString()}</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Already Paid</p><p className="font-semibold text-success-600 mt-0.5 tabular-nums">₹{showPay.paid.toLocaleString()}</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Pending</p><p className="font-semibold text-error-600 mt-0.5 tabular-nums">₹{showPay.pending.toLocaleString()}</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3"><p className="text-ink-500 text-xs">Due Date</p><p className="font-semibold text-ink-900 mt-0.5 tabular-nums">{showPay.dueDate}</p></div>
             </div>
             <div><label className="label">Payment Method</label>
-              <Select value={method} onChange={(value) => setMethod(value as typeof method)} options={[
+              <Select label="Payment Method" value={method} onChange={(value) => setMethod(value as typeof method)} options={[
                 { value: 'demo-card', label: 'Demo Card' },
                 { value: 'cash', label: 'Cash (Manual Entry)' },
                 { value: 'bank-transfer', label: 'Bank Transfer' },
@@ -393,8 +393,8 @@ export function AdminFees() {
             <div><label className="label">Amount to Collect (₹)</label><input className="input" type="number" min="1" max={showPay.pending} value={amount} onChange={(event) => setAmount(event.target.value)} /></div>
             <div><label className="label">Reference</label><input className="input" value={reference} onChange={(event) => setReference(event.target.value)} /></div>
             <div><label className="label">Date</label><input className="input" type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></div>
-            <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-xl text-sm text-primary-700">
-              <MessageCircle className="w-4 h-4" /> Demo ledger entry only. A receipt and internal notification will be created.
+            <div className="flex items-start gap-2.5 p-3 bg-primary-50 border border-primary-100 rounded-control text-sm leading-6 text-primary-800">
+              <MessageCircle className="w-4 h-4 shrink-0 mt-1" /> <span>Demo ledger entry only. A receipt and internal notification will be created.</span>
             </div>
             <button onClick={collectPayment} className="btn-primary w-full">Record Demo Payment</button>
           </div>
@@ -410,15 +410,15 @@ function FeeTable({ data, onPay }: { data: FeeRecord[]; onPay: (f: FeeRecord) =>
       columns={[
         { key: 'student', label: 'Student', render: (f) => <span className="font-medium text-ink-800">{f.student}</span> },
         { key: 'batch', label: 'Batch' },
-        { key: 'total', label: 'Total', render: (f) => `₹${f.total.toLocaleString()}` },
-        { key: 'paid', label: 'Paid', render: (f) => <span className="text-success-600">₹{f.paid.toLocaleString()}</span> },
-        { key: 'pending', label: 'Pending', render: (f) => <span className="text-error-600 font-medium">₹{f.pending.toLocaleString()}</span> },
+        { key: 'total', label: 'Total', render: (f) => <span className="tabular-nums">₹{f.total.toLocaleString()}</span> },
+        { key: 'paid', label: 'Paid', render: (f) => <span className="text-success-600 tabular-nums">₹{f.paid.toLocaleString()}</span> },
+        { key: 'pending', label: 'Pending', render: (f) => <span className="text-error-600 font-medium tabular-nums">₹{f.pending.toLocaleString()}</span> },
         { key: 'term', label: 'Term' },
-        { key: 'dueDate', label: 'Due Date' },
+        { key: 'dueDate', label: 'Due Date', render: (f) => <span className="tabular-nums">{f.dueDate}</span> },
         { key: 'status', label: 'Status', render: (f) => <StatusBadge status={f.status} /> },
         { key: 'action', label: '', render: (f) => f.status !== 'paid' ? (
           <button onClick={(e) => { e.stopPropagation(); onPay(f); }} className="btn-primary text-xs px-3 py-1.5">Collect</button>
-        ) : <span className="text-success-600 text-xs flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Done</span> },
+        ) : <span className="text-success-600 text-xs flex items-center gap-1"><Check className="w-3.5 h-3.5" aria-hidden="true" /> Done</span> },
       ]}
       data={data}
     />
@@ -441,12 +441,12 @@ export function AdminSalary() {
           columns={[
             { key: 'teacher', label: 'Teacher', render: (r) => <span className="font-medium text-ink-800">{r.teacher}</span> },
             { key: 'month', label: 'Month' },
-            { key: 'gross', label: 'Gross', render: (r) => `₹${r.gross.toLocaleString()}` },
-            { key: 'bonus', label: 'Bonus', render: (r) => r.bonus > 0 ? <span className="text-success-600">+₹{r.bonus}</span> : '-' },
-            { key: 'deduction', label: 'Deduction', render: (r) => r.deduction > 0 ? <span className="text-error-600">-₹{r.deduction}</span> : '-' },
-            { key: 'net', label: 'Net Pay', render: (r) => <span className="font-semibold text-ink-900">₹{r.net.toLocaleString()}</span> },
+            { key: 'gross', label: 'Gross', render: (r) => <span className="tabular-nums">₹{r.gross.toLocaleString()}</span> },
+            { key: 'bonus', label: 'Bonus', render: (r) => r.bonus > 0 ? <span className="text-success-600 tabular-nums">+₹{r.bonus}</span> : <span className="text-ink-400">—</span> },
+            { key: 'deduction', label: 'Deduction', render: (r) => r.deduction > 0 ? <span className="text-error-600 tabular-nums">-₹{r.deduction}</span> : <span className="text-ink-400">—</span> },
+            { key: 'net', label: 'Net Pay', render: (r) => <span className="font-semibold text-ink-900 tabular-nums">₹{r.net.toLocaleString()}</span> },
             { key: 'status', label: 'Status', render: (r) => <StatusBadge status={r.status} /> },
-            { key: 'action', label: '', render: (r) => r.status === 'pending' ? <button className="btn-primary text-xs px-3 py-1.5">Pay</button> : <button className="btn-ghost text-xs"><Download className="w-3.5 h-3.5" /> Slip</button> },
+            { key: 'action', label: '', render: (r) => r.status === 'pending' ? <button className="btn-primary text-xs px-3 py-1.5">Pay</button> : <button className="btn-ghost text-xs"><Download className="w-3.5 h-3.5" aria-hidden="true" /> Slip</button> },
           ]}
           data={salaryRecords}
         />
@@ -474,11 +474,11 @@ export function AdminAttendance() {
           <CardHeader title="Today's Log" subtitle="Biometric check-in/out" />
           <div className="p-3 space-y-2 max-h-80 overflow-y-auto scrollbar-thin">
             {teachers.map((t, i) => (
-              <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50 transition">
+              <div key={t.id} className="flex items-center gap-3 p-3 rounded-control hover:bg-ink-50 transition-colors">
                 <img src={t.avatar} alt={t.name} className="w-9 h-9 rounded-lg bg-ink-100" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-ink-800">{t.name}</p>
-                  <p className="text-xs text-ink-400">In: 9:{15 + i}0 · Out: --:--</p>
+                  <p className="text-xs text-ink-500 tabular-nums">In: 9:{15 + i}0 · Out: --:--</p>
                 </div>
                 <Badge variant={t.status === 'active' ? 'success' : 'warning'}>{t.status === 'active' ? 'Present' : 'On Leave'}</Badge>
               </div>
@@ -544,14 +544,14 @@ export function AdminLeaves() {
           defaultIndex={tab}
           onChange={setTab}
           tabs={[
-            { label: `Pending (${pending.length})`, content: loading ? <div className="p-8 text-center text-ink-400">Loading...</div> : current.length === 0 ? <EmptyState icon={CalendarOff} title="No pending teacher requests" description="Teacher leave requests will appear here for your approval. Student leaves are routed to their class teachers." /> : <AdminLeaveTable data={current} onAction={handleAction} fmtDate={fmtDate} showActions /> },
-            { label: `Decided (${decided.length})`, content: loading ? <div className="p-8 text-center text-ink-400">Loading...</div> : decided.length === 0 ? <EmptyState icon={CalendarOff} title="No decided requests" description="Approved or rejected teacher requests will appear here." /> : <AdminLeaveTable data={current} onAction={handleAction} fmtDate={fmtDate} /> },
+            { label: `Pending (${pending.length})`, content: loading ? <LoadingState label="Loading requests" /> : current.length === 0 ? <EmptyState icon={CalendarOff} title="No pending teacher requests" description="Teacher leave requests will appear here for your approval. Student leaves are routed to their class teachers." /> : <AdminLeaveTable data={current} onAction={handleAction} fmtDate={fmtDate} showActions /> },
+            { label: `Decided (${decided.length})`, content: loading ? <LoadingState label="Loading requests" /> : decided.length === 0 ? <EmptyState icon={CalendarOff} title="No decided requests" description="Approved or rejected teacher requests will appear here." /> : <AdminLeaveTable data={current} onAction={handleAction} fmtDate={fmtDate} /> },
           ]}
         />
       </Card>
-      <div className="mt-4 flex items-center gap-2 p-4 card text-sm text-ink-500">
-        <MessageCircle className="w-4 h-4 text-primary-600" />
-        When approved/rejected, the teacher is automatically notified via WhatsApp, email & SMS. Student leave requests are routed to their class teacher, not here.
+      <div className="mt-4 flex items-start gap-2.5 p-3 bg-primary-50 border border-primary-100 rounded-control text-sm leading-6 text-primary-800">
+        <MessageCircle className="w-4 h-4 shrink-0 mt-1" aria-hidden="true" />
+        <span>When approved/rejected, the teacher is automatically notified via WhatsApp, email &amp; SMS. Student leave requests are routed to their class teacher, not here.</span>
       </div>
     </div>
   );
@@ -568,9 +568,9 @@ function AdminLeaveTable({ data, onAction, fmtDate, showActions }: { data: Admin
         { key: 'reason', label: 'Reason', render: (l) => <span className="text-sm text-ink-600 max-w-xs truncate block">{l.reason}</span> },
         { key: 'status', label: 'Status', render: (l) => <StatusBadge status={l.status} /> },
         { key: 'action', label: '', render: (l) => showActions && l.status === 'pending' ? (
-          <div className="flex gap-1">
-            <button onClick={() => onAction(l.id, 'approved')} className="p-1.5 rounded-lg bg-success-50 text-success-600 hover:bg-success-100"><Check className="w-4 h-4" /></button>
-            <button onClick={() => onAction(l.id, 'rejected')} className="p-1.5 rounded-lg bg-error-50 text-error-600 hover:bg-error-100"><X className="w-4 h-4" /></button>
+          <div className="flex gap-1.5">
+            <button onClick={() => onAction(l.id, 'approved')} title="Approve request" aria-label={`Approve leave request from ${l.student_name}`} className="p-1.5 rounded-control bg-success-50 text-success-600 hover:bg-success-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-500/40 focus-visible:ring-offset-1 focus-visible:ring-offset-white"><Check className="w-4 h-4" /></button>
+            <button onClick={() => onAction(l.id, 'rejected')} title="Reject request" aria-label={`Reject leave request from ${l.student_name}`} className="p-1.5 rounded-control bg-error-50 text-error-600 hover:bg-error-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500/40 focus-visible:ring-offset-1 focus-visible:ring-offset-white"><X className="w-4 h-4" /></button>
           </div>
         ) : null },
       ]}
@@ -596,10 +596,10 @@ export function AdminEvents() {
           <Card key={e.id} hover className="p-5">
             <div className="flex items-start justify-between mb-3">
               <div className={cn('px-2.5 py-1 rounded-full text-xs font-medium capitalize', typeColors[e.type])}>{e.type}</div>
-              <span className="text-xs text-ink-400">{e.date}</span>
+              <span className="text-xs text-ink-500">{e.date}</span>
             </div>
             <h3 className="font-semibold text-ink-900">{e.title}</h3>
-            {e.batch && <p className="text-xs text-ink-400 mt-1">Batch: {e.batch}</p>}
+            {e.batch && <p className="text-xs text-ink-500 mt-1">Batch: {e.batch}</p>}
           </Card>
         ))}
       </div>
@@ -609,7 +609,7 @@ export function AdminEvents() {
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label">Date</label><input className="input" type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></div>
             <div><label className="label">Type</label>
-              <Select value={form.type} onChange={(value) => setForm({ ...form, type: value as typeof form.type })} options={[
+              <Select label="Type" value={form.type} onChange={(value) => setForm({ ...form, type: value as typeof form.type })} options={[
                 { value: 'event', label: 'Event' }, { value: 'holiday', label: 'Holiday' },
                 { value: 'meeting', label: 'Meeting' }, { value: 'exam', label: 'Exam' },
               ]} />
@@ -714,19 +714,19 @@ export function AdminCertifications() {
         <Card>
           <CardHeader title="Templates" subtitle={`${templates.length} total`} />
           {loading ? (
-            <div className="p-8 text-center text-ink-400">Loading...</div>
+            <LoadingState label="Loading templates" />
           ) : templates.length === 0 ? (
             <EmptyState icon={Award} title="No templates yet" description="Certificate templates are created from inside each course. Go to Courses, open a course, and click 'Certificate Template'." />
           ) : (
             <div className="p-3 space-y-2">
               {templates.map((t) => (
-                <button key={t.id} onClick={() => setPreview(t)} className={cn('w-full flex items-center gap-3 p-3 rounded-xl text-left transition', preview?.id === t.id ? 'bg-primary-50' : 'hover:bg-ink-50')}>
-                  <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center"><Award className="w-5 h-5 text-primary-600" /></div>
+                <button key={t.id} onClick={() => setPreview(t)} aria-pressed={preview?.id === t.id} className={cn('w-full flex items-center gap-3 p-3 rounded-control text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-1 focus-visible:ring-offset-white', preview?.id === t.id ? 'bg-primary-50 ring-1 ring-inset ring-primary-100' : 'hover:bg-ink-50')}>
+                  <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center shrink-0"><Award className="w-5 h-5 text-primary-600" /></div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-ink-800">{t.title}</p>
-                    <p className="text-xs text-ink-400">{t.course_title} · {t.border_style}</p>
+                    <p className="text-sm font-medium text-ink-800 truncate">{t.title}</p>
+                    <p className="text-xs text-ink-500 truncate">{t.course_title} · {t.border_style}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-ink-300" />
+                  <ChevronRight className="w-4 h-4 text-ink-400 shrink-0" aria-hidden="true" />
                 </button>
               ))}
             </div>
@@ -748,10 +748,10 @@ export function AdminCertifications() {
                   <div><p className="font-semibold text-ink-700">{preview.signature_text}</p><p>Signature</p></div>
                 </div>
               </div>
-              <p className="text-xs text-ink-400 mt-3 text-center">Auto-sent to student's WhatsApp & email upon course completion</p>
+              <p className="text-xs text-ink-500 mt-3 text-center">Auto-sent to student's WhatsApp & email upon course completion</p>
             </>
           ) : (
-            <div className="text-center text-ink-400 py-12 text-sm">Select a template to preview</div>
+            <div className="text-center text-ink-500 py-12 text-sm">Select a template to preview</div>
           )}
         </Card>
       </div>
@@ -789,15 +789,15 @@ function CalendarView() {
           </div>
           <div className="grid grid-cols-7 gap-1 mb-1">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-              <div key={d} className="text-center text-xs font-medium text-ink-400 py-2">{d}</div>
+              <div key={d} className="text-center text-xs font-medium text-ink-500 py-2">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">
             {days.map((day) => (
-              <div key={day} className={cn('min-h-20 rounded-lg p-1.5 border', day === today ? 'border-primary-500 bg-primary-50' : day < 1 || day > 31 ? 'border-transparent bg-ink-50/50' : 'border-ink-100 hover:bg-ink-50')}>
-                {(day >= 1 && day <= 31) && <p className="text-xs text-ink-500 mb-1">{day}</p>}
+              <div key={day} className={cn('min-h-20 rounded-control p-1.5 border transition-colors', day === today ? 'border-primary-400 bg-primary-50' : day < 1 || day > 31 ? 'border-transparent bg-ink-50' : 'border-ink-100 hover:bg-ink-50')}>
+                {(day >= 1 && day <= 31) && <p className={cn('text-xs mb-1 tabular-nums', day === today ? 'font-semibold text-primary-700' : 'text-ink-500')}>{day}</p>}
                 {eventDays[day]?.map((e, i) => (
-                  <div key={i} className={cn('text-[10px] px-1 py-0.5 rounded mb-0.5 truncate', typeColors[e.type])}>{e.title}</div>
+                  <div key={i} className={cn('text-[11px] px-1 py-0.5 rounded mb-0.5 truncate', typeColors[e.type])}>{e.title}</div>
                 ))}
               </div>
             ))}
@@ -807,11 +807,11 @@ function CalendarView() {
           <h3 className="font-semibold text-ink-900 mb-3">Upcoming</h3>
           <div className="space-y-2">
             {events.map((e) => (
-              <div key={e.id} className="flex items-start gap-2.5 p-2.5 rounded-lg hover:bg-ink-50">
+              <div key={e.id} className="flex items-start gap-2.5 p-2.5 rounded-control hover:bg-ink-50 transition-colors">
                 <div className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', typeColors[e.type]?.split(' ')[0].replace('bg-', 'bg-').replace('-100', '-500'))} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-ink-800 truncate">{e.title}</p>
-                  <p className="text-xs text-ink-400">{e.date}</p>
+                  <p className="text-xs text-ink-500">{e.date}</p>
                 </div>
               </div>
             ))}

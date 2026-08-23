@@ -23,14 +23,14 @@ export function SustainabilityDashboard() {
       <div className="grid lg:grid-cols-2 gap-4">
         <Card className="h-64 flex flex-col">
           <CardHeader title="Digital Adoption Trend" subtitle="Paper vs. Digital processes over time" />
-          <div className="flex-1 flex items-center justify-center bg-ink-50 rounded-b-xl">
-            <p className="text-ink-400 font-medium">Digital Adoption Chart Placeholder</p>
+          <div className="flex-1 flex items-center justify-center bg-ink-50 border-t border-ink-100 rounded-b-card">
+            <p className="text-sm text-ink-500">Digital Adoption Chart Placeholder</p>
           </div>
         </Card>
         <Card className="h-64 flex flex-col">
           <CardHeader title="Carbon Reduction" subtitle="Estimated CO2 emissions avoided" />
-          <div className="flex-1 flex items-center justify-center bg-ink-50 rounded-b-xl">
-            <p className="text-ink-400 font-medium">Carbon Reduction Chart Placeholder</p>
+          <div className="flex-1 flex items-center justify-center bg-ink-50 border-t border-ink-100 rounded-b-card">
+            <p className="text-sm text-ink-500">Carbon Reduction Chart Placeholder</p>
           </div>
         </Card>
       </div>
@@ -62,21 +62,21 @@ export function ExecutiveDecisionCenter() {
       </div>
       <Card>
         <CardHeader title="AI Priority Suggestions" subtitle="Recommended actions across all institutions" />
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-3">
           {recommendations.map(rec => (
-            <div key={rec.id} className="flex gap-4 p-4 border border-ink-100 rounded-xl hover:bg-ink-50 transition">
-              <div className="shrink-0 mt-1">
-                {rec.type === 'Risk' ? <AlertTriangle className="w-5 h-5 text-error-600" /> : 
-                 rec.type === 'Cost' ? <TrendingUp className="w-5 h-5 text-warning-600" /> : 
-                 <Lightbulb className="w-5 h-5 text-success-600" />}
+            <div key={rec.id} className="flex gap-3.5 p-4 border border-ink-200 rounded-control hover:bg-ink-50 transition-colors">
+              <div className="shrink-0 mt-0.5">
+                {rec.type === 'Risk' ? <AlertTriangle className="w-5 h-5 text-error-600" aria-hidden="true" /> :
+                 rec.type === 'Cost' ? <TrendingUp className="w-5 h-5 text-warning-600" aria-hidden="true" /> :
+                 <Lightbulb className="w-5 h-5 text-success-600" aria-hidden="true" />}
               </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-ink-900">{rec.type} Recommendation</span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span className="text-sm font-semibold text-ink-900">{rec.type} Recommendation</span>
                   <Badge variant={rec.impact === 'Critical' ? 'error' : rec.impact === 'High' ? 'success' : 'warning'}>{rec.impact} Impact</Badge>
                 </div>
-                <p className="text-ink-700 text-sm mb-3">{rec.message}</p>
-                <div className="flex gap-2">
+                <p className="text-sm leading-6 text-ink-600 mb-3.5">{rec.message}</p>
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={() => handleApply(rec.id, rec.type)}>Apply Strategy</Button>
                   <Button variant="ghost" size="sm" onClick={() => setRecommendations(prev => prev.filter(r => r.id !== rec.id))}>Dismiss</Button>
                 </div>
@@ -114,10 +114,10 @@ export function GlobalCampaignManager() {
         <CardHeader title="Campaigns" />
         <DataTable
           columns={[
-            { key: 'name', label: 'Campaign Name', render: (r) => <span className="font-medium">{r.name}</span> },
+            { key: 'name', label: 'Campaign Name', render: (r) => <span className="font-medium text-ink-800">{r.name}</span> },
             { key: 'audience', label: 'Target Audience' },
-            { key: 'sent', label: 'Sent', render: (r) => r.sent.toLocaleString() },
-            { key: 'openRate', label: 'Open Rate', render: (r) => `${r.openRate}%` },
+            { key: 'sent', label: 'Sent', render: (r) => <span className="tabular-nums">{r.sent.toLocaleString()}</span> },
+            { key: 'openRate', label: 'Open Rate', render: (r) => <span className="tabular-nums">{r.openRate}%</span> },
             { key: 'status', label: 'Status', render: (r) => <StatusBadge status={r.status as string} /> },
           ]}
           data={campaigns}
@@ -153,15 +153,15 @@ export function DataQualityMonitoring() {
         <CardHeader title="Data Quality Alerts" subtitle="Action required to fix records" />
         <DataTable
           columns={[
-            { key: 'issue', label: 'Issue Detected', render: (r) => <span className="font-medium text-ink-900">{r.issue}</span> },
+            { key: 'issue', label: 'Issue Detected', render: (r) => <span className="font-medium text-ink-800">{r.issue}</span> },
             { key: 'location', label: 'Institution' },
-            { key: 'count', label: 'Records Affected' },
+            { key: 'count', label: 'Records Affected', render: (r) => <span className="tabular-nums">{r.count}</span> },
             { key: 'severity', label: 'Severity', render: (r) => (
               <Badge variant={r.severity === 'High' ? 'error' : r.severity === 'Medium' ? 'warning' : 'primary'}>{r.severity}</Badge>
             ) },
             { key: 'action', label: 'Action', render: (r) => (
-              <button onClick={() => handleReview(r.id)} className="text-primary-600 text-sm font-medium hover:underline flex items-center gap-1">
-                <Check className="w-4 h-4" /> Resolve
+              <button onClick={() => handleReview(r.id)} className="px-2 py-1 -my-1 rounded-md text-primary-600 hover:text-primary-700 hover:bg-primary-50 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 inline-flex items-center gap-1">
+                <Check className="w-4 h-4" aria-hidden="true" /> Resolve
               </button>
             ) },
           ]}

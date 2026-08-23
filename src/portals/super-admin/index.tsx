@@ -50,17 +50,17 @@ export function SuperAdminDashboard() {
           <div className="p-5 space-y-3">
             {branches.map((b) => (
               <div key={b.id} className="flex items-center gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-ink-800">{b.name}</p>
-                    <p className="text-sm font-semibold text-ink-900">₹{(b.revenue / 1000).toFixed(0)}k</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-3 mb-1.5">
+                    <p className="text-sm font-medium text-ink-800 truncate">{b.name}</p>
+                    <p className="text-sm font-semibold text-ink-900 tabular-nums shrink-0">₹{(b.revenue / 1000).toFixed(0)}k</p>
                   </div>
                   <div className="h-2 bg-ink-100 rounded-full overflow-hidden">
                     <div className="h-full bg-primary-600 rounded-full" style={{ width: `${(b.revenue / 85000) * 100}%` }} />
                   </div>
                 </div>
-                <span className={cn('text-xs font-semibold flex items-center gap-0.5', b.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
-                  {b.growth >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                <span className={cn('text-xs font-semibold flex items-center gap-0.5 tabular-nums shrink-0', b.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
+                  {b.growth >= 0 ? <ArrowUpRight className="w-3 h-3" aria-hidden="true" /> : <ArrowDownRight className="w-3 h-3" aria-hidden="true" />}
                   {Math.abs(b.growth)}%
                 </span>
               </div>
@@ -84,49 +84,51 @@ export function Branches() {
     <div>
       <PageHeader title="Branches" subtitle="All campuses under the institution group" actions={
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-          <input 
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Search branches"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search branches..." 
-            className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+            placeholder="Search branches..."
+            className="input pl-9 w-full sm:w-64"
           />
         </div>
       } />
       <div className="grid sm:grid-cols-2 gap-4">
         {filteredBranches.map((b) => (
           <button key={b.id} onClick={() => setSelectedBranch(b)} className="card card-hover p-5 text-left w-full relative">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-primary-600 flex items-center justify-center text-white">
-                  <Building2 className="w-6 h-6" />
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-12 h-12 rounded-xl bg-primary-600 flex items-center justify-center text-white shrink-0">
+                  <Building2 className="w-6 h-6" aria-hidden="true" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-ink-900">{b.name}</h3>
-                  <p className="text-xs text-ink-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> {b.location}</p>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-ink-900 truncate">{b.name}</h3>
+                  <p className="text-xs text-ink-500 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3 shrink-0" aria-hidden="true" /> <span className="truncate">{b.location}</span></p>
                 </div>
               </div>
-              <span className={cn('text-sm font-semibold flex items-center gap-0.5', b.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
-                {b.growth >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+              <span className={cn('text-sm font-semibold flex items-center gap-0.5 shrink-0 tabular-nums', b.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
+                {b.growth >= 0 ? <ArrowUpRight className="w-4 h-4" aria-hidden="true" /> : <ArrowDownRight className="w-4 h-4" aria-hidden="true" />}
                 {Math.abs(b.growth)}%
               </span>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-ink-50 rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-ink-900">{b.students}</p>
-                <p className="text-[10px] text-ink-400">Students</p>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3 text-center">
+                <p className="text-xl font-semibold text-ink-900 tabular-nums">{b.students}</p>
+                <p className="text-[11px] text-ink-500 mt-0.5">Students</p>
               </div>
-              <div className="bg-ink-50 rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-ink-900">{b.teachers}</p>
-                <p className="text-[10px] text-ink-400">Teachers</p>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3 text-center">
+                <p className="text-xl font-semibold text-ink-900 tabular-nums">{b.teachers}</p>
+                <p className="text-[11px] text-ink-500 mt-0.5">Teachers</p>
               </div>
-              <div className="bg-ink-50 rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-ink-900">₹{(b.revenue / 1000).toFixed(0)}k</p>
-                <p className="text-[10px] text-ink-400">Revenue</p>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-3 text-center">
+                <p className="text-xl font-semibold text-ink-900 tabular-nums">₹{(b.revenue / 1000).toFixed(0)}k</p>
+                <p className="text-[11px] text-ink-500 mt-0.5">Revenue</p>
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-end">
-              <span className="text-xs text-primary-600 font-medium flex items-center gap-1">View Analytics <ArrowUpRight className="w-3 h-3" /></span>
+            <div className="mt-4 pt-4 border-t border-ink-100 flex items-center justify-end">
+              <span className="text-xs text-primary-600 font-medium flex items-center gap-1">View Analytics <ArrowUpRight className="w-3 h-3" aria-hidden="true" /></span>
             </div>
           </button>
         ))}
@@ -135,33 +137,33 @@ export function Branches() {
       <Modal open={!!selectedBranch} onClose={() => setSelectedBranch(null)} title="Branch Analytics" size="xl">
         {selectedBranch && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white shrink-0">
-                  <Building2 className="w-7 h-7" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-14 h-14 rounded-xl bg-primary-600 flex items-center justify-center text-white shrink-0">
+                  <Building2 className="w-7 h-7" aria-hidden="true" />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-ink-900">{selectedBranch.name}</h2>
-                  <p className="text-sm text-ink-500 flex items-center gap-1"><MapPin className="w-4 h-4" /> {selectedBranch.location}</p>
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-semibold truncate">{selectedBranch.name}</h2>
+                  <p className="text-sm text-ink-500 flex items-center gap-1 mt-0.5"><MapPin className="w-4 h-4 shrink-0" aria-hidden="true" /> <span className="truncate">{selectedBranch.location}</span></p>
                 </div>
               </div>
-              <div className="flex gap-4">
-                <div className="text-right">
-                  <p className="text-xs text-ink-400 mb-1">Monthly Revenue</p>
-                  <p className="text-xl font-bold text-ink-900">₹{(selectedBranch.revenue / 1000).toFixed(0)}k</p>
+              <div className="flex items-center gap-4 shrink-0">
+                <div className="sm:text-right">
+                  <p className="text-xs text-ink-500 mb-1">Monthly Revenue</p>
+                  <p className="text-xl font-semibold text-ink-900 tabular-nums">₹{(selectedBranch.revenue / 1000).toFixed(0)}k</p>
                 </div>
-                <div className="w-px h-10 bg-ink-200"></div>
-                <div className="text-right">
-                  <p className="text-xs text-ink-400 mb-1">Growth</p>
-                  <p className={cn('text-xl font-bold flex items-center gap-1 justify-end', selectedBranch.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
-                    {selectedBranch.growth >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                <div className="w-px h-10 bg-ink-200" aria-hidden="true" />
+                <div className="sm:text-right">
+                  <p className="text-xs text-ink-500 mb-1">Growth</p>
+                  <p className={cn('text-xl font-semibold flex items-center gap-1 sm:justify-end tabular-nums', selectedBranch.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
+                    {selectedBranch.growth >= 0 ? <ArrowUpRight className="w-5 h-5" aria-hidden="true" /> : <ArrowDownRight className="w-5 h-5" aria-hidden="true" />}
                     {Math.abs(selectedBranch.growth)}%
                   </p>
                 </div>
               </div>
             </div>
-            
-            <div className="flex justify-end gap-2">
+
+            <div className="flex flex-wrap justify-end gap-2 pt-1">
               <button className="btn-secondary text-error-600 hover:bg-error-50 hover:border-error-200" onClick={() => {
                 setLocalBranches(localBranches.filter(b => b.id !== selectedBranch.id));
                 setSelectedBranch(null);
@@ -169,14 +171,14 @@ export function Branches() {
               <button className="btn-secondary" onClick={() => setIsEditing(true)}>Edit Branch</button>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               <Card className="shadow-none border-ink-100">
                 <CardHeader title="Revenue Trend" subtitle="Last 6 months performance" />
                 <div className="p-4 h-[250px]">
                   {selectedBranch.revenueHistory ? (
                     <RevenueAreaChart data={selectedBranch.revenueHistory} />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-ink-400 text-sm">No historical data available</div>
+                    <div className="w-full h-full flex items-center justify-center text-ink-500 text-sm">No historical data available</div>
                   )}
                 </div>
               </Card>
@@ -186,7 +188,7 @@ export function Branches() {
                   {selectedBranch.attendanceHistory ? (
                     <AttendanceBarChart data={selectedBranch.attendanceHistory} />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-ink-400 text-sm">No attendance data available</div>
+                    <div className="w-full h-full flex items-center justify-center text-ink-500 text-sm">No attendance data available</div>
                   )}
                 </div>
               </Card>
@@ -195,25 +197,25 @@ export function Branches() {
             <Card className="shadow-none border-ink-100">
               <CardHeader title="Top Performing Teachers" subtitle="Highest rated faculty this term" />
               {selectedBranch.topTeachers ? (
-                <div className="p-2 space-y-2">
+                <div className="p-3 space-y-2">
                   {selectedBranch.topTeachers.map((t, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-ink-50 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-lg" />
-                        <div>
-                          <p className="font-semibold text-ink-900">{t.name}</p>
-                          <p className="text-xs text-ink-500">{t.subject}</p>
+                    <div key={idx} className="flex items-center justify-between gap-3 p-3 rounded-control border border-ink-100 bg-ink-50">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-lg bg-ink-100 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-ink-800 truncate">{t.name}</p>
+                          <p className="text-xs text-ink-500 truncate mt-0.5">{t.subject}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-warning-500 bg-warning-50 px-3 py-1 rounded-lg">
-                        <Star className="w-4 h-4 fill-current" />
-                        <span className="font-bold">{t.rating}</span>
+                      <div className="flex items-center gap-1 text-warning-700 bg-warning-50 border border-warning-100 px-2.5 py-1 rounded-md shrink-0">
+                        <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
+                        <span className="text-sm font-semibold tabular-nums">{t.rating}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="p-6 text-center text-ink-400 text-sm">No teacher data available</div>
+                <div className="p-6 text-center text-ink-500 text-sm">No teacher data available</div>
               )}
             </Card>
           </div>
@@ -255,7 +257,7 @@ export function Revenue() {
   return (
     <div>
       <PageHeader title="Revenue Analytics" subtitle="Detailed revenue breakdown across branches" actions={
-        <Select value={period} onChange={setPeriod} options={[
+        <Select label="Period" value={period} onChange={setPeriod} options={[
           { value: 'weekly', label: 'Weekly' },
           { value: 'monthly', label: 'Monthly' },
           { value: 'quarterly', label: 'Quarterly' },
@@ -278,11 +280,11 @@ export function Revenue() {
           columns={[
             { key: 'name', label: 'Branch' },
             { key: 'location', label: 'Location' },
-            { key: 'students', label: 'Students', render: (r) => r.students.toLocaleString() },
-            { key: 'revenue', label: 'Revenue', render: (r) => `₹${(r.revenue / 1000).toFixed(0)}k` },
+            { key: 'students', label: 'Students', render: (r) => <span className="tabular-nums">{r.students.toLocaleString()}</span> },
+            { key: 'revenue', label: 'Revenue', render: (r) => <span className="tabular-nums">₹{(r.revenue / 1000).toFixed(0)}k</span> },
             { key: 'growth', label: 'Growth', render: (r) => (
-              <span className={cn('font-semibold flex items-center gap-0.5', r.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
-                {r.growth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+              <span className={cn('font-semibold flex items-center gap-0.5 tabular-nums', r.growth >= 0 ? 'text-success-600' : 'text-error-600')}>
+                {r.growth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" /> : <ArrowDownRight className="w-3.5 h-3.5" aria-hidden="true" />}
                 {Math.abs(r.growth)}%
               </span>
             ) },
@@ -316,14 +318,14 @@ export function LeadsReport() {
         <DataTable
           columns={[
             { key: 'source', label: 'Source', render: (r) => <span className="font-medium text-ink-800">{r.source}</span> },
-            { key: 'count', label: 'Total Leads' },
-            { key: 'converted', label: 'Converted' },
+            { key: 'count', label: 'Total Leads', render: (r) => <span className="tabular-nums">{r.count}</span> },
+            { key: 'converted', label: 'Converted', render: (r) => <span className="tabular-nums">{r.converted}</span> },
             { key: 'rate', label: 'Conversion Rate', render: (r) => (
               <div className="flex items-center gap-2">
-                <div className="w-24 h-2 bg-ink-100 rounded-full overflow-hidden">
+                <div className="w-24 h-2 bg-ink-100 rounded-full overflow-hidden shrink-0">
                   <div className="h-full bg-success-500 rounded-full" style={{ width: `${r.rate}%` }} />
                 </div>
-                <span className="text-sm font-medium text-ink-700">{r.rate}%</span>
+                <span className="text-sm font-medium text-ink-700 tabular-nums">{r.rate}%</span>
               </div>
             ) },
           ]}
@@ -385,16 +387,18 @@ export function ConsolidatedReports() {
         <div className="flex gap-3">
           {(reportType === 'students' || reportType === 'faculty') && (
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-              <input 
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" aria-hidden="true" />
+              <input
+                type="search"
+                aria-label={`Search ${reportType}`}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search..." 
-                className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" 
+                placeholder="Search..."
+                className="input pl-9 w-full sm:w-48"
               />
             </div>
           )}
-          <Select value={reportType} onChange={setReportType} options={[
+          <Select label="Report type" value={reportType} onChange={setReportType} options={[
             { value: 'students', label: 'Student Report' },
             { value: 'faculty', label: 'Faculty Report' },
             { value: 'finance', label: 'Finance Report' },
@@ -415,8 +419,8 @@ export function ConsolidatedReports() {
               ) },
               { key: 'batch', label: 'Batch' },
               { key: 'department', label: 'Department' },
-              { key: 'attendance', label: 'Attendance', render: (s) => `${s.attendance}%` },
-              { key: 'feePaid', label: 'Fee Paid', render: (s) => `₹${(s.feePaid / 1000).toFixed(0)}k / ₹${(s.feeTotal / 1000).toFixed(0)}k` },
+              { key: 'attendance', label: 'Attendance', render: (s) => <span className="tabular-nums">{s.attendance}%</span> },
+              { key: 'feePaid', label: 'Fee Paid', render: (s) => <span className="tabular-nums whitespace-nowrap">₹{(s.feePaid / 1000).toFixed(0)}k / ₹{(s.feeTotal / 1000).toFixed(0)}k</span> },
               { key: 'status', label: 'Status', render: (s) => <StatusBadge status={s.status} /> },
             ]}
             data={filteredStudents}
@@ -436,8 +440,8 @@ export function ConsolidatedReports() {
               ) },
               { key: 'subjects', label: 'Subjects', render: (t) => t.subjects.join(', ') },
               { key: 'batches', label: 'Batches', render: (t) => t.batches.join(', ') },
-              { key: 'attendance', label: 'Attendance', render: (t) => `${t.attendance}%` },
-              { key: 'salary', label: 'Salary', render: (t) => `₹${(t.salary / 1000).toFixed(0)}k` },
+              { key: 'attendance', label: 'Attendance', render: (t) => <span className="tabular-nums">{t.attendance}%</span> },
+              { key: 'salary', label: 'Salary', render: (t) => <span className="tabular-nums">₹{(t.salary / 1000).toFixed(0)}k</span> },
               { key: 'status', label: 'Status', render: (t) => <StatusBadge status={t.status} /> },
             ]}
             data={filteredFaculty}
@@ -473,12 +477,14 @@ export function InstitutionManagement() {
       <Card>
         <CardHeader title="All Institutions" action={
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input 
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Search institutions"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search institutions..." 
-              className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+              placeholder="Search institutions..."
+              className="input pl-9 w-full sm:w-64"
             />
           </div>
         } />
@@ -490,9 +496,9 @@ export function InstitutionManagement() {
             { key: 'joinedDate', label: 'Joined Date' },
             { key: 'status', label: 'Status', render: (i) => <StatusBadge status={i.status} /> },
             { key: 'actions', label: '', render: (i) => (
-              <div className="flex gap-2 justify-end">
-                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium" onClick={() => setEditingInst(i)}>Edit</button>
-                <button className="text-error-600 hover:text-error-700 text-sm font-medium" onClick={() => setLocalInstitutions(localInstitutions.filter(x => x.id !== i.id))}>Delete</button>
+              <div className="flex gap-1 justify-end">
+                <button className="px-2 py-1 -my-1 rounded-md text-primary-600 hover:text-primary-700 hover:bg-primary-50 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40" onClick={() => setEditingInst(i)}>Edit</button>
+                <button className="px-2 py-1 -my-1 rounded-md text-error-600 hover:text-error-700 hover:bg-error-50 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500/40" onClick={() => setLocalInstitutions(localInstitutions.filter(x => x.id !== i.id))}>Delete</button>
               </div>
             ) },
           ]}
@@ -583,12 +589,14 @@ export function AdminManagement() {
       <Card>
         <CardHeader title="All Admins" action={
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input 
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Search admins"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search admins..." 
-              className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+              placeholder="Search admins..."
+              className="input pl-9 w-full sm:w-64"
             />
           </div>
         } />
@@ -598,15 +606,15 @@ export function AdminManagement() {
             { key: 'email', label: 'Email' },
             { key: 'role', label: 'Role', render: (u) => (
               <Badge variant={u.role === 'super_admin' ? 'error' : u.role === 'product_admin' ? 'warning' : 'primary'}>
-                {u.role.replace('_', ' ')}
+                <span className="capitalize">{u.role.replace('_', ' ')}</span>
               </Badge>
             ) },
             { key: 'institution', label: 'Institution' },
             { key: 'status', label: 'Status', render: (u) => <StatusBadge status={u.status} /> },
             { key: 'actions', label: '', render: (u) => (
-              <div className="flex gap-2 justify-end">
-                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium" onClick={() => setEditingAdmin(u)}>Edit</button>
-                <button className="text-error-600 hover:text-error-700 text-sm font-medium" onClick={() => setLocalAdmins(localAdmins.filter(x => x.id !== u.id))}>Delete</button>
+              <div className="flex gap-1 justify-end">
+                <button className="px-2 py-1 -my-1 rounded-md text-primary-600 hover:text-primary-700 hover:bg-primary-50 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40" onClick={() => setEditingAdmin(u)}>Edit</button>
+                <button className="px-2 py-1 -my-1 rounded-md text-error-600 hover:text-error-700 hover:bg-error-50 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500/40" onClick={() => setLocalAdmins(localAdmins.filter(x => x.id !== u.id))}>Delete</button>
               </div>
             ) },
           ]}
@@ -691,12 +699,14 @@ export function UserManagement() {
       <Card>
         <CardHeader title="Directory" action={
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input 
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Search users"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search users..." 
-              className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+              placeholder="Search users..."
+              className="input pl-9 w-full sm:w-64"
             />
           </div>
         } />
@@ -705,7 +715,7 @@ export function UserManagement() {
             { key: 'name', label: 'Name', render: (u) => <span className="font-medium text-ink-800">{u.name}</span> },
             { key: 'email', label: 'Email' },
             { key: 'role', label: 'Role', render: (u) => (
-              <Badge variant="primary">{u.role.replace('_', ' ')}</Badge>
+              <Badge variant="primary"><span className="capitalize">{u.role.replace('_', ' ')}</span></Badge>
             ) },
             { key: 'institution', label: 'Institution' },
             { key: 'status', label: 'Status', render: (u) => <StatusBadge status={u.status} /> },

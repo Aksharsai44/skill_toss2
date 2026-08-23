@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import type {
-  AttendanceStatus, EventItem, LmsAssignment, LmsClassSession, LmsExam, LmsGoal, LmsResource, LmsState, LmsStudent,
-  LmsSubmission, OnlineAttendanceSession, SubmissionAttachment,
+  AttendanceStatus, EventItem, LmsAssignment, LmsClassSession, LmsExam, LmsGoal, LmsNote, LmsResource, LmsState, LmsStudent,
+  LmsSubmission, OnlineAttendanceSession, Role, SubmissionAttachment,
 } from '@/lib/types';
 
 export type ActionResult = { ok: true; message: string } | { ok: false; message: string };
@@ -15,6 +15,30 @@ export type StudentSummary = {
 export type StudentAssignmentView = LmsAssignment & { courseTitle: string; submission?: LmsSubmission };
 export type FeeView = { invoices: Array<{ id: string; title: string; total: number; paid: number; pending: number; dueDate: string; status: string }>; total: number; paid: number; pending: number };
 export type SearchResult = { id: string; type: 'course' | 'assignment' | 'resource' | 'exam' | 'student' | 'batch'; title: string; subtitle: string; path: string };
+export type AttendanceSubjectInsight = {
+  courseId: string; code: string; subject: string; attended: number; conducted: number;
+  absent: number; late: number; excused: number; percentage: number;
+  risk: 'safe' | 'at-risk'; recoveryClasses: number;
+};
+export type AcademicAssessmentInsight = {
+  id: string; kind: 'exam' | 'assignment'; title: string; subject: string; score: number;
+  total: number; percentage: number; date: string; feedback?: string;
+};
+export type StudentDeadline = {
+  id: string; kind: 'assignment' | 'exam' | 'fee' | 'class' | 'event'; title: string;
+  date: string; detail: string; path: string; urgent: boolean;
+};
+export type CourseProgressInsight = {
+  courseId: string; code: string; title: string; completed: number; total: number; percentage: number;
+};
+export type StudentPortalInsights = {
+  attendanceSubjects: AttendanceSubjectInsight[]; monthAttendance: number; monthMissed: number;
+  monthLate: number; monthExcused: number; recentAbsences: Array<{ id: string; date: string; subject: string; status: AttendanceStatus }>;
+  assessments: AcademicAssessmentInsight[]; subjectPerformance: Array<{ courseId: string; code: string; subject: string; percentage: number; assessmentCount: number }>;
+  teacherFeedback: AcademicAssessmentInsight[]; semesterAverage: number; performanceTrend: number;
+  weeklyAttendance: number; weeklyCompletedAssignments: number; weeklyPendingAssignments: number;
+  deadlines: StudentDeadline[]; courseProgress: CourseProgressInsight[];
+};
 
 export type LmsDataContextValue = {
   state: LmsState; feedback: Feedback; setFeedback: (f: Feedback) => void; clearFeedback: () => void; resetDemoData: () => void;
@@ -23,8 +47,9 @@ export type LmsDataContextValue = {
   getStudentFees: (studentId: string) => FeeView;
   getStudentExams: (studentId: string) => LmsExam[];
   getStudentResources: (studentId: string) => LmsResource[];
+  getStudentPortalInsights: (studentId: string) => StudentPortalInsights | null;
   getOnlineAttendanceForSession: (sessionId: string) => OnlineAttendanceSession[];
-  searchRecords: (query: string, studentId?: string) => SearchResult[];
+  searchRecords: (query: string, options?: { studentId?: string; role?: Role }) => SearchResult[];
   addStudent: (input: Omit<LmsStudent, 'id' | 'avatar'> & { initialFeeTotal: number }) => ActionResult;
   createAssignment: (input: Omit<LmsAssignment, 'id' | 'createdAt' | 'status'> & { attachmentFiles?: Array<{ metadata: SubmissionAttachment; file?: File }> }) => Promise<ActionResult>;
   saveSubmission: (assignmentId: string, studentId: string, response: string, submit: boolean, attachments?: Array<{ metadata: SubmissionAttachment; file?: File }>) => Promise<ActionResult>;
@@ -42,6 +67,10 @@ export type LmsDataContextValue = {
   saveGoal: (input: Omit<LmsGoal, 'id' | 'status'> & { id?: string }) => ActionResult;
   deleteGoal: (id: string) => ActionResult;
   addEvent: (input: Omit<EventItem, 'id'>) => ActionResult;
+  toggleResourceBookmark: (studentId: string, resourceId: string) => ActionResult;
+  getStudentNotes: (studentId: string) => LmsNote[];
+  saveNote: (input: { id?: string; studentId: string; title: string; content: string }) => ActionResult;
+  deleteNote: (id: string) => ActionResult;
   markNotificationRead: (id: string) => void; markAllNotificationsRead: (userId: string) => void;
 };
 

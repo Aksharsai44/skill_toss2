@@ -45,13 +45,13 @@ export function ProductAdminDashboard() {
           <CardHeader title="Recent Demo Requests" subtitle="Latest inbound leads" />
           <div className="p-3 space-y-2">
             {demoRequests.slice(0, 4).map((d) => (
-              <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50 transition">
+              <div key={d.id} className="flex items-center gap-3 p-3 rounded-control hover:bg-ink-50 transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center shrink-0">
-                  <Building2 className="w-5 h-5 text-primary-600" />
+                  <Building2 className="w-5 h-5 text-primary-600" aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink-800 truncate">{d.organization}</p>
-                  <p className="text-xs text-ink-400">{d.type} · {d.date}</p>
+                  <p className="text-sm font-medium text-ink-800 truncate">{d.organization}</p>
+                  <p className="text-xs text-ink-500 truncate mt-0.5">{d.type} · {d.date}</p>
                 </div>
                 <StatusBadge status={d.status} />
               </div>
@@ -66,23 +66,23 @@ export function ProductAdminDashboard() {
           columns={[
             { key: 'name', label: 'Client', render: (c) => (
               <div className="flex items-center gap-3">
-                <img src={c.logo} alt={c.name} className="w-8 h-8 rounded-lg bg-ink-100" />
-                <div>
-                  <p className="font-medium text-ink-800">{c.name}</p>
-                  <p className="text-xs text-ink-400">{c.type}</p>
+                <img src={c.logo} alt="" className="w-8 h-8 rounded-lg bg-ink-100 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium text-ink-800 truncate">{c.name}</p>
+                  <p className="text-xs text-ink-500 truncate mt-0.5">{c.type}</p>
                 </div>
               </div>
             ) },
             { key: 'plan', label: 'Plan', render: (c) => <Badge variant="primary">{c.plan}</Badge> },
-            { key: 'students', label: 'Students', render: (c) => c.students.toLocaleString() },
-            { key: 'teachers', label: 'Teachers', render: (c) => c.teachers },
-            { key: 'mrr', label: 'MRR', render: (c) => `₹${(c.mrr / 1000).toFixed(0)}k` },
+            { key: 'students', label: 'Students', render: (c) => <span className="tabular-nums">{c.students.toLocaleString()}</span> },
+            { key: 'teachers', label: 'Teachers', render: (c) => <span className="tabular-nums">{c.teachers}</span> },
+            { key: 'mrr', label: 'MRR', render: (c) => <span className="tabular-nums">₹{(c.mrr / 1000).toFixed(0)}k</span> },
             { key: 'status', label: 'Status', render: (c) => <StatusBadge status={c.status} /> },
             { key: 'features', label: 'Features', render: (c) => (
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 {Object.entries(c.features).filter(([, v]) => v).map(([k]) => {
                   const Icon = iconMap[k] || ToggleLeft;
-                  return <div key={k} className="p-1 rounded bg-primary-50"><Icon className="w-3.5 h-3.5 text-primary-600" /></div>;
+                  return <span key={k} title={k} className="p-1 rounded-md bg-primary-50 border border-primary-100"><Icon className="w-3.5 h-3.5 text-primary-600" aria-hidden="true" /></span>;
                 })}
               </div>
             ) },
@@ -112,19 +112,19 @@ export function DemoRequests() {
         <DataTable<DemoRequest>
           columns={[
             { key: 'organization', label: 'Organization', render: (d) => (
-              <div>
-                <p className="font-medium text-ink-800">{d.organization}</p>
-                <p className="text-xs text-ink-400">{d.type}</p>
+              <div className="min-w-0">
+                <p className="font-medium text-ink-800 truncate">{d.organization}</p>
+                <p className="text-xs text-ink-500 mt-0.5">{d.type}</p>
               </div>
             ) },
             { key: 'contact', label: 'Contact', render: (d) => (
-              <div>
-                <p className="text-ink-700">{d.contact}</p>
-                <p className="text-xs text-ink-400">{d.email}</p>
+              <div className="min-w-0">
+                <p className="text-ink-700 truncate">{d.contact}</p>
+                <p className="text-xs text-ink-500 truncate mt-0.5" title={d.email}>{d.email}</p>
               </div>
             ) },
-            { key: 'phone', label: 'Phone' },
-            { key: 'date', label: 'Requested' },
+            { key: 'phone', label: 'Phone', render: (d) => <span className="tabular-nums">{d.phone}</span> },
+            { key: 'date', label: 'Requested', render: (d) => <span className="tabular-nums">{d.date}</span> },
             { key: 'notes', label: 'Notes', render: (d) => <span className="text-xs text-ink-500 max-w-xs truncate block">{d.notes}</span> },
             { key: 'status', label: 'Status', render: (d) => <StatusBadge status={d.status} /> },
           ]}
@@ -136,22 +136,22 @@ export function DemoRequests() {
         {selected && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-xl bg-primary-50 flex items-center justify-center">
-                <Building2 className="w-7 h-7 text-primary-600" />
+              <div className="w-14 h-14 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
+                <Building2 className="w-7 h-7 text-primary-600" aria-hidden="true" />
               </div>
-              <div>
-                <h3 className="font-semibold text-ink-900 text-lg">{selected.organization}</h3>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-ink-900 text-lg truncate">{selected.organization}</h3>
                 <p className="text-sm text-ink-500">{selected.type}</p>
               </div>
-              <div className="ml-auto"><StatusBadge status={selected.status} /></div>
+              <div className="ml-auto shrink-0"><StatusBadge status={selected.status} /></div>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-ink-400">Contact Person</p><p className="font-medium text-ink-800">{selected.contact}</p></div>
-              <div><p className="text-ink-400">Email</p><p className="font-medium text-ink-800">{selected.email}</p></div>
-              <div><p className="text-ink-400">Phone</p><p className="font-medium text-ink-800">{selected.phone}</p></div>
-              <div><p className="text-ink-400">Date</p><p className="font-medium text-ink-800">{selected.date}</p></div>
-            </div>
-            <div><p className="text-ink-400 text-sm mb-1">Notes</p><p className="text-sm text-ink-700 bg-ink-50 rounded-xl p-3">{selected.notes}</p></div>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              <div><dt className="text-ink-500">Contact Person</dt><dd className="font-medium text-ink-800 mt-0.5">{selected.contact}</dd></div>
+              <div className="min-w-0"><dt className="text-ink-500">Email</dt><dd className="font-medium text-ink-800 truncate mt-0.5">{selected.email}</dd></div>
+              <div><dt className="text-ink-500">Phone</dt><dd className="font-medium text-ink-800 tabular-nums mt-0.5">{selected.phone}</dd></div>
+              <div><dt className="text-ink-500">Date</dt><dd className="font-medium text-ink-800 tabular-nums mt-0.5">{selected.date}</dd></div>
+            </dl>
+            <div><p className="text-ink-500 text-sm mb-1.5">Notes</p><p className="text-sm leading-6 text-ink-700 bg-ink-50 border border-ink-200 rounded-control p-3">{selected.notes}</p></div>
             <div className="flex gap-2">
               <button className="btn-secondary flex-1 text-error-600 hover:bg-error-50 hover:border-error-200" onClick={() => {
                 setLocalDemoRequests(localDemoRequests.filter(d => d.id !== selected.id));
@@ -296,8 +296,8 @@ export function Clients() {
       <PageHeader title="Clients" subtitle="All institutions using Skill Toss" actions={
         <>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search clients..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" aria-hidden="true" />
+            <input type="search" aria-label="Search clients" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search clients..." className="input pl-9 w-full sm:w-48" />
           </div>
           <button className="btn-primary" onClick={() => setIsAdding(true)}><Plus className="w-4 h-4" /> Add Client</button>
         </>
@@ -305,29 +305,29 @@ export function Clients() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredClients.map((c) => (
           <button key={c.id} onClick={() => setSelected(c)} className="card card-hover p-5 text-left">
-            <div className="flex items-start justify-between mb-4">
-              <img src={c.logo} alt={c.name} className="w-12 h-12 rounded-xl bg-ink-100" />
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <img src={c.logo} alt="" className="w-12 h-12 rounded-xl bg-ink-100 shrink-0" />
               <StatusBadge status={c.status} />
             </div>
-            <h3 className="font-semibold text-ink-900">{c.name}</h3>
-            <p className="text-xs text-ink-400 mb-3">{c.type} · Joined {c.joinedDate}</p>
+            <h3 className="font-semibold text-ink-900 truncate">{c.name}</h3>
+            <p className="text-xs text-ink-500 mt-0.5 mb-3.5 truncate">{c.type} · Joined {c.joinedDate}</p>
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-ink-50 rounded-lg py-2">
-                <p className="text-lg font-bold text-ink-900">{c.students}</p>
-                <p className="text-[10px] text-ink-400">Students</p>
+              <div className="rounded-control border border-ink-200 bg-ink-50 py-2">
+                <p className="text-lg font-semibold text-ink-900 tabular-nums">{c.students}</p>
+                <p className="text-[11px] text-ink-500">Students</p>
               </div>
-              <div className="bg-ink-50 rounded-lg py-2">
-                <p className="text-lg font-bold text-ink-900">{c.teachers}</p>
-                <p className="text-[10px] text-ink-400">Teachers</p>
+              <div className="rounded-control border border-ink-200 bg-ink-50 py-2">
+                <p className="text-lg font-semibold text-ink-900 tabular-nums">{c.teachers}</p>
+                <p className="text-[11px] text-ink-500">Teachers</p>
               </div>
-              <div className="bg-ink-50 rounded-lg py-2">
-                <p className="text-lg font-bold text-ink-900">₹{(c.mrr / 1000).toFixed(0)}k</p>
-                <p className="text-[10px] text-ink-400">MRR</p>
+              <div className="rounded-control border border-ink-200 bg-ink-50 py-2">
+                <p className="text-lg font-semibold text-ink-900 tabular-nums">₹{(c.mrr / 1000).toFixed(0)}k</p>
+                <p className="text-[11px] text-ink-500">MRR</p>
               </div>
             </div>
-            <div className="mt-3 flex items-center justify-between">
+            <div className="mt-4 pt-4 border-t border-ink-100 flex items-center justify-between gap-2">
               <Badge variant="primary">{c.plan}</Badge>
-              <span className="text-xs text-primary-600 font-medium flex items-center gap-1">Manage <ArrowUpRight className="w-3 h-3" /></span>
+              <span className="text-xs text-primary-600 font-medium flex items-center gap-1 shrink-0">Manage <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" /></span>
             </div>
           </button>
         ))}
@@ -336,24 +336,24 @@ export function Clients() {
         {selected && !isEditing && (
           <div className="space-y-5">
             <div className="flex items-center gap-4">
-              <img src={selected.logo} alt={selected.name} className="w-16 h-16 rounded-xl bg-ink-100" />
-              <div>
-                <h3 className="text-xl font-bold font-display text-ink-900">{selected.name}</h3>
+              <img src={selected.logo} alt="" className="w-16 h-16 rounded-xl bg-ink-100 shrink-0" />
+              <div className="min-w-0">
+                <h3 className="text-xl font-semibold font-display text-ink-950 truncate">{selected.name}</h3>
                 <p className="text-sm text-ink-500">{selected.type} · {selected.plan} Plan · Joined {selected.joinedDate}</p>
               </div>
-              <div className="ml-auto"><StatusBadge status={selected.status} /></div>
+              <div className="ml-auto shrink-0"><StatusBadge status={selected.status} /></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">{selected.students}</p><p className="text-xs text-ink-400">Students</p></div>
-              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">{selected.teachers}</p><p className="text-xs text-ink-400">Teachers</p></div>
-              <div className="card p-4 text-center"><p className="text-2xl font-bold text-ink-900">₹{(selected.mrr / 1000).toFixed(0)}k</p><p className="text-xs text-ink-400">Monthly Revenue</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-4 text-center"><p className="text-2xl font-semibold text-ink-900 tabular-nums">{selected.students}</p><p className="text-xs text-ink-500 mt-0.5">Students</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-4 text-center"><p className="text-2xl font-semibold text-ink-900 tabular-nums">{selected.teachers}</p><p className="text-xs text-ink-500 mt-0.5">Teachers</p></div>
+              <div className="rounded-control border border-ink-200 bg-ink-50 p-4 text-center"><p className="text-2xl font-semibold text-ink-900 tabular-nums">₹{(selected.mrr / 1000).toFixed(0)}k</p><p className="text-xs text-ink-500 mt-0.5">Monthly Revenue</p></div>
             </div>
             <div>
               <p className="text-sm font-medium text-ink-700 mb-2">Active Features</p>
               <div className="flex flex-wrap gap-2">
                 {featureCatalog.map((f) => (
-                  <div key={f.key} className={cn('flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium', selected.features[f.key] ? 'bg-success-50 text-success-700' : 'bg-ink-100 text-ink-400')}>
-                    {selected.features[f.key] ? <Check className="w-3.5 h-3.5" /> : <span className="w-3.5 h-3.5 rounded-full bg-ink-300" />}
+                  <div key={f.key} className={cn('flex items-center gap-2 px-3 py-1.5 rounded-control text-xs font-medium border', selected.features[f.key] ? 'bg-success-50 text-success-700 border-success-100' : 'bg-ink-50 text-ink-500 border-ink-200')}>
+                    {selected.features[f.key] ? <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> : <span className="w-3.5 h-3.5 rounded-full border border-ink-300 shrink-0" aria-hidden="true" />}
                     {f.label}
                   </div>
                 ))}
@@ -494,20 +494,20 @@ export function PlansPricing() {
       <div className="grid lg:grid-cols-3 gap-5 mb-6">
         {localPlans.map((plan) => (
           <div key={plan.name} className={cn('card p-6 relative', plan.popular && 'ring-2 ring-primary-500')}>
-            {plan.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 badge bg-primary-600 text-white px-3 py-1 text-xs">Most Popular</div>}
+            {plan.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 badge bg-primary-600 text-white px-3 py-1 text-xs shadow-sm">Most Popular</div>}
             <div className="flex items-center gap-2 mb-1">
-              <Star className={cn('w-5 h-5', plan.popular ? 'text-primary-600' : 'text-ink-400')} />
-              <h3 className="text-lg font-bold font-display text-ink-900">{plan.name}</h3>
+              <Star className={cn('w-5 h-5 shrink-0', plan.popular ? 'text-primary-600' : 'text-ink-400')} aria-hidden="true" />
+              <h3 className="text-lg font-semibold font-display text-ink-950">{plan.name}</h3>
             </div>
             <div className="flex items-baseline gap-1 mb-1">
-              <span className="text-3xl font-bold font-display text-ink-900">{plan.price}</span>
-              <span className="text-sm text-ink-400">{plan.period}</span>
+              <span className="text-3xl font-semibold font-display text-ink-950 tabular-nums">{plan.price}</span>
+              <span className="text-sm text-ink-500">{plan.period}</span>
             </div>
-            <p className="text-sm text-ink-500 mb-4">{plan.students} students</p>
-            <div className="space-y-2 mb-6">
+            <p className="text-sm text-ink-500 mb-5">{plan.students} students</p>
+            <div className="space-y-2.5 mb-6">
               {plan.features.map((f) => (
-                <div key={f} className="flex items-center gap-2 text-sm text-ink-600">
-                  <Check className="w-4 h-4 text-success-500 shrink-0" /> {f}
+                <div key={f} className="flex items-start gap-2 text-sm leading-6 text-ink-600">
+                  <Check className="w-4 h-4 mt-1 text-success-600 shrink-0" aria-hidden="true" /> {f}
                 </div>
               ))}
             </div>
@@ -519,17 +519,17 @@ export function PlansPricing() {
         <CardHeader title="Custom Plans" subtitle="Tailored plans created for specific clients" />
         <div className="p-5 space-y-3">
           {localClients.filter((c) => c.plan === 'Custom').map((c) => (
-            <div key={c.id} className="flex items-center justify-between p-4 bg-ink-50 rounded-xl">
-              <div className="flex items-center gap-3">
-                <img src={c.logo} alt={c.name} className="w-10 h-10 rounded-lg bg-white" />
-                <div>
-                  <p className="font-medium text-ink-800">{c.name}</p>
-                  <p className="text-xs text-ink-400">{c.students} students · {c.teachers} teachers</p>
+            <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-control border border-ink-200 bg-ink-50">
+              <div className="flex items-center gap-3 min-w-0">
+                <img src={c.logo} alt="" className="w-10 h-10 rounded-control bg-white border border-ink-200 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium text-ink-800 truncate">{c.name}</p>
+                  <p className="text-xs text-ink-500 mt-0.5 tabular-nums">{c.students} students · {c.teachers} teachers</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <Badge variant="accent">Custom</Badge>
-                <span className="text-sm font-semibold text-ink-800">₹{(c.mrr / 1000).toFixed(0)}k/mo</span>
+                <span className="text-sm font-semibold text-ink-800 tabular-nums">₹{(c.mrr / 1000).toFixed(0)}k/mo</span>
                 <button className="btn-ghost text-sm" onClick={() => setEditingPlan(`Custom - ${c.name}`)}>Edit</button>
               </div>
             </div>
@@ -563,10 +563,10 @@ export function PlansPricing() {
           </div>
           <div>
             <label className="label mb-2 block">Included Features</label>
-            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar p-2 border border-ink-200 rounded-xl">
+            <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto scrollbar-thin p-2 border border-ink-200 rounded-control">
               {featureCatalog.map(f => (
-                <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-ink-50 p-1 rounded">
-                  <input type="checkbox" className="rounded text-primary-600 focus:ring-primary-500" defaultChecked />
+                <label key={f.key} className="flex items-center gap-2 text-sm text-ink-700 cursor-pointer hover:bg-ink-50 px-1.5 py-1 rounded-md transition-colors">
+                  <input type="checkbox" className="rounded-sm border-ink-300 text-primary-600 focus:ring-primary-500/40 focus:ring-offset-0" defaultChecked />
                   <span>{f.label}</span>
                 </label>
               ))}
@@ -614,10 +614,10 @@ export function PlansPricing() {
           </div>
           <div>
             <label className="label mb-2 block">Update Features</label>
-            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar p-2 border border-ink-200 rounded-xl">
+            <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto scrollbar-thin p-2 border border-ink-200 rounded-control">
               {featureCatalog.map(f => (
-                <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-ink-50 p-1 rounded">
-                  <input type="checkbox" className="rounded text-primary-600 focus:ring-primary-500" defaultChecked />
+                <label key={f.key} className="flex items-center gap-2 text-sm text-ink-700 cursor-pointer hover:bg-ink-50 px-1.5 py-1 rounded-md transition-colors">
+                  <input type="checkbox" className="rounded-sm border-ink-300 text-primary-600 focus:ring-primary-500/40 focus:ring-offset-0" defaultChecked />
                   <span>{f.label}</span>
                 </label>
               ))}
@@ -648,6 +648,7 @@ export function FeatureToggles() {
       <PageHeader title="Feature Toggles" subtitle="Enable or disable features per client based on their requirements" />
       <div className="mb-6 max-w-xs">
         <Select
+          label="Client"
           value={selectedClient}
           onChange={handleClientChange}
           options={clients.map((c) => ({ value: c.id, label: c.name }))}
@@ -660,17 +661,21 @@ export function FeatureToggles() {
           return (
             <div key={f.key} className="card p-5 flex items-start gap-4">
               <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0', enabled ? 'bg-primary-50' : 'bg-ink-100')}>
-                <Icon className={cn('w-5 h-5', enabled ? 'text-primary-600' : 'text-ink-400')} />
+                <Icon className={cn('w-5 h-5', enabled ? 'text-primary-600' : 'text-ink-400')} aria-hidden="true" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-ink-900">{f.label}</h3>
-                <p className="text-sm text-ink-500 mt-0.5">{f.desc}</p>
+                <p className="text-sm leading-6 text-ink-500 mt-0.5">{f.desc}</p>
               </div>
-              <button 
+              <button
+                type="button"
+                role="switch"
+                aria-checked={enabled}
+                aria-label={`${f.label} — ${enabled ? 'enabled' : 'disabled'}`}
                 onClick={() => setToggles({ ...toggles, [f.key]: !enabled })}
-                className={cn('w-11 h-6 rounded-full transition-colors relative shrink-0', enabled ? 'bg-primary-600' : 'bg-ink-200')}
+                className={cn('w-11 h-6 rounded-full transition-colors relative shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white', enabled ? 'bg-primary-600' : 'bg-ink-300')}
               >
-                <div className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform', enabled ? 'translate-x-5' : 'translate-x-0')} />
+                <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-150', enabled ? 'translate-x-5' : 'translate-x-0')} aria-hidden="true" />
               </button>
             </div>
           );
@@ -694,29 +699,32 @@ export function WhiteLabel() {
     <div>
       <PageHeader title="White-Label Customization" subtitle="Customize branding, logo & product name for each client" />
       <div className="mb-6 max-w-xs">
-        <Select value={selectedClient} onChange={setSelectedClient} options={clients.map((c) => ({ value: c.id, label: c.name }))} />
+        <Select label="Client" value={selectedClient} onChange={setSelectedClient} options={clients.map((c) => ({ value: c.id, label: c.name }))} />
       </div>
       <div className="grid lg:grid-cols-2 gap-5">
         <Card className="p-6">
-          <h3 className="font-semibold text-ink-900 mb-4 flex items-center gap-2"><Palette className="w-5 h-5 text-primary-600" /> Branding Settings</h3>
+          <h3 className="font-semibold text-ink-900 mb-4 flex items-center gap-2"><Palette className="w-5 h-5 text-primary-600" aria-hidden="true" /> Branding Settings</h3>
           <div className="space-y-4">
             <div>
-              <label className="label">Product Name</label>
-              <input className="input" value={productName} onChange={e => setProductName(e.target.value)} />
+              <label className="label" htmlFor="wl-product-name">Product Name</label>
+              <input id="wl-product-name" className="input" value={productName} onChange={e => setProductName(e.target.value)} />
             </div>
             <div>
-              <label className="label">Powered By Text</label>
-              <input className="input" value={poweredBy} onChange={e => setPoweredBy(e.target.value)} />
+              <label className="label" htmlFor="wl-powered-by">Powered By Text</label>
+              <input id="wl-powered-by" className="input" value={poweredBy} onChange={e => setPoweredBy(e.target.value)} />
             </div>
             <div>
-              <label className="label">Primary Color</label>
+              <p className="label">Primary Color</p>
               <div className="flex gap-2">
                 {['#2563eb', '#0891b2', '#16a34a', '#d97706', '#dc2626'].map((c) => (
-                  <button 
-                    key={c} 
-                    style={{ backgroundColor: c }} 
+                  <button
+                    key={c}
+                    type="button"
+                    style={{ backgroundColor: c }}
+                    aria-label={`Use ${c} as the primary color`}
+                    aria-pressed={primaryColor === c}
                     onClick={() => setPrimaryColor(c)}
-                    className={cn("w-10 h-10 rounded-xl ring-offset-2 transition", primaryColor === c ? 'ring-2 ring-ink-900' : 'ring-2 ring-transparent hover:ring-ink-200')} 
+                    className={cn('w-10 h-10 rounded-control ring-offset-2 ring-offset-white transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40', primaryColor === c ? 'ring-2 ring-ink-900' : 'ring-2 ring-transparent hover:ring-ink-300')}
                   />
                 ))}
               </div>
@@ -724,10 +732,10 @@ export function WhiteLabel() {
             <div>
               <label className="label">Logo</label>
               <div className="flex items-center gap-3">
-                <img src={customLogo || client.logo} alt="logo" className="w-14 h-14 rounded-xl bg-ink-100 object-cover" />
-                <label className="btn-secondary cursor-pointer">
+                <img src={customLogo || client.logo} alt="" className="w-14 h-14 rounded-xl bg-ink-100 border border-ink-200 object-cover shrink-0" />
+                <label className="btn-secondary cursor-pointer focus-within:ring-2 focus-within:ring-primary-500/40 focus-within:ring-offset-2 focus-within:ring-offset-white">
                   Upload New
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                  <input type="file" accept="image/*" className="sr-only" onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
                       setCustomLogo(URL.createObjectURL(e.target.files[0]));
                     }
@@ -736,8 +744,8 @@ export function WhiteLabel() {
               </div>
             </div>
             <div>
-              <label className="label">Footer Text</label>
-              <input className="input" value={footerText} onChange={e => setFooterText(e.target.value)} />
+              <label className="label" htmlFor="wl-footer-text">Footer Text</label>
+              <input id="wl-footer-text" className="input" value={footerText} onChange={e => setFooterText(e.target.value)} />
             </div>
             <button 
               className={cn("w-full transition-colors", saveStatus === 'Saved!' ? 'btn-primary bg-success-600 border-success-600 hover:bg-success-700' : 'btn-primary')} 
@@ -752,22 +760,22 @@ export function WhiteLabel() {
         </Card>
         <Card className="p-6">
           <h3 className="font-semibold text-ink-900 mb-4">Live Preview</h3>
-          <div className="rounded-xl border border-ink-200 overflow-hidden">
+          <div className="rounded-card border border-ink-200 overflow-hidden">
             <div className="h-32 flex items-center justify-center transition-colors" style={{ backgroundColor: primaryColor }}>
-              <div className="text-center text-white">
-                <img src={customLogo || client.logo} alt="logo" className="w-12 h-12 rounded-xl bg-white/20 mx-auto mb-2 object-cover" />
-                <p className="font-bold font-display">{productName}</p>
-                <p className="text-xs opacity-80">Powered by {poweredBy}</p>
+              <div className="text-center text-white px-4">
+                <img src={customLogo || client.logo} alt="" className="w-12 h-12 rounded-control bg-white/20 mx-auto mb-2 object-cover" />
+                <p className="font-semibold font-display truncate">{productName}</p>
+                <p className="text-xs opacity-80 truncate">Powered by {poweredBy}</p>
               </div>
             </div>
-            <div className="p-4 space-y-2">
-              <div className="h-8 bg-ink-100 rounded-lg w-3/4" />
-              <div className="h-8 bg-ink-100 rounded-lg w-1/2" />
+            <div className="p-4 space-y-2" aria-hidden="true">
+              <div className="h-8 bg-ink-100 rounded-control w-3/4" />
+              <div className="h-8 bg-ink-100 rounded-control w-1/2" />
               <div className="grid grid-cols-3 gap-2 mt-3">
-                {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-ink-50 rounded-lg" />)}
+                {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-ink-50 border border-ink-100 rounded-control" />)}
               </div>
-              <div className="text-center text-xs text-ink-400 mt-3">{footerText}</div>
             </div>
+            <p className="px-4 pb-4 text-center text-xs text-ink-500">{footerText}</p>
           </div>
         </Card>
       </div>
@@ -806,25 +814,27 @@ export function CustomerSupport() {
       <Card>
         <CardHeader title="All Tickets" action={
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input 
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Search tickets"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search tickets..." 
-              className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+              placeholder="Search tickets..."
+              className="input pl-9 w-full sm:w-64"
             />
           </div>
         } />
         <DataTable 
           data={filteredTickets}
           columns={[
-            { key: 'id', label: 'ID', render: (t) => <span className="font-mono text-xs text-ink-600">{t.id}</span> },
-            { key: 'client', label: 'Client', render: (t) => <span className="font-medium text-ink-900">{t.clientName}</span> },
-            { key: 'subject', label: 'Subject', render: (t) => <span className="text-sm truncate max-w-xs block">{t.subject}</span> },
+            { key: 'id', label: 'ID', render: (t) => <span className="font-mono text-xs text-ink-600 whitespace-nowrap">{t.id}</span> },
+            { key: 'client', label: 'Client', render: (t) => <span className="font-medium text-ink-800">{t.clientName}</span> },
+            { key: 'subject', label: 'Subject', render: (t) => <span className="text-sm truncate max-w-xs block" title={t.subject}>{t.subject}</span> },
             { key: 'priority', label: 'Priority', render: (t) => <Badge variant={t.priority === 'High' ? 'error' : t.priority === 'Medium' ? 'warning' : 'success'}>{t.priority}</Badge> },
             { key: 'status', label: 'Status', render: (t) => <Badge variant={t.status === 'Resolved' ? 'success' : t.status === 'Open' ? 'primary' : 'warning'}>{t.status}</Badge> },
-            { key: 'date', label: 'Created', render: (t) => <span className="text-sm">{new Date(t.createdAt).toLocaleDateString()}</span> },
-            { key: 'actions', label: '', render: (t) => <button onClick={() => setSelectedTicket(t)} className="btn-secondary py-1 px-3 text-xs">View Thread</button> }
+            { key: 'date', label: 'Created', render: (t) => <span className="text-sm tabular-nums whitespace-nowrap">{new Date(t.createdAt).toLocaleDateString()}</span> },
+            { key: 'actions', label: '', render: (t) => <button onClick={() => setSelectedTicket(t)} className="btn-secondary py-1 px-3 text-xs whitespace-nowrap">View Thread</button> }
           ]}
         />
       </Card>
@@ -832,25 +842,25 @@ export function CustomerSupport() {
       <Modal open={!!selectedTicket} onClose={() => setSelectedTicket(null)} title={`Ticket: ${selectedTicket?.id}`} size="xl">
         {selectedTicket && (
           <div className="grid lg:grid-cols-3 gap-6 h-[600px]">
-            <div className="lg:col-span-2 flex flex-col h-full border border-ink-200 rounded-xl bg-ink-50 overflow-hidden">
+            <div className="lg:col-span-2 flex flex-col h-full border border-ink-200 rounded-card bg-ink-50 overflow-hidden">
               <div className="p-4 bg-white border-b border-ink-200">
-                <h3 className="font-bold text-ink-900 text-lg">{selectedTicket.subject}</h3>
+                <h3 className="font-semibold text-ink-900 text-lg">{selectedTicket.subject}</h3>
                 <p className="text-sm text-ink-500 mt-1">Opened on {new Date(selectedTicket.createdAt).toLocaleString()}</p>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
                 {selectedTicket.messages.map((m: TicketMessage) => (
                   <div key={m.id} className={cn("flex gap-3", m.sender === 'support' ? 'flex-row-reverse' : '')}>
                     {m.sender === 'support' && m.avatar ? (
-                      <img src={m.avatar} alt="agent" className="w-8 h-8 rounded-full" />
+                      <img src={m.avatar} alt="" className="w-8 h-8 rounded-full shrink-0" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-ink-200 flex items-center justify-center text-ink-600 font-bold text-xs shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-ink-200 flex items-center justify-center text-ink-600 font-semibold text-xs shrink-0" aria-hidden="true">
                         {m.name.charAt(0)}
                       </div>
                     )}
-                    <div className={cn("max-w-[75%] rounded-2xl p-3 text-sm", m.sender === 'support' ? "bg-primary-600 text-white rounded-tr-none" : "bg-white border border-ink-200 text-ink-800 rounded-tl-none")}>
+                    <div className={cn("max-w-[75%] rounded-2xl p-3 text-sm leading-6", m.sender === 'support' ? "bg-primary-600 text-white rounded-tr-none" : "bg-white border border-ink-200 text-ink-800 rounded-tl-none")}>
                       <div className="flex justify-between items-baseline mb-1 gap-4">
                         <span className={cn("font-semibold text-xs", m.sender === 'support' ? "text-primary-100" : "text-ink-900")}>{m.name}</span>
-                        <span className={cn("text-[10px]", m.sender === 'support' ? "text-primary-200" : "text-ink-400")}>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className={cn("text-[11px] tabular-nums shrink-0", m.sender === 'support' ? "text-primary-200" : "text-ink-500")}>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <p className="whitespace-pre-wrap">{m.message}</p>
                     </div>
@@ -885,41 +895,42 @@ export function CustomerSupport() {
                     setReplyText('');
                   }}
                 >
-                  <textarea 
+                  <textarea
                     value={replyText}
                     onChange={e => setReplyText(e.target.value)}
-                    rows={2} 
-                    className="input flex-1 resize-none" 
-                    placeholder="Type your reply to the client..." 
+                    rows={2}
+                    aria-label="Reply to client"
+                    className="input flex-1 resize-none"
+                    placeholder="Type your reply to the client..."
                   />
-                  <button type="submit" className="btn-primary shrink-0 self-end px-3" disabled={!replyText.trim()}><Send className="w-4 h-4" /></button>
+                  <button type="submit" className="btn-primary shrink-0 self-end px-3" disabled={!replyText.trim()} title="Send reply" aria-label="Send reply"><Send className="w-4 h-4" aria-hidden="true" /></button>
                 </form>
               </div>
             </div>
 
             <div className="space-y-4">
               <Card className="p-4 shadow-none border-ink-200">
-                <h4 className="font-semibold text-ink-900 mb-3 text-sm uppercase tracking-wider">Client Context</h4>
-                <div className="space-y-3 text-sm">
+                <h4 className="font-semibold text-ink-500 mb-3 text-xs uppercase tracking-[0.08em]">Client Context</h4>
+                <dl className="space-y-3 text-sm">
                   <div>
-                    <span className="text-ink-500 block text-xs">Institution</span>
-                    <span className="font-medium text-ink-900">{selectedTicket.clientName}</span>
+                    <dt className="text-ink-500 text-xs">Institution</dt>
+                    <dd className="font-medium text-ink-900 mt-0.5">{selectedTicket.clientName}</dd>
                   </div>
                   <div>
-                    <span className="text-ink-500 block text-xs">Current Plan</span>
-                    <Badge variant="primary" className="mt-1">Enterprise</Badge>
+                    <dt className="text-ink-500 text-xs">Current Plan</dt>
+                    <dd className="mt-1"><Badge variant="primary">Enterprise</Badge></dd>
                   </div>
                   <div>
-                    <span className="text-ink-500 block text-xs">MRR</span>
-                    <span className="font-medium text-ink-900 text-lg">₹39k/mo</span>
+                    <dt className="text-ink-500 text-xs">MRR</dt>
+                    <dd className="font-semibold text-ink-900 text-lg tabular-nums mt-0.5">₹39k/mo</dd>
                   </div>
-                </div>
+                </dl>
               </Card>
 
               <Card className="p-4 shadow-none border-ink-200">
-                <h4 className="font-semibold text-ink-900 mb-3 text-sm uppercase tracking-wider">Ticket Actions</h4>
+                <h4 className="font-semibold text-ink-500 mb-3 text-xs uppercase tracking-[0.08em]">Ticket Actions</h4>
                 <div className="space-y-2">
-                  <button 
+                  <button
                     className="btn-secondary w-full justify-start text-sm"
                     onClick={() => {
                       const updated = { ...selectedTicket, status: 'Resolved' as const };
@@ -927,9 +938,9 @@ export function CustomerSupport() {
                       setSelectedTicket(updated);
                     }}
                   >
-                    <Check className="w-4 h-4 mr-2" /> Mark as Resolved
+                    <Check className="w-4 h-4" aria-hidden="true" /> Mark as Resolved
                   </button>
-                  <button 
+                  <button
                     className="btn-secondary w-full justify-start text-sm text-error-600 hover:bg-error-50 hover:border-error-200"
                     onClick={() => {
                       const updated = { ...selectedTicket, priority: 'High' as const };
@@ -937,7 +948,7 @@ export function CustomerSupport() {
                       setSelectedTicket(updated);
                     }}
                   >
-                    <AlertTriangle className="w-4 h-4 mr-2" /> Escalate to Engineering
+                    <AlertTriangle className="w-4 h-4" aria-hidden="true" /> Escalate to Engineering
                   </button>
                 </div>
               </Card>

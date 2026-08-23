@@ -202,15 +202,6 @@ export const featureCatalog = [
   { key: 'noticeboard', label: 'Digital Notice Board', icon: 'Inbox', desc: 'Announcements & circulars' },
 ];
 
-export const aiTools = [
-  { id: 'resume-screener', title: 'AI Resume Screener', desc: 'Rank candidates against job descriptions instantly', icon: 'FileSearch', color: 'primary' },
-  { id: 'resume-builder', title: 'AI Resume Designer', desc: 'Generate professional resumes from your profile', icon: 'FileText', color: 'accent' },
-  { id: 'ai-notes', title: 'AI Notes Summarizer', desc: 'Turn long lectures & PDFs into crisp notes', icon: 'NotebookPen', color: 'success' },
-  { id: 'ai-mock-interview', title: 'AI Mock Interview', desc: 'Practice interviews with instant AI feedback', icon: 'Mic', color: 'warning' },
-  { id: 'ai-study-plan', title: 'AI Study Planner', desc: 'Personalized study schedules based on goals', icon: 'CalendarCheck', color: 'primary' },
-  { id: 'ai-code-review', title: 'AI Code Reviewer', desc: 'Get instant feedback on your code submissions', icon: 'Code2', color: 'accent' },
-];
-
 export const channelIcon: Record<string, string> = {
   whatsapp: 'MessageCircle',
   email: 'Mail',
@@ -292,7 +283,7 @@ export const lmsDemoSeed: LmsState = {
     { id: 'course_electronics', code: 'EE301', title: 'Digital Electronics', departmentId: 'department_ee', teacherId: 'teacher_002', batchIds: ['batch_002'] },
   ],
   students: [
-    { id: 'student_001', name: 'Arjun Verma', rollNo: 'STU-2026-001', batchId: 'batch_001', departmentId: 'department_cs', email: 'student@skilltoss.demo', phone: '+91 98765 43210', parentPhone: '+91 98765 43211', address: 'New Delhi, India', emergencyContact: '+91 98765 43211', avatar: avatar('Arjun Verma'), status: 'active' },
+    { id: 'student_001', name: 'Arjun Verma', rollNo: 'STU-2026-001', batchId: 'batch_001', departmentId: 'department_cs', email: 'student@skilltoss.demo', phone: '+91 98765 43210', parentPhone: '+91 98765 43211', address: 'New Delhi, India', emergencyContact: '+91 98765 43211', avatar: avatar('Arjun Verma'), status: 'active', profileId: 'demo-student-id' },
     { id: 'student_002', name: 'Ananya Rao', rollNo: 'STU-2026-002', batchId: 'batch_002', departmentId: 'department_ee', email: 'ananya@student.demo', phone: '+91 98765 43216', parentPhone: '+91 98765 43217', address: 'New Delhi, India', emergencyContact: '+91 98765 43217', avatar: avatar('Ananya Rao'), status: 'active' },
     { id: 'student_003', name: 'Rohan Sharma', rollNo: 'STU-2026-003', batchId: 'batch_001', departmentId: 'department_cs', email: 'rohan@student.demo', phone: '+91 98765 43218', parentPhone: '+91 98765 43219', address: 'Gurugram, India', emergencyContact: '+91 98765 43219', avatar: avatar('Rohan Sharma'), status: 'active' },
     { id: 'student_004', name: 'Meera Nair', rollNo: 'STU-2026-004', batchId: 'batch_001', departmentId: 'department_cs', email: 'meera@student.demo', phone: '+91 98765 43220', parentPhone: '+91 98765 43221', address: 'Noida, India', emergencyContact: '+91 98765 43221', avatar: avatar('Meera Nair'), status: 'active' },
@@ -345,12 +336,15 @@ export const lmsDemoSeed: LmsState = {
     { id: 'receipt_002', paymentId: 'payment_002', invoiceId: 'invoice_001', studentId: 'student_001', amount: 15000, date: '2026-05-12', method: 'cash', reference: 'DEMO-CASH-1002', status: 'completed', demo: true },
   ],
   notifications: [
-    { id: 'notification_001', userId: 'student_001', type: 'academic', title: 'Assignment graded', message: 'Linked List Implementation: 18/20', timestamp: '2026-08-11T11:00:00+05:30', read: false, relatedEntityId: 'assignment_003', path: '/student/assignments' },
+    { id: 'notification_001', userId: 'student_001', type: 'assignment', title: 'Assignment graded', message: 'Linked List Implementation: 18/20', timestamp: '2026-08-11T11:00:00+05:30', read: false, relatedEntityId: 'assignment_003', path: '/student/assignments' },
     { id: 'notification_002', userId: 'student_001', type: 'fees', title: 'Fee reminder', message: '₹15,000 remains due for Semester 7.', timestamp: '2026-08-12T08:00:00+05:30', read: false, relatedEntityId: 'invoice_001', path: '/student/fees' },
   ],
   resources: [
     { id: 'resource_001', title: 'DBMS Normalization Notes', description: 'Worked normalization examples through 3NF.', courseId: 'course_dbms', batchId: 'batch_001', type: 'PDF', uploadedBy: 'teacher_003', uploadedAt: '2026-08-10T09:00:00+05:30' },
     { id: 'resource_002', title: 'Graph Algorithms Reference', description: 'Complexity and pseudocode reference.', courseId: 'course_algo', batchId: 'batch_001', type: 'LINK', uploadedBy: 'teacher_001', uploadedAt: '2026-08-09T09:00:00+05:30' },
+  ],
+  resourceBookmarks: [
+    { id: 'bookmark_001', studentId: 'student_001', resourceId: 'resource_001', createdAt: '2026-08-10T12:00:00+05:30' },
   ],
   onlineAttendance: [],
   classSessions: [
@@ -363,5 +357,8 @@ export const lmsDemoSeed: LmsState = {
     { id: 'goal_001', studentId: 'student_001', title: 'Complete all DBMS assignments', category: 'Academic', target: '4 assignments', deadline: '2026-08-31', progress: 50, status: 'active' },
   ],
   events: events.map((event) => ({ ...event })),
+  notes: [
+    { id: 'note_001', studentId: 'student_001', title: 'DBMS normalisation recap', content: '1NF removes repeating groups, 2NF removes partial dependencies, 3NF removes transitive dependencies. Revisit the worked example from the 9 Aug class before the unit test.', createdAt: '2026-08-10T18:20:00+05:30', updatedAt: '2026-08-10T18:20:00+05:30' },
+  ],
 };
 

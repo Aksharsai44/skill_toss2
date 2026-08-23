@@ -4,7 +4,7 @@ import {
   Layers, ArrowLeft, Award, Eye, Check,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';
+import { PageHeader, Card, CardHeader, EmptyState, LoadingState } from '@/components/ui/Layout';
 import { StatCard } from '@/components/ui/StatCard';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
@@ -99,7 +99,7 @@ export function CourseBuilder({ instructorName, instructorRole }: { instructorNa
                 {c.thumbnail ? (
                   <img src={c.thumbnail} alt={c.title} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center"><PlayCircle className="w-12 h-12 text-ink-300" /></div>
+                  <div className="w-full h-full flex items-center justify-center"><PlayCircle className="w-12 h-12 text-ink-300" aria-hidden="true" /></div>
                 )}
                 <div className="absolute top-2 right-2">
                   <StatusBadge status={c.status} />
@@ -107,15 +107,15 @@ export function CourseBuilder({ instructorName, instructorRole }: { instructorNa
               </div>
               <div className="p-4">
                 <h3 className="font-semibold text-ink-900 text-sm">{c.title}</h3>
-                <p className="text-xs text-ink-400 mt-1 line-clamp-2">{c.description}</p>
-                <div className="flex items-center gap-3 mt-2 text-xs text-ink-500">
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {c.duration_hours}h</span>
-                  <span className="flex items-center gap-1"><Layers className="w-3 h-3" /> {c.level}</span>
-                  <span className="flex items-center gap-1"><Award className="w-3 h-3" /> {c.enrolled_count}</span>
+                <p className="text-xs leading-5 text-ink-500 mt-1 line-clamp-2">{c.description}</p>
+                <div className="flex items-center gap-3 mt-2.5 text-xs text-ink-500">
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" aria-hidden="true" /> <span className="tabular-nums">{c.duration_hours}h</span></span>
+                  <span className="flex items-center gap-1 capitalize"><Layers className="w-3 h-3" aria-hidden="true" /> {c.level}</span>
+                  <span className="flex items-center gap-1"><Award className="w-3 h-3" aria-hidden="true" /> <span className="tabular-nums">{c.enrolled_count}</span></span>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => setSelectedCourse(c)} className="btn-secondary flex-1 text-xs"><Eye className="w-3.5 h-3.5" /> Manage</button>
-                  <button onClick={() => { setEditing(c.id); setShowForm(true); }} className="p-2 rounded-lg hover:bg-ink-100 text-ink-400"><Edit className="w-4 h-4" /></button>
+                <div className="flex gap-2 mt-3.5">
+                  <button onClick={() => setSelectedCourse(c)} className="btn-secondary flex-1 text-xs"><Eye className="w-3.5 h-3.5" aria-hidden="true" /> Manage</button>
+                  <button onClick={() => { setEditing(c.id); setShowForm(true); }} title={`Edit ${c.title}`} aria-label={`Edit ${c.title}`} className="p-2 rounded-control text-ink-500 hover:bg-ink-100 hover:text-ink-800 transition-colors focus-ring"><Edit className="w-4 h-4" aria-hidden="true" /></button>
                 </div>
               </div>
             </Card>
@@ -281,13 +281,13 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
         <Card className="p-5">
           <h3 className="font-semibold text-ink-900 mb-3">Course Actions</h3>
           <div className="space-y-2">
-            <button onClick={() => { setEditingLesson(null); setShowLesson(true); }} className="btn-primary w-full text-sm"><Plus className="w-4 h-4" /> Add Lesson / Topic</button>
-            <button onClick={() => setShowCert(true)} className="btn-secondary w-full text-sm"><Award className="w-4 h-4" /> Certificate Template</button>
-            <div className="pt-3 border-t border-ink-100 text-sm text-ink-500 space-y-1">
-              <p><span className="text-ink-400">Instructor:</span> {course.instructor_name}</p>
-              <p><span className="text-ink-400">Price:</span> {course.price === 0 ? 'Free' : `₹${course.price}`}</p>
-              <p><span className="text-ink-400">Status:</span> {course.status === 'published' ? 'Visible to students' : 'Draft — not visible'}</p>
-            </div>
+            <button onClick={() => { setEditingLesson(null); setShowLesson(true); }} className="btn-primary w-full text-sm"><Plus className="w-4 h-4" aria-hidden="true" /> Add Lesson / Topic</button>
+            <button onClick={() => setShowCert(true)} className="btn-secondary w-full text-sm"><Award className="w-4 h-4" aria-hidden="true" /> Certificate Template</button>
+            <dl className="pt-3 mt-1 border-t border-ink-100 text-sm text-ink-700 space-y-1.5">
+              <div className="flex gap-2"><dt className="text-ink-500 shrink-0">Instructor</dt><dd className="ml-auto text-right font-medium">{course.instructor_name}</dd></div>
+              <div className="flex gap-2"><dt className="text-ink-500 shrink-0">Price</dt><dd className="ml-auto text-right font-medium tabular-nums">{course.price === 0 ? 'Free' : `₹${course.price}`}</dd></div>
+              <div className="flex gap-2"><dt className="text-ink-500 shrink-0">Status</dt><dd className="ml-auto text-right font-medium">{course.status === 'published' ? 'Visible to students' : 'Draft — not visible'}</dd></div>
+            </dl>
           </div>
         </Card>
       </div>
@@ -295,23 +295,23 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
       <Card>
         <CardHeader title="Lessons & Topics" subtitle={`${lessons.length} lessons · ${Math.floor(totalDuration / 60)}h ${totalDuration % 60}m total`} />
         {loading ? (
-          <div className="p-8 text-center text-ink-400">Loading...</div>
+          <LoadingState label="Loading courses" />
         ) : lessons.length === 0 ? (
           <EmptyState icon={Video} title="No lessons yet" description="Add your first video lesson — students will see these as topics in the course." action={<button onClick={() => { setEditingLesson(null); setShowLesson(true); }} className="btn-primary"><Plus className="w-4 h-4" /> Add Lesson</button>} />
         ) : (
-          <div className="p-4 space-y-2">
+          <div className="p-4 space-y-1">
             {lessons.map((l, i) => (
-              <div key={l.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50">
-                <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-sm font-semibold text-primary-600">{i + 1}</div>
+              <div key={l.id} className="flex items-center gap-3 p-3 rounded-control hover:bg-ink-50 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-sm font-semibold text-primary-700 tabular-nums shrink-0" aria-hidden="true">{i + 1}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink-800">{l.title}</p>
-                  <p className="text-xs text-ink-400 truncate">{l.description}</p>
+                  <p className="text-sm font-medium text-ink-800 truncate">{l.title}</p>
+                  <p className="text-xs text-ink-500 truncate mt-0.5">{l.description}</p>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-ink-500">
-                  <Clock className="w-3.5 h-3.5" /> {l.duration_minutes}m
+                <div className="flex items-center gap-1.5 text-xs text-ink-500 shrink-0">
+                  <Clock className="w-3.5 h-3.5" aria-hidden="true" /> <span className="tabular-nums">{l.duration_minutes}m</span>
                 </div>
-                <button onClick={() => { setEditingLesson(l.id); setShowLesson(true); }} className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-400"><Edit className="w-4 h-4" /></button>
-                <button onClick={() => deleteLesson(l.id)} className="p-1.5 rounded-lg hover:bg-error-50 text-error-500"><Trash2 className="w-4 h-4" /></button>
+                <button onClick={() => { setEditingLesson(l.id); setShowLesson(true); }} title={`Edit ${l.title}`} aria-label={`Edit ${l.title}`} className="p-1.5 rounded-control text-ink-500 hover:bg-ink-100 hover:text-ink-800 transition-colors focus-ring shrink-0"><Edit className="w-4 h-4" aria-hidden="true" /></button>
+                <button onClick={() => deleteLesson(l.id)} title={`Delete ${l.title}`} aria-label={`Delete ${l.title}`} className="p-1.5 rounded-control text-error-600 hover:bg-error-50 transition-colors focus-ring shrink-0"><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
               </div>
             ))}
           </div>
@@ -449,7 +449,7 @@ function CertTemplateEditor({ courseId, courseTitle, onClose }: { courseId: stri
               ))}
             </div>
           </div>
-          <button onClick={save} disabled={saving} className="btn-primary w-full"><Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Template'}</button>
+          <button onClick={save} disabled={saving} className="btn-primary w-full"><Save className="w-4 h-4" aria-hidden="true" /> {saving ? 'Saving…' : 'Save Template'}</button>
         </div>
         <div>
           <h3 className="font-semibold text-ink-900 mb-3 text-sm">Live Preview</h3>
@@ -465,7 +465,7 @@ function CertTemplateEditor({ courseId, courseTitle, onClose }: { courseId: stri
               <div><p className="font-semibold text-ink-700">{signatureText}</p><p>Signature</p></div>
             </div>
           </div>
-          <p className="text-xs text-ink-400 mt-3 text-center">Auto-sent to student's WhatsApp & email upon course completion</p>
+          <p className="text-xs leading-5 text-ink-500 mt-3 text-center">Auto-sent to student's WhatsApp &amp; email upon course completion</p>
         </div>
       </div>
     </Modal>

@@ -11,10 +11,10 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 lg:mb-7">
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 lg:mb-7">
       <div className="min-w-0">
-        <h1 className="text-2xl md:text-[1.75rem] leading-tight font-bold font-display text-ink-950">{title}</h1>
-        {subtitle && <p className="text-sm leading-6 text-ink-500 mt-1 max-w-3xl">{subtitle}</p>}
+        <h1 className="text-2xl md:text-3xl font-bold font-display text-ink-950">{title}</h1>
+        {subtitle && <p className="text-sm leading-6 text-ink-500 mt-1.5 max-w-3xl">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 flex-wrap shrink-0">{actions}</div>}
     </div>
@@ -66,12 +66,28 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center px-5 py-14 sm:py-16 text-center">
-      <div className="rounded-2xl bg-ink-50 border border-ink-100 p-3.5 mb-4">
+      <div className="rounded-xl bg-ink-50 border border-ink-100 p-3.5 mb-4">
         <Icon className="w-7 h-7 text-ink-400" />
       </div>
-      <h3 className="font-semibold text-ink-700">{title}</h3>
-      {description && <p className="text-sm leading-6 text-ink-500 mt-1 max-w-sm">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+      <h3 className="font-semibold font-display text-ink-900 leading-6">{title}</h3>
+      {description && <p className="text-sm leading-6 text-ink-500 mt-1.5 max-w-sm">{description}</p>}
+      {action && <div className="mt-5">{action}</div>}
+    </div>
+  );
+}
+
+export function LoadingState({ label = 'Loading', className }: { label?: string; className?: string }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn('flex items-center justify-center gap-2.5 px-5 py-14 sm:py-16 text-sm text-ink-500', className)}
+    >
+      <span
+        aria-hidden="true"
+        className="w-4 h-4 rounded-full border-2 border-ink-200 border-t-primary-600 animate-spin"
+      />
+      <span>{label}…</span>
     </div>
   );
 }

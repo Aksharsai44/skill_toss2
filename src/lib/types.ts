@@ -22,7 +22,7 @@ export const ROLES: { id: UserRole; label: string; description: string }[] = [
   { id: 'super_admin', label: 'Super Admin', description: 'Group-wide revenue, branches, leads & consolidated reports' },
   { id: 'admin', label: 'Admin', description: 'Batches, students, fees, salary, attendance & integrations' },
   { id: 'teacher', label: 'Teacher', description: 'Classes, exams, assignments, community & reports' },
-  { id: 'student', label: 'Student', description: 'Classes, notes, fees, diary, reports & AI hub' },
+  { id: 'student', label: 'Student', description: 'Classes, assignments, attendance, fees, notes & reports' },
   { id: 'parent', label: 'Parent', description: 'Student progress, attendance, fee payments & announcements' },
 ];
 
@@ -51,6 +51,9 @@ export interface StudentPortalPermissions {
   canViewFees: boolean;
   canPayFees: boolean;
   canViewCertificates: boolean;
+  canEditProfile: boolean;
+  canBookmarkResources: boolean;
+  canEditGoals: boolean;
 }
 
 export type Student = {
@@ -348,6 +351,12 @@ export type LmsStudent = {
   id: string; name: string; rollNo: string; batchId: string; departmentId: string;
   email: string; phone: string; parentPhone: string; address: string; emergencyContact: string;
   avatar: string; status: 'active' | 'inactive';
+  /**
+   * Auth profile this academic record belongs to, mirroring `students.profile_id` in the
+   * Phase 1 schema. Optional because records created inside the Admin portal exist before
+   * anyone signs up for them. Never match a signed-in user to a record by display name.
+   */
+  profileId?: string;
 };
 export type LmsTeacher = { id: string; name: string; email: string; phone: string; courseIds: string[]; batchIds: string[]; avatar: string; status: 'active' | 'on-leave' };
 export type LmsBatch = { id: string; name: string; departmentId: string; teacherId: string; schedule: string };
@@ -361,8 +370,9 @@ export type LmsExamResult = { id: string; examId: string; studentId: string; mar
 export type LmsFeeInvoice = { id: string; studentId: string; title: string; total: number; dueDate: string; status: 'open' | 'paid' };
 export type LmsPayment = { id: string; invoiceId: string; studentId: string; amount: number; method: 'cash' | 'bank-transfer' | 'demo-card'; reference: string; date: string; status: 'completed'; demo: true };
 export type LmsReceipt = { id: string; paymentId: string; invoiceId: string; studentId: string; amount: number; date: string; method: string; reference: string; status: 'completed'; demo: true };
-export type LmsNotification = { id: string; userId: string; type: 'academic' | 'fees' | 'attendance' | 'resource' | 'announcement'; title: string; message: string; timestamp: string; read: boolean; relatedEntityId?: string; path?: string };
+export type LmsNotification = { id: string; userId: string; type: 'academic' | 'assignment' | 'exam' | 'fees' | 'attendance' | 'class' | 'resource' | 'announcement'; title: string; message: string; timestamp: string; read: boolean; relatedEntityId?: string; path?: string };
 export type LmsResource = { id: string; title: string; description: string; courseId: string; batchId: string; type: 'PDF' | 'DOC' | 'PPT' | 'LINK'; uploadedBy: string; uploadedAt: string; attachments?: SubmissionAttachment[] };
+export type LmsResourceBookmark = { id: string; studentId: string; resourceId: string; createdAt: string };
 export type LmsClassSessionMode = 'classroom' | 'jitsi' | 'online';
 export type LmsClassSessionStatus = 'scheduled' | 'live' | 'completed' | 'cancelled';
 
@@ -395,6 +405,8 @@ export type LmsClassSession = {
   meetingUrl?: string;
 };
 export type LmsGoal = { id: string; studentId: string; title: string; category: string; target: string; deadline: string; progress: number; status: 'active' | 'completed' };
+/** A student's private study note. Owned entirely by the student — no cross-portal readers. */
+export type LmsNote = { id: string; studentId: string; title: string; content: string; createdAt: string; updatedAt: string };
 
 export type LmsState = {
   version: number; nextId: number;
@@ -405,5 +417,6 @@ export type LmsState = {
   onlineAttendance: OnlineAttendanceSession[];
   exams: LmsExam[]; examResults: LmsExamResult[]; feeInvoices: LmsFeeInvoice[];
   payments: LmsPayment[]; receipts: LmsReceipt[]; notifications: LmsNotification[];
-  resources: LmsResource[]; classSessions: LmsClassSession[]; goals: LmsGoal[]; events: EventItem[];
+  resources: LmsResource[]; resourceBookmarks: LmsResourceBookmark[]; classSessions: LmsClassSession[]; goals: LmsGoal[]; events: EventItem[];
+  notes: LmsNote[];
 };

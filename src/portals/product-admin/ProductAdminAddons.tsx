@@ -40,19 +40,19 @@ export function AiFeatureLab() {
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         <Card className="lg:col-span-2">
           <CardHeader title="Beta vs Production Performance" subtitle="Accuracy of AI models over time" />
-          <div className="p-5 h-64 flex items-center justify-center bg-ink-50 rounded-b-xl border-t border-ink-100">
+          <div className="h-64 flex items-center justify-center bg-ink-50 border-t border-ink-100 rounded-b-card">
             {/* Mock chart placeholder */}
-            <p className="text-ink-400 font-medium">Performance Chart Visualization</p>
+            <p className="text-sm text-ink-500">Performance Chart Visualization</p>
           </div>
         </Card>
         <Card>
           <CardHeader title="Pilot Feedback" subtitle="Recent comments from institutions" />
           <div className="p-4 space-y-3">
             {[1,2,3].map(i => (
-              <div key={i} className="p-3 bg-ink-50 rounded-xl text-sm">
-                <p className="font-semibold text-ink-900 mb-1">"The new AI Grader saves us hours!"</p>
-                <p className="text-xs text-ink-500">- Acme School District</p>
-              </div>
+              <blockquote key={i} className="p-3.5 rounded-control border border-ink-200 bg-ink-50">
+                <p className="text-sm font-medium leading-6 text-ink-800">“The new AI Grader saves us hours!”</p>
+                <footer className="text-xs text-ink-500 mt-1.5">— Acme School District</footer>
+              </blockquote>
             ))}
           </div>
         </Card>
@@ -61,10 +61,10 @@ export function AiFeatureLab() {
         <CardHeader title="Beta Programs" />
         <DataTable
           columns={[
-            { key: 'name', label: 'Program Name' },
+            { key: 'name', label: 'Program Name', render: (r) => <span className="font-medium text-ink-800">{r.name}</span> },
             { key: 'type', label: 'Category' },
-            { key: 'pilotInstitutions', label: 'Pilots' },
-            { key: 'feedbackScore', label: 'Score', render: (r) => r.feedbackScore > 0 ? `${r.feedbackScore}/5` : 'N/A' },
+            { key: 'pilotInstitutions', label: 'Pilots', render: (r) => <span className="tabular-nums">{r.pilotInstitutions}</span> },
+            { key: 'feedbackScore', label: 'Score', render: (r) => r.feedbackScore > 0 ? <span className="tabular-nums">{r.feedbackScore}/5</span> : <span className="text-ink-400">—</span> },
             { key: 'status', label: 'Status', render: (r) => <StatusBadge status={r.status as string} /> },
           ]}
           data={betaPrograms}
@@ -98,7 +98,7 @@ export function LicenseOptimizer() {
       <div className="grid lg:grid-cols-2 gap-4 mb-6">
         <Card>
           <CardHeader title="Feature Utilization Heatmap" subtitle="Most to least used features" />
-          <div className="p-4 space-y-2">
+          <div className="p-4 space-y-3">
             {[
               { name: 'Attendance', usage: 98 },
               { name: 'Live Classes', usage: 85 },
@@ -106,12 +106,12 @@ export function LicenseOptimizer() {
               { name: 'Payroll', usage: 12 },
             ].map(f => (
               <div key={f.name}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium">{f.name}</span>
-                  <span>{f.usage}%</span>
+                <div className="flex justify-between items-baseline gap-3 text-xs mb-1.5">
+                  <span className="font-medium text-ink-700">{f.name}</span>
+                  <span className="text-ink-600 tabular-nums">{f.usage}%</span>
                 </div>
-                <div className="h-2 bg-ink-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-primary-500" style={{ width: `${f.usage}%` }} />
+                <div className="h-2 bg-ink-100 rounded-full overflow-hidden" aria-hidden="true">
+                  <div className="h-full bg-primary-500 rounded-full" style={{ width: `${f.usage}%` }} />
                 </div>
               </div>
             ))}
@@ -121,13 +121,13 @@ export function LicenseOptimizer() {
           <CardHeader title="Cost-Saving Recommendations" subtitle="AI suggested actions" />
           <div className="p-4 space-y-3">
             {unusedModules.map(m => (
-              <div key={m.id} className="flex justify-between items-center p-3 border border-ink-100 rounded-xl">
-                <div>
+              <div key={m.id} className="flex flex-wrap justify-between items-center gap-3 p-3.5 border border-ink-200 rounded-control hover:bg-ink-50 transition-colors">
+                <div className="min-w-0">
                   <p className="font-semibold text-ink-900 text-sm">{m.institution}</p>
-                  <p className="text-xs text-ink-500">Downgrade {m.module} (Unused for {m.daysUnused} days)</p>
+                  <p className="text-xs leading-5 text-ink-500 mt-0.5">Downgrade {m.module} (unused for {m.daysUnused} days)</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="success">Save ₹{m.potentialSaving}</Badge>
+                <div className="flex items-center gap-3 shrink-0">
+                  <Badge variant="success"><span className="tabular-nums">Save ₹{m.potentialSaving.toLocaleString()}</span></Badge>
                   <Button variant="outline" size="sm" onClick={() => handleDowngrade(m.id, m.institution)}>Downgrade</Button>
                 </div>
               </div>
@@ -156,8 +156,8 @@ export function SlaDashboard() {
       </div>
       <Card>
         <CardHeader title="Active Escalations" />
-        <div className="p-4 flex items-center justify-center h-32 bg-ink-50 rounded-b-xl">
-          <p className="text-ink-500 text-sm">No critical escalations at this time.</p>
+        <div className="flex items-center justify-center h-32 bg-ink-50 border-t border-ink-100 rounded-b-card">
+          <p className="text-sm text-ink-500">No critical escalations at this time.</p>
         </div>
       </Card>
     </div>
@@ -189,17 +189,17 @@ export function RoadmapManager() {
         <CardHeader title="Development Roadmap" />
         <DataTable
           columns={[
-            { key: 'feature', label: 'Feature Name', render: (r) => <span className="font-medium">{r.feature}</span> },
+            { key: 'feature', label: 'Feature Name', render: (r) => <span className="font-medium text-ink-800">{r.feature}</span> },
             { key: 'priority', label: 'Priority', render: (r) => (
               <Badge variant={r.priority === 'High' ? 'error' : 'warning'}>{r.priority as 'error' | 'warning'}</Badge>
             )},
-            { key: 'votes', label: 'Customer Votes', render: (r) => `${r.votes} votes` },
+            { key: 'votes', label: 'Customer Votes', render: (r) => <span className="tabular-nums whitespace-nowrap">{r.votes} votes</span> },
             { key: 'progress', label: 'Progress', render: (r) => (
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 bg-ink-100 rounded-full overflow-hidden w-24">
-                  <div className="h-full bg-primary-500" style={{ width: `${r.progress}%` }} />
+                <div className="h-2 w-24 shrink-0 bg-ink-100 rounded-full overflow-hidden" aria-hidden="true">
+                  <div className="h-full bg-primary-500 rounded-full" style={{ width: `${r.progress}%` }} />
                 </div>
-                <span className="text-xs text-ink-500">{r.progress}%</span>
+                <span className="text-xs text-ink-500 tabular-nums w-9 text-right shrink-0">{r.progress}%</span>
               </div>
             ) },
             { key: 'status', label: 'Status' },

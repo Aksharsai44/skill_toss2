@@ -170,17 +170,19 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
     {
       group: 'Academics',
       items: [
-        { label: 'Attendance', path: '/student/classes', icon: 'CheckSquare', permission: 'canViewAttendance' },
-        { label: 'Results', path: '/student/reports', icon: 'FileBarChart', permission: 'canViewResults' },
+        { label: 'Attendance', path: '/student/attendance', icon: 'CheckSquare', permission: 'canViewAttendance' },
+        { label: 'Results', path: '/student/results', icon: 'FileBarChart', permission: 'canViewResults' },
         { label: 'Timetable', path: '/student/timetable', icon: 'CalendarDays' },
         { label: 'Calendar', path: '/student/calendar', icon: 'Calendar' },
       ],
     },
     {
-      group: 'AI & Tools',
+      group: 'Tools',
       items: [
-        { label: 'AI Study Hub', path: '/student/ai-hub', icon: 'Sparkles', permission: 'canUseAiStudyHub' },
         { label: 'My Notes', path: '/student/my-notes', icon: 'NotebookPen', permission: 'canEditPersonalNotes' },
+        { label: 'Goals', path: '/student/goals', icon: 'Target' },
+        { label: 'Saved', path: '/student/saved', icon: 'Bookmark', allowedRoles: ['student'] },
+        { label: 'Notifications', path: '/student/notifications', icon: 'Bell' },
       ],
     },
     {
@@ -195,9 +197,11 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       items: [
         { label: 'Fees & Payments', path: '/student/fees', icon: 'CreditCard', permission: 'canViewFees' },
         { label: 'Reports', path: '/student/reports', icon: 'FileBarChart' },
-        { label: 'Certifications', path: '/student/certifications', icon: 'Award', permission: 'canViewCertificates' },
+        { label: 'Certificates', path: '/student/certifications', icon: 'Award', permission: 'canViewCertificates' },
+        { label: 'Digital Locker', path: '/student/locker', icon: 'FolderArchive' },
         { label: 'Leave Requests', path: '/student/leaves', icon: 'CalendarOff', permission: 'canRequestLeave' },
         { label: 'My Profile', path: '/student/profile', icon: 'UserCircle' },
+        { label: 'Settings', path: '/student/settings', icon: 'Settings' },
       ],
     },
   ],

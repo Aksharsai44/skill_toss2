@@ -5,52 +5,8 @@ import type { UserRole, UserProfile } from '@/lib/types';
 import { AuthContext, type AuthContextValue } from '@/lib/authContext';
 import { putAttachment, getAttachment, removeAttachment } from '@/lib/attachmentStorage';
 import type { SubmissionAttachment } from '@/lib/types';
-
-// Fallback mock profiles for quick demo accounts if Supabase profiles table is empty or offline
-const DEMO_PROFILES: Record<string, UserProfile> = {
-  'productadmin@skilltoss.demo': {
-    id: 'demo-product-admin-id',
-    fullName: 'Aarav Mehta',
-    role: 'product_admin',
-    institutionId: 'inst_hq',
-    isActive: true,
-  },
-  'superadmin@skilltoss.demo': {
-    id: 'demo-super-admin-id',
-    fullName: 'Priya Nair',
-    role: 'super_admin',
-    institutionId: 'inst_group_01',
-    isActive: true,
-  },
-  'admin@skilltoss.demo': {
-    id: 'demo-admin-id',
-    fullName: 'Rahul Sharma',
-    role: 'admin',
-    institutionId: 'inst_college_01',
-    isActive: true,
-  },
-  'teacher@skilltoss.demo': {
-    id: 'demo-teacher-id',
-    fullName: 'Sneha Kapoor',
-    role: 'teacher',
-    institutionId: 'inst_college_01',
-    isActive: true,
-  },
-  'student@skilltoss.demo': {
-    id: 'demo-student-id',
-    fullName: 'Arjun Verma',
-    role: 'student',
-    institutionId: 'inst_college_01',
-    isActive: true,
-  },
-  'parent@skilltoss.demo': {
-    id: 'demo-parent-id',
-    fullName: 'Rajesh Verma',
-    role: 'parent',
-    institutionId: 'inst_college_01',
-    isActive: true,
-  },
-};
+// Local-only fallback profiles for the demo identities, used when demo sign-in is enabled.
+import { DEMO_PROFILES, isDemoSignInFallbackEnabled } from '@/lib/demoAccounts';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -77,47 +33,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { active = false; };
   }, [user, profileId]);
 
-  // Helper function to fetch or resolve profile
+  // Resolve authorization only from the database profile created for the Auth user.
   const fetchProfile = useCallback(async (authUser: User): Promise<UserProfile> => {
-    // 1. Try to fetch from Supabase `profiles` table
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, institution_id, role, full_name, avatar_url, is_active')
+      .eq('id', authUser.id)
+      .maybeSingle();
 
-      if (!error && data) {
-        return {
-          id: data.id,
-          fullName: data.full_name,
-          role: data.role as UserRole,
-          institutionId: data.institution_id || null,
-          avatarUrl: data.avatar_url,
-          isActive: data.is_active ?? true,
-        };
-      }
-    } catch (err) {
-      console.warn('Could not query profiles table from Supabase:', err);
+    if (error) {
+      throw new Error(`Could not load your Skill Toss profile: ${error.message}`);
     }
 
-    // 2. Fallback to demo profile matching email if available
-    const emailLower = authUser.email?.toLowerCase() || '';
-    if (DEMO_PROFILES[emailLower]) {
-      return {
-        ...DEMO_PROFILES[emailLower],
-        id: authUser.id,
-      };
+    if (!data) {
+      throw new Error('Your account is awaiting profile provisioning. Please contact your administrator.');
     }
 
-    // 3. Fallback: infer from user metadata or default to student
-    const roleFromMeta = (authUser.user_metadata?.role as UserRole) || 'student';
     return {
-      id: authUser.id,
-      fullName: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
-      role: roleFromMeta,
-      institutionId: authUser.user_metadata?.institution_id || null,
-      isActive: true,
+      id: data.id,
+      fullName: data.full_name,
+      role: data.role as UserRole,
+      institutionId: data.institution_id || null,
+      avatarUrl: data.avatar_url,
+      isActive: data.is_active,
     };
   }, []);
 
@@ -130,9 +68,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data } = await supabase.auth.getSession();
         if (data.session && data.session.user) {
           if (mounted) {
+            const userProfile = await fetchProfile(data.session.user);
+            if (!userProfile.isActive) {
+              await supabase.auth.signOut();
+              return;
+            }
             setSession(data.session);
             setUser(data.session.user);
-            const userProfile = await fetchProfile(data.session.user);
             setProfile(userProfile);
           }
         }
@@ -150,10 +92,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
 
       if (newSession && newSession.user) {
-        setSession(newSession);
-        setUser(newSession.user);
-        const userProfile = await fetchProfile(newSession.user);
-        setProfile(userProfile);
+        try {
+          const userProfile = await fetchProfile(newSession.user);
+          if (!userProfile.isActive) {
+            throw new Error('The authenticated profile is inactive or awaiting provisioning.');
+          }
+          setSession(newSession);
+          setUser(newSession.user);
+          setProfile(userProfile);
+        } catch (error) {
+          console.error('Could not resolve the authenticated profile:', error);
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
       } else {
         setSession(null);
         setUser(null);
@@ -169,28 +121,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    // 1. Try real Supabase auth
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      // Demo fallback: If offline or using demo accounts without live Supabase DB, allow demo logins
-      const demoProf = DEMO_PROFILES[email.toLowerCase()];
-      if (demoProf) {
-        const fakeUser = {
-          id: demoProf.id,
-          email: email.toLowerCase(),
-          app_metadata: {},
-          user_metadata: { role: demoProf.role, full_name: demoProf.fullName },
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        } as unknown as User;
+      // A local demo profile may only stand in while demo sign-in is enabled for this build.
+      // In any other build a rejected sign-in stays rejected — never mint a session that
+      // Supabase Auth did not grant.
+      if (isDemoSignInFallbackEnabled) {
+        const demoProf = DEMO_PROFILES[email.toLowerCase()];
+        if (demoProf) {
+          const fakeUser = {
+            id: demoProf.id,
+            email: email.toLowerCase(),
+            app_metadata: {},
+            user_metadata: { role: demoProf.role, full_name: demoProf.fullName },
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+          } as unknown as User;
 
-        setUser(fakeUser);
-        setProfile(demoProf);
-        return { user: fakeUser, profile: demoProf };
+          setUser(fakeUser);
+          setProfile(demoProf);
+          return { user: fakeUser, profile: demoProf };
+        }
       }
 
       throw new Error(error.message || 'Invalid login credentials');

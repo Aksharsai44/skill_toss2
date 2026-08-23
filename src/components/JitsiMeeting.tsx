@@ -268,12 +268,12 @@ export function JitsiMeeting({
     <div className="relative w-full h-full min-h-[420px] bg-ink-950 rounded-t-xl overflow-hidden border border-ink-800">
       {/* Loading Overlay */}
       {loading && (
-        <div className="absolute inset-0 z-20 bg-ink-950/90 backdrop-blur-sm flex flex-col items-center justify-center text-white p-6 space-y-4">
+        <div role="status" aria-live="polite" className="absolute inset-0 z-20 bg-ink-950/95 flex flex-col items-center justify-center text-white p-6 space-y-4">
           <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-primary-300">
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
           </div>
           <div className="text-center space-y-1">
-            <h3 className="text-base font-semibold tracking-tight">{role === 'teacher' ? `Preparing ${courseTitle || 'your'} classroom…` : `Connecting to ${courseTitle || 'your class'}…`}</h3>
+            <h3 className="text-base font-semibold">{role === 'teacher' ? `Preparing ${courseTitle || 'your'} classroom…` : `Connecting to ${courseTitle || 'your class'}…`}</h3>
             <p className="text-xs text-ink-400">This may take a moment.</p>
           </div>
         </div>
