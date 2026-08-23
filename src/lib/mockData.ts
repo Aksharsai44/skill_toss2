@@ -263,7 +263,7 @@ export const supportTickets: Ticket[] = [
 ];
 
 export const lmsDemoSeed: LmsState = {
-  version: 4,
+  version: 6,
   nextId: 100,
   institution: { id: 'institution_001', name: 'Skill Toss Demo College' },
   departments: [
@@ -360,5 +360,15 @@ export const lmsDemoSeed: LmsState = {
   notes: [
     { id: 'note_001', studentId: 'student_001', title: 'DBMS normalisation recap', content: '1NF removes repeating groups, 2NF removes partial dependencies, 3NF removes transitive dependencies. Revisit the worked example from the 9 Aug class before the unit test.', createdAt: '2026-08-10T18:20:00+05:30', updatedAt: '2026-08-10T18:20:00+05:30' },
   ],
+  betaPrograms: [],
+  roadmapFeatures: [],
+  executiveDecisions: [],
+  globalCampaigns: [],
+  customRoles: [],
+  roleRequests: [],
+  auditLogs: [],
+  workflows: [],
+  integrations: [],
+  branchThemes: [],
 };
 

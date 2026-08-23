@@ -27,9 +27,11 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       group: 'Add-Ons & Modules',
       items: [
         { label: 'AI Feature Lab', path: '/product-admin/ai-lab', icon: 'Sparkles' },
-        { label: 'License Optimizer', path: '/product-admin/license-optimizer', icon: 'Target' },
+        { label: 'System Health Map', path: '/product-admin/system-health', icon: 'Activity' },
         { label: 'SLA Dashboard', path: '/product-admin/sla-monitoring', icon: 'Clock' },
         { label: 'Roadmap Manager', path: '/product-admin/roadmap', icon: 'Map' },
+        { label: 'Workflows', path: '/product-admin/workflows', icon: 'Workflow' },
+        { label: 'Integrations', path: '/product-admin/integrations', icon: 'Link' },
       ],
     },
     {
@@ -70,10 +72,18 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
     {
       group: 'Executive Add-Ons',
       items: [
-        { label: 'Sustainability', path: '/super-admin/sustainability', icon: 'Leaf' },
+        { label: 'Inter-Branch Transfer', path: '/super-admin/inter-branch-transfer', icon: 'Network' },
         { label: 'Decision Center', path: '/super-admin/executive-center', icon: 'Lightbulb' },
         { label: 'Campaigns', path: '/super-admin/campaigns', icon: 'Megaphone' },
         { label: 'Data Quality', path: '/super-admin/data-quality', icon: 'Database' },
+      ],
+    },
+    {
+      group: 'Enterprise Config',
+      items: [
+        { label: 'Role Builder (RBAC)', path: '/super-admin/rbac', icon: 'Shield' },
+        { label: 'Global Audit Logs', path: '/super-admin/audit-logs', icon: 'FileText' },
+        { label: 'Branch Theming', path: '/super-admin/branch-theming', icon: 'Palette' },
       ],
     },
   ],

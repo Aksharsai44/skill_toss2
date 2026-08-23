@@ -77,6 +77,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(data.session.user);
             setProfile(userProfile);
           }
+        } else {
+          // Check for demo session fallback
+          const demoEmail = localStorage.getItem('demo_session_email');
+          if (demoEmail && DEMO_PROFILES[demoEmail]) {
+            const demoProf = DEMO_PROFILES[demoEmail];
+            const fakeUser = {
+              id: demoProf.id,
+              email: demoEmail,
+              app_metadata: {},
+              user_metadata: { role: demoProf.role, full_name: demoProf.fullName },
+              aud: 'authenticated',
+              created_at: new Date().toISOString(),
+            } as unknown as User;
+            
+            if (mounted) {
+              setUser(fakeUser);
+              setProfile(demoProf);
+            }
+          }
         }
       } catch (err) {
         console.error('Error restoring session:', err);
@@ -142,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             created_at: new Date().toISOString(),
           } as unknown as User;
 
+          localStorage.setItem('demo_session_email', email.toLowerCase());
           setUser(fakeUser);
           setProfile(demoProf);
           return { user: fakeUser, profile: demoProf };
@@ -173,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.warn('Error signing out from Supabase:', err);
     } finally {
+      localStorage.removeItem('demo_session_email');
       setUser(null);
       setSession(null);
       setProfile(null);

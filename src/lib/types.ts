@@ -407,6 +407,16 @@ export type LmsClassSession = {
 export type LmsGoal = { id: string; studentId: string; title: string; category: string; target: string; deadline: string; progress: number; status: 'active' | 'completed' };
 /** A student's private study note. Owned entirely by the student — no cross-portal readers. */
 export type LmsNote = { id: string; studentId: string; title: string; content: string; createdAt: string; updatedAt: string };
+export type LmsBetaProgram = { id: string; name: string; status: 'active' | 'planning' | 'completed'; pilotInstitutions: number; feedbackScore: number; type: string };
+export type LmsRoadmapFeature = { id: string; feature: string; status: 'Planned' | 'In Progress' | 'Completed'; priority: string; votes: number; progress: number };
+export type LmsExecutiveDecision = { id: string; type: string; message: string; impact: 'Critical' | 'High' | 'Medium' | 'Low'; strategy?: string; status: 'open' | 'resolved' };
+export type LmsGlobalCampaign = { id: string; name: string; audience: string; status: 'scheduled' | 'active' | 'completed' | 'dismissed'; sent: number; openRate: number; dismissReason?: string };
+export type LmsCustomRole = { id: string; name: string; institutionId: string; permissions: string[]; status: 'active' | 'inactive' };
+export type LmsRoleRequest = { id: string; institutionName: string; requestedRole: string; requestedPermissions: string[]; status: 'pending' | 'approved' | 'rejected' };
+export type LmsAuditLog = { id: string; action: string; actorName: string; actorRole: string; targetResource: string; timestamp: string; ipAddress: string; status: 'success' | 'failed' };
+export type LmsWorkflowRule = { id: string; name: string; trigger: string; condition: string; action: string; status: 'active' | 'paused' };
+export type LmsIntegration = { id: string; provider: string; category: string; apiKey?: string; webhookUrl?: string; status: 'connected' | 'disconnected' | 'error' };
+export type LmsBranchTheme = { id: string; branchId: string; primaryColor: string; logoUrl: string; customDomain?: string };
 
 export type LmsState = {
   version: number; nextId: number;
@@ -419,4 +429,8 @@ export type LmsState = {
   payments: LmsPayment[]; receipts: LmsReceipt[]; notifications: LmsNotification[];
   resources: LmsResource[]; resourceBookmarks: LmsResourceBookmark[]; classSessions: LmsClassSession[]; goals: LmsGoal[]; events: EventItem[];
   notes: LmsNote[];
+  betaPrograms: LmsBetaProgram[]; roadmapFeatures: LmsRoadmapFeature[];
+  executiveDecisions: LmsExecutiveDecision[]; globalCampaigns: LmsGlobalCampaign[];
+  customRoles: LmsCustomRole[]; roleRequests: LmsRoleRequest[]; auditLogs: LmsAuditLog[];
+  workflows: LmsWorkflowRule[]; integrations: LmsIntegration[]; branchThemes: LmsBranchTheme[];
 };
