@@ -9,10 +9,11 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       ],
     },
     {
-      group: 'Onboarding',
+      group: 'Clients',
       items: [
         { label: 'Demo Requests', path: '/product-admin/demos', icon: 'Inbox', badge: '4' },
         { label: 'Clients', path: '/product-admin/clients', icon: 'Building2' },
+        { label: 'Client Admins', path: '/product-admin/admins', icon: 'ShieldCheck' },
       ],
     },
     {
@@ -21,6 +22,13 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
         { label: 'Plans & Pricing', path: '/product-admin/plans', icon: 'Tags' },
         { label: 'Feature Toggles', path: '/product-admin/features', icon: 'ToggleLeft' },
         { label: 'White-label', path: '/product-admin/white-label', icon: 'Palette' },
+      ],
+    },
+    {
+      group: 'Analytics & Billing',
+      items: [
+        { label: 'Usage & Adoption', path: '/product-admin/analytics', icon: 'FileBarChart' },
+        { label: 'Billing & Invoices', path: '/product-admin/billing', icon: 'Receipt' },
       ],
     },
     {
@@ -49,17 +57,23 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       ],
     },
     {
-      group: 'Organizations',
+      group: 'Organization',
       items: [
-        { label: 'Institutions', path: '/super-admin/institutions', icon: 'Building' },
         { label: 'Branches', path: '/super-admin/branches', icon: 'Network' },
+        { label: 'Inter-Branch Transfer', path: '/super-admin/inter-branch-transfer', icon: 'ArrowRightLeft' },
+      ],
+    },
+    {
+      group: 'Academics',
+      items: [
+        { label: 'Global Curriculum', path: '/super-admin/curriculum', icon: 'BookOpen' },
       ],
     },
     {
       group: 'Users',
       items: [
-        { label: 'Admin Management', path: '/super-admin/admins', icon: 'ShieldCheck' },
         { label: 'All Users', path: '/super-admin/users', icon: 'Users' },
+        { label: 'Alumni Network', path: '/super-admin/alumni', icon: 'GraduationCap' },
       ],
     },
     {
@@ -67,15 +81,16 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
       items: [
         { label: 'Revenue', path: '/super-admin/revenue', icon: 'TrendingUp' },
         { label: 'Consolidated Reports', path: '/super-admin/reports', icon: 'FileBarChart' },
+        { label: 'Decision Center', path: '/super-admin/executive-center', icon: 'Lightbulb' },
+        { label: 'Data Quality', path: '/super-admin/data-quality', icon: 'Database' },
       ],
     },
     {
-      group: 'Executive Add-Ons',
+      group: 'Comms & Compliance',
       items: [
-        { label: 'Inter-Branch Transfer', path: '/super-admin/inter-branch-transfer', icon: 'Network' },
-        { label: 'Decision Center', path: '/super-admin/executive-center', icon: 'Lightbulb' },
         { label: 'Campaigns', path: '/super-admin/campaigns', icon: 'Megaphone' },
-        { label: 'Data Quality', path: '/super-admin/data-quality', icon: 'Database' },
+        { label: 'Emergency Broadcast', path: '/super-admin/broadcast', icon: 'Radio' },
+        { label: 'Compliance Reports', path: '/super-admin/compliance', icon: 'FileCheck' },
       ],
     },
     {

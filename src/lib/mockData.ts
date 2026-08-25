@@ -371,7 +371,12 @@ export const lmsDemoSeed: LmsState = {
   roleRequests: [],
   auditLogs: [],
   workflows: [],
-  integrations: [],
+  integrations: [
+    { id: 'int_001', provider: 'Zoom', category: 'Video Conferencing', status: 'connected' },
+    { id: 'int_002', provider: 'Google Workspace', category: 'Authentication & Drive', status: 'connected' },
+    { id: 'int_003', provider: 'Razorpay', category: 'Payment Gateway', status: 'disconnected' },
+    { id: 'int_004', provider: 'Slack', category: 'Communication', status: 'error' }
+  ],
   branchThemes: [],
 };
 

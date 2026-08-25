@@ -6,7 +6,8 @@ import {
   CalendarOff, CalendarDays, Plug, Award, Calendar, Video, PlayCircle, CheckSquare,
   ClipboardList, FileQuestion, FolderOpen, MessagesSquare, UserCircle, NotebookPen,
   BookOpen, Sparkles, LogOut, Menu, X, Search, Bell, ChevronDown, Settings,
-  LifeBuoy, Building, ShieldCheck, Leaf, Lightbulb, Megaphone, Database, Clock, Map
+  LifeBuoy, Building, ShieldCheck, Leaf, Lightbulb, Megaphone, Database, Clock, Map,
+  Receipt, ArrowRightLeft, FileCheck, Radio, Activity, Workflow, Link, Shield, ArrowRight
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
@@ -22,7 +23,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   CalendarOff, CalendarDays, Plug, Award, Calendar, Video, PlayCircle, CheckSquare,
   ClipboardList, FileQuestion, FolderOpen, MessagesSquare, UserCircle, NotebookPen,
   BookOpen, Sparkles, Settings, LifeBuoy, Building, ShieldCheck,
-  Leaf, Lightbulb, Megaphone, Database, Clock, Map,
+  Leaf, Lightbulb, Megaphone, Database, Clock, Map, Receipt, ArrowRightLeft, FileCheck, Radio, Activity, Workflow, Link, Shield, ArrowRight
 };
 
 export function DashboardLayout({ children }: { children: ReactNode }) {

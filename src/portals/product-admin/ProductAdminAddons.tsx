@@ -535,3 +535,101 @@ export function RoadmapManager() {
     </div>
   );
 }
+
+export function UsageAnalytics() {
+  const { setFeedback } = useLmsData();
+  const usageData = [
+    { id: '1', client: 'Acme School', dau: 1200, mau: 15000, featureAdoption: '78%', storageUsed: '120GB' },
+    { id: '2', client: 'Global Tech', dau: 850, mau: 11200, featureAdoption: '65%', storageUsed: '85GB' },
+    { id: '3', client: 'Sunrise High', dau: 2100, mau: 24000, featureAdoption: '89%', storageUsed: '250GB' },
+    { id: '4', client: 'Tech Institute', dau: 3400, mau: 42000, featureAdoption: '92%', storageUsed: '512GB' },
+    { id: '5', client: 'EduCorp', dau: 520, mau: 6800, featureAdoption: '45%', storageUsed: '40GB' },
+  ];
+
+  return (
+    <div>
+      <PageHeader 
+        title="Usage Analytics" 
+        subtitle="Platform adoption, DAU/MAU, and feature usage across clients" 
+        actions={<Button variant="outline" icon={Download} onClick={() => setFeedback({ kind: 'success', message: 'Exporting usage report...' })}>Export Report</Button>}
+      />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Total DAU" value="4.1k" icon={Users} color="primary" />
+        <StatCard label="Total MAU" value="50.2k" icon={Activity} color="success" />
+        <StatCard label="Avg Feature Adoption" value="77%" icon={Sparkles} color="accent" />
+        <StatCard label="Total Storage Used" value="455GB" icon={FileText} color="warning" />
+      </div>
+      <Card>
+        <CardHeader title="Client Usage Metrics" />
+        <DataTable
+          columns={[
+            { key: 'client', label: 'Client', render: (r) => <span className="font-medium text-ink-900">{r.client}</span> },
+            { key: 'dau', label: 'DAU', render: (r) => r.dau.toLocaleString() },
+            { key: 'mau', label: 'MAU', render: (r) => r.mau.toLocaleString() },
+            { key: 'featureAdoption', label: 'Feature Adoption' },
+            { key: 'storageUsed', label: 'Storage Used' },
+          ]}
+          data={usageData}
+        />
+      </Card>
+    </div>
+  );
+}
+
+export function BillingInvoicing() {
+  const [invoices, setInvoices] = useState([
+    { id: 'INV-2026-001', client: 'Acme School', amount: 25000, date: '2026-08-01', status: 'Paid' },
+    { id: 'INV-2026-002', client: 'Global Tech', amount: 45000, date: '2026-08-05', status: 'Failed' },
+    { id: 'INV-2026-003', client: 'Sunrise High', amount: 15000, date: '2026-08-10', status: 'Pending' },
+    { id: 'INV-2026-004', client: 'Tech Institute', amount: 32000, date: '2026-08-12', status: 'Paid' },
+    { id: 'INV-2026-005', client: 'EduCorp', amount: 9500, date: '2026-08-15', status: 'Pending' },
+  ]);
+
+  const { setFeedback } = useLmsData();
+
+  const retryPayment = (id: string) => {
+    setFeedback({ kind: 'info', message: `Retrying payment for invoice ${id}...` });
+    setTimeout(() => {
+      setInvoices(invoices.map(inv => inv.id === id ? { ...inv, status: 'Paid' } : inv));
+      setFeedback({ kind: 'success', message: `Payment successful for invoice ${id}.` });
+    }, 1500);
+  };
+
+  return (
+    <div>
+      <PageHeader 
+        title="Billing & Invoicing" 
+        subtitle="Manage subscriptions, generate invoices, and handle payments" 
+      />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="MRR" value="₹2.43L" icon={DollarSign} color="success" />
+        <StatCard label="Pending Payments" value="₹15k" icon={Clock} color="warning" />
+        <StatCard label="Failed Payments" value="₹45k" icon={ShieldAlert} color="error" />
+        <StatCard label="Active Subscriptions" value="12" icon={CheckCircle} color="primary" />
+      </div>
+      <Card>
+        <CardHeader title="Recent Invoices" />
+        <DataTable
+          columns={[
+            { key: 'id', label: 'Invoice ID', render: (r) => <span className="font-mono text-xs text-ink-600">{r.id}</span> },
+            { key: 'client', label: 'Client', render: (r) => <span className="font-medium text-ink-900">{r.client}</span> },
+            { key: 'date', label: 'Date' },
+            { key: 'amount', label: 'Amount', render: (r) => `₹${r.amount.toLocaleString()}` },
+            { key: 'status', label: 'Status', render: (r) => (
+              <Badge variant={r.status === 'Paid' ? 'success' : r.status === 'Pending' ? 'warning' : 'error'}>{r.status}</Badge>
+            ) },
+            { key: 'actions', label: '', render: (r) => (
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="ghost" icon={Download} onClick={() => setFeedback({ kind: 'success', message: `Downloading invoice ${r.id}...` })}>Download</Button>
+                {r.status === 'Failed' && (
+                  <Button size="sm" variant="outline" className="text-error-600 border-error-200 hover:bg-error-50" onClick={() => retryPayment(r.id)}>Retry</Button>
+                )}
+              </div>
+            ) },
+          ]}
+          data={invoices}
+        />
+      </Card>
+    </div>
+  );
+}

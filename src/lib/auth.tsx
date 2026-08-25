@@ -245,9 +245,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const impersonate = useCallback((role: UserRole, institutionId: string) => {
+    if (!profile) return;
+    setProfile({
+      ...profile,
+      role,
+      institutionId,
+    });
+  }, [profile]);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, session, profile, loading, signIn, signOut, updateProfileAvatar }),
-    [user, session, profile, loading, signIn, signOut, updateProfileAvatar],
+    () => ({ user, session, profile, loading, signIn, signOut, updateProfileAvatar, impersonate }),
+    [user, session, profile, loading, signIn, signOut, updateProfileAvatar, impersonate]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

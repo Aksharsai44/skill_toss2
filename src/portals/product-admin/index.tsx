@@ -12,9 +12,10 @@ import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Tabs';
 import { RevenueAreaChart } from '@/components/ui/Charts';
-import { clients, demoRequests, revenueData, featureCatalog, supportTickets } from '@/lib/mockData';
-import type { Client, DemoRequest, Ticket, TicketMessage } from '@/lib/types';
+import { clients, demoRequests, revenueData, featureCatalog, supportTickets, adminUsers, institutions } from '@/lib/mockData';
+import type { Client, DemoRequest, Ticket, TicketMessage, AdminUser, Institution } from '@/lib/types';
 import { cn } from '@/lib/cn';
+import { useAuth } from '@/lib/authContext';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Video, CreditCard, MessageCircle, Calendar, Sparkles, Fingerprint, Award, MessagesSquare, BookOpen, Home, Bus
@@ -283,6 +284,7 @@ export function DemoRequests() {
 }
 
 export function Clients() {
+  const { impersonate } = useAuth();
   const [selected, setSelected] = useState<Client | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [localClients, setLocalClients] = useState(clients);
@@ -365,6 +367,9 @@ export function Clients() {
                 setSelected(null);
               }}>Delete Client</button>
               <button className="btn-secondary" onClick={() => setIsEditing(true)}>Edit Client</button>
+              <button className="btn-primary" onClick={() => impersonate('super_admin', selected.id)}>
+                <Fingerprint className="w-4 h-4 mr-2" /> Impersonate
+              </button>
             </div>
           </div>
         )}
@@ -1003,4 +1008,115 @@ export function CustomerSupport() {
   );
 }
 
-export { AiFeatureLab, SystemHealthMap, SlaDashboard, RoadmapManager, WorkflowAutomation, IntegrationHub } from './ProductAdminAddons';
+export function AdminManagement() {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [localAdmins, setLocalAdmins] = useState(adminUsers);
+
+  const filteredAdmins = localAdmins.filter(u => 
+    u.role !== 'admin' && 
+    (u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  return (
+    <div>
+      <PageHeader title="Admin Management" subtitle="Manage super admins and product admins" actions={<button className="btn-primary" onClick={() => setIsAdding(true)}><Plus className="w-4 h-4" /> Add Admin</button>} />
+      <Card>
+        <CardHeader title="All Admins" action={
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+            <input 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search admins..." 
+              className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-64" 
+            />
+          </div>
+        } />
+        <DataTable<AdminUser>
+          columns={[
+            { key: 'name', label: 'Name', render: (u) => <span className="font-medium text-ink-800">{u.name}</span> },
+            { key: 'email', label: 'Email' },
+            { key: 'role', label: 'Role', render: (u) => (
+              <Badge variant={u.role === 'super_admin' ? 'error' : u.role === 'product_admin' ? 'warning' : 'primary'}>
+                {u.role.replace('_', ' ')}
+              </Badge>
+            ) },
+            { key: 'institution', label: 'Institution' },
+            { key: 'status', label: 'Status', render: (u) => <StatusBadge status={u.status} /> },
+            { key: 'actions', label: '', render: (u) => (
+              <div className="flex gap-2 justify-end">
+                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium" onClick={() => setEditingAdmin(u)}>Edit</button>
+                <button className="text-error-600 hover:text-error-700 text-sm font-medium" onClick={() => setLocalAdmins(localAdmins.filter(x => x.id !== u.id))}>Delete</button>
+              </div>
+            ) },
+          ]}
+          data={filteredAdmins}
+        />
+      </Card>
+
+      <Modal open={isAdding || !!editingAdmin} onClose={() => { setIsAdding(false); setEditingAdmin(null); }} title={editingAdmin ? "Edit Admin" : "Add Admin"} size="md">
+        <form className="space-y-4" onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          
+          if (editingAdmin) {
+            const updated = {
+              ...editingAdmin,
+              name: fd.get('name') as string,
+              email: fd.get('email') as string,
+              role: fd.get('role') as AdminUser['role'],
+              institution: fd.get('institution') as string,
+            };
+            setLocalAdmins(localAdmins.map(a => a.id === editingAdmin.id ? updated : a));
+            setEditingAdmin(null);
+          } else {
+            const newAdmin: AdminUser = {
+              id: `usr-${Date.now()}`,
+              name: fd.get('name') as string,
+              email: fd.get('email') as string,
+              role: fd.get('role') as AdminUser['role'],
+              institution: fd.get('institution') as string,
+              status: 'active'
+            };
+            setLocalAdmins([newAdmin, ...localAdmins]);
+            setIsAdding(false);
+          }
+        }}>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="label">Full Name</label>
+              <input name="name" required className="input" defaultValue={editingAdmin?.name} placeholder="e.g. Sarah Connor" />
+            </div>
+            <div className="col-span-2">
+              <label className="label">Email Address</label>
+              <input name="email" type="email" required className="input" defaultValue={editingAdmin?.email} placeholder="sarah@example.com" />
+            </div>
+            <div>
+              <label className="label">Role</label>
+              <select name="role" className="input" defaultValue={editingAdmin?.role}>
+                <option value="super_admin">Super Admin</option>
+                <option value="product_admin">Product Admin</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Institution</label>
+              <select name="institution" className="input" defaultValue={editingAdmin?.institution || 'None (Global)'}>
+                <option value="None (Global)">None (Global)</option>
+                {institutions.map(i => <option key={i.id} value={i.name}>{i.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className="btn-secondary" onClick={() => { setIsAdding(false); setEditingAdmin(null); }}>Cancel</button>
+            <button type="submit" className="btn-primary">{editingAdmin ? "Save Changes" : "Add Admin"}</button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
+export { AiFeatureLab, SystemHealthMap, SlaDashboard, RoadmapManager, WorkflowAutomation, IntegrationHub, UsageAnalytics, BillingInvoicing } from './ProductAdminAddons';

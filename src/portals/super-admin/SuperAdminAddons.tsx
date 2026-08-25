@@ -367,3 +367,184 @@ export function DataQualityMonitoring() {
     </div>
   );
 }
+
+export function GlobalCurriculum() {
+  const [resources, setResources] = useState([
+    { id: 'RES-01', title: 'Standard Grade 10 Math Syllabus', type: 'Syllabus', branches: 'All Branches', status: 'Published' },
+    { id: 'RES-02', title: 'Advanced Science Lab Manual', type: 'Lab Manual', branches: 'Select Branches (3)', status: 'Draft' },
+    { id: 'RES-03', title: 'Q3 Assessment Guidelines', type: 'Guidelines', branches: 'All Branches', status: 'Published' },
+    { id: 'RES-04', title: 'Teacher Training Module - AI', type: 'Training', branches: 'All Branches', status: 'Published' },
+    { id: 'RES-05', title: 'Extracurricular Planning Kit', type: 'Guidelines', branches: 'All Branches', status: 'Draft' },
+  ]);
+
+  const { setFeedback } = useLmsData();
+
+  return (
+    <div>
+      <PageHeader 
+        title="Global Curriculum & Resources" 
+        subtitle="Manage and distribute standardized curriculums across all branches" 
+        actions={<Button icon={Plus} onClick={() => setFeedback({ kind: 'info', message: 'Opening resource creator...' })}>Add Resource</Button>}
+      />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Total Resources" value="1,245" icon={Database} color="primary" />
+        <StatCard label="Published" value="1,102" icon={Check} color="success" />
+        <StatCard label="In Draft" value="143" icon={FileText} color="warning" />
+        <StatCard label="Branches Syncing" value="8" icon={Monitor} color="accent" />
+      </div>
+      <Card>
+        <CardHeader title="Curriculum Repository" />
+        <DataTable
+          columns={[
+            { key: 'title', label: 'Resource Title', render: (r) => <span className="font-medium text-ink-900">{r.title}</span> },
+            { key: 'type', label: 'Type' },
+            { key: 'branches', label: 'Target Branches' },
+            { key: 'status', label: 'Status', render: (r) => (
+              <Badge variant={r.status === 'Published' ? 'success' : 'warning'}>{r.status}</Badge>
+            ) },
+            { key: 'actions', label: '', render: (r) => (
+              <button onClick={() => setFeedback({ kind: 'info', message: `Editing resource ${r.id}` })} className="text-primary-600 text-sm font-medium hover:underline">Edit</button>
+            ) },
+          ]}
+          data={resources}
+        />
+      </Card>
+    </div>
+  );
+}
+
+export function ComplianceReporting() {
+  const { setFeedback } = useLmsData();
+  const [reports, setReports] = useState([
+    { id: 'REP-01', branch: 'Mumbai Campus', category: 'Safety Compliance', score: 98, lastAudit: '2026-07-15' },
+    { id: 'REP-02', branch: 'Delhi Campus', category: 'Accreditation', score: 100, lastAudit: '2026-06-20' },
+    { id: 'REP-03', branch: 'Bangalore Campus', category: 'Diversity Metrics', score: 85, lastAudit: '2026-08-05' },
+    { id: 'REP-04', branch: 'Chennai Campus', category: 'Safety Compliance', score: 92, lastAudit: '2026-07-10' },
+    { id: 'REP-05', branch: 'Hyderabad Campus', category: 'Accreditation', score: 88, lastAudit: '2026-05-12' },
+  ]);
+
+  return (
+    <div>
+      <PageHeader 
+        title="Compliance & Accreditation" 
+        subtitle="Track safety compliance, diversity metrics, and accreditation across branches" 
+        actions={<Button variant="outline" icon={FileText} onClick={() => setFeedback({ kind: 'success', message: 'Generating report...' })}>Generate Report</Button>}
+      />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Avg Compliance Score" value="94%" icon={Shield} color="success" />
+        <StatCard label="Pending Audits" value="2" icon={AlertTriangle} color="warning" />
+        <StatCard label="Fully Accredited" value="8/8" icon={Check} color="primary" />
+        <StatCard label="Critical Issues" value="0" icon={ShieldAlert} color="error" />
+      </div>
+      <Card>
+        <CardHeader title="Branch Compliance Overview" />
+        <DataTable
+          columns={[
+            { key: 'branch', label: 'Branch', render: (r) => <span className="font-medium text-ink-900">{r.branch}</span> },
+            { key: 'category', label: 'Category' },
+            { key: 'lastAudit', label: 'Last Audit Date' },
+            { key: 'score', label: 'Score', render: (r) => (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 bg-ink-100 rounded-full overflow-hidden w-24">
+                  <div className={`h-full ${r.score >= 90 ? 'bg-success-500' : r.score >= 70 ? 'bg-warning-500' : 'bg-error-500'}`} style={{ width: `${r.score}%` }} />
+                </div>
+                <span className="text-xs text-ink-500">{r.score}%</span>
+              </div>
+            ) },
+            { key: 'actions', label: '', render: (r) => (
+              <button onClick={() => setFeedback({ kind: 'info', message: `Viewing details for ${r.branch}` })} className="text-primary-600 text-sm font-medium hover:underline">View Details</button>
+            ) },
+          ]}
+          data={reports}
+        />
+      </Card>
+    </div>
+  );
+}
+
+export function EmergencyBroadcast() {
+  const [broadcasts, setBroadcasts] = useState([
+    { id: 'BRD-01', title: 'Campus Closure due to weather', target: 'Mumbai Campus', sentDate: '2026-08-10', deliveryRate: '98%' },
+    { id: 'BRD-02', title: 'System Maintenance Alert', target: 'All Campuses', sentDate: '2026-07-22', deliveryRate: '99%' },
+    { id: 'BRD-03', title: 'Emergency Drill Notification', target: 'Delhi Campus', sentDate: '2026-08-20', deliveryRate: '100%' },
+    { id: 'BRD-04', title: 'COVID-19 Advisory Update', target: 'All Campuses', sentDate: '2026-06-15', deliveryRate: '95%' },
+  ]);
+
+  const { setFeedback } = useLmsData();
+
+  return (
+    <div>
+      <PageHeader 
+        title="Emergency Broadcast" 
+        subtitle="Send critical SMS and App notifications to entire campuses instantly" 
+        actions={<Button icon={Megaphone} className="bg-error-600 hover:bg-error-700" onClick={() => setFeedback({ kind: 'info', message: 'Opening broadcast composer...' })}>New Broadcast</Button>}
+      />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Total Sent (YTD)" value="12" icon={Send} color="primary" />
+        <StatCard label="Avg Delivery Rate" value="98.5%" icon={Check} color="success" />
+        <StatCard label="Failed Deliveries" value="45" icon={AlertTriangle} color="error" />
+        <StatCard label="Active Templates" value="8" icon={FileText} color="warning" />
+      </div>
+      <Card>
+        <CardHeader title="Recent Broadcasts" />
+        <DataTable
+          columns={[
+            { key: 'title', label: 'Message Title', render: (r) => <span className="font-medium text-ink-900">{r.title}</span> },
+            { key: 'target', label: 'Target Audience' },
+            { key: 'sentDate', label: 'Sent Date' },
+            { key: 'deliveryRate', label: 'Delivery Rate', render: (r) => (
+               <Badge variant="success">{r.deliveryRate}</Badge>
+            ) },
+            { key: 'actions', label: '', render: (r) => (
+              <button onClick={() => setFeedback({ kind: 'info', message: `Viewing report for ${r.id}` })} className="text-primary-600 text-sm font-medium hover:underline">View Report</button>
+            ) },
+          ]}
+          data={broadcasts}
+        />
+      </Card>
+    </div>
+  );
+}
+
+export function AlumniNetwork() {
+  const { setFeedback } = useLmsData();
+  const [alumni, setAlumni] = useState([
+    { id: 'AL-01', name: 'Rohan Gupta', branch: 'Delhi Campus', gradYear: '2015', industry: 'Technology', donations: 50000 },
+    { id: 'AL-02', name: 'Sneha Patel', branch: 'Mumbai Campus', gradYear: '2018', industry: 'Healthcare', donations: 12000 },
+    { id: 'AL-03', name: 'Vikram Singh', branch: 'Bangalore Campus', gradYear: '2012', industry: 'Finance', donations: 150000 },
+    { id: 'AL-04', name: 'Anjali Desai', branch: 'Chennai Campus', gradYear: '2020', industry: 'Education', donations: 5000 },
+    { id: 'AL-05', name: 'Karan Malhotra', branch: 'Hyderabad Campus', gradYear: '2016', industry: 'Business', donations: 25000 },
+  ]);
+
+  return (
+    <div>
+      <PageHeader 
+        title="Global Alumni Network" 
+        subtitle="Manage cross-branch alumni directories and track donations" 
+        actions={<Button icon={Plus} onClick={() => setFeedback({ kind: 'info', message: 'Opening alumni form...' })}>Add Alumni</Button>}
+      />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Total Alumni" value="12.5k" icon={Users} color="primary" />
+        <StatCard label="Engaged Alumni" value="4.2k" icon={Target} color="success" />
+        <StatCard label="Total Donations" value="₹4.5L" icon={TrendingUp} color="warning" />
+        <StatCard label="Mentorship Matches" value="142" icon={Users} color="accent" />
+      </div>
+      <Card>
+        <CardHeader title="Alumni Directory" />
+        <DataTable
+          columns={[
+            { key: 'name', label: 'Name', render: (r) => <span className="font-medium text-ink-900">{r.name}</span> },
+            { key: 'branch', label: 'Graduated From' },
+            { key: 'gradYear', label: 'Class Of' },
+            { key: 'industry', label: 'Industry' },
+            { key: 'donations', label: 'Total Donations', render: (r) => `₹${r.donations.toLocaleString()}` },
+            { key: 'actions', label: '', render: (r) => (
+              <button onClick={() => setFeedback({ kind: 'info', message: `Viewing profile for ${r.name}` })} className="text-primary-600 text-sm font-medium hover:underline">View Profile</button>
+            ) },
+          ]}
+          data={alumni}
+        />
+      </Card>
+    </div>
+  );
+}
