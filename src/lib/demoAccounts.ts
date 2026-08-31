@@ -1,4 +1,3 @@
-import { isSupabaseConfigured } from '@/lib/supabase';
 import type { UserProfile } from '@/lib/types';
 
 /**
@@ -18,7 +17,7 @@ export type DemoAccount = {
   /** Button label shown in Demo Quick Select. */
   label: string;
   email: string;
-  /** Local fallback profile resolved by `signIn` when Supabase config is a placeholder. */
+  /** Local fallback profile resolved by `signIn` while demo sign-in is enabled for the build. */
   profile: UserProfile;
 };
 
@@ -97,20 +96,31 @@ export const DEMO_PROFILES: Record<string, UserProfile> = Object.fromEntries(
 );
 
 /**
- * True while Supabase uses placeholder configuration, when there is no Auth service to talk
- * to at all.
- */
-export const isDemoProfileFallbackActive = !isSupabaseConfigured;
-
-/**
  * Demo sign-in is on for every `npm run dev` session, and off in a production build unless
  * `VITE_ENABLE_DEMO_LOGIN=true` is set for that build.
  *
- * `import.meta.env.DEV` is statically false in a production bundle, so the demo branch is
- * dropped at build time rather than merely skipped at runtime.
+ * Both operands are build-time literals — Vite inlines `import.meta.env.DEV` as `false` and the
+ * unset flag as `undefined` — so an ordinary production build folds this to a constant `false`
+ * (verified in `dist/`: the minified binding is `!1`) and drops every guarded branch, including
+ * Demo Quick Select and the `signIn` fallback. `DEMO_PASSWORD` has no surviving reference and
+ * leaves the bundle with them.
+ *
+ * Keep both operands build-time literals. An earlier revision also OR-ed in
+ * `!isSupabaseConfigured`, which is a runtime term, so the expression stayed live and shipped
+ * the guarded branches and `DEMO_PASSWORD` into `dist/` to be skipped at runtime instead of
+ * being absent.
+ *
+ * `DEMO_ACCOUNTS`/`DEMO_PROFILES` are still emitted regardless: the `Object.fromEntries(...)`
+ * call below is top-level, so Rollup cannot prove it side-effect-free and retains the table even
+ * with no live reader. That leaves six fake names and unroutable addresses in the bundle, which
+ * the same seed identities in `mockData.ts` ship anyway — no secret is involved, so it is not
+ * worth restructuring for.
+ *
+ * A placeholder Supabase configuration deliberately does not enable demo sign-in. That state
+ * means a broken deployment, and minting local sessions would mask the misconfiguration rather
+ * than surface it; local development already qualifies through `DEV`.
  */
-export const isDemoLoginEnabled = isDemoProfileFallbackActive
-  || import.meta.env.DEV
+export const isDemoLoginEnabled = import.meta.env.DEV
   || import.meta.env.VITE_ENABLE_DEMO_LOGIN === 'true';
 
 /** Whether Demo Quick Select renders. It only ever prefills the sign-in form. */

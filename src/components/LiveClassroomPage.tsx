@@ -186,7 +186,7 @@ export function LiveClassroomPage({ role }: LiveClassroomPageProps) {
           />
         </div>
 
-        <div className="grid gap-5 border-b border-x border-ink-200 rounded-b-card bg-white px-4 py-4 sm:grid-cols-2 sm:px-5 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 border-b border-x border-ink-200 rounded-b-card bg-white px-4 py-4 sm:grid-cols-2 sm:px-5 lg:grid-cols-3">
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Class information</h2>
             <p className="mt-2 text-sm font-medium text-ink-800">{batch?.name} · {course?.code}</p>

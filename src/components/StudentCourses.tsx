@@ -54,7 +54,7 @@ export function StudentCourses() {
       {courses.length === 0 ? (
         <Card><EmptyState icon={PlayCircle} title="No courses assigned to your batch" description={`No course in ${state.institution.name} currently lists ${batch?.name ?? 'your batch'}. Once an admin assigns one, it appears here.`} /></Card>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {courses.map((course) => {
             const teacher = state.teachers.find((item) => item.id === course.teacherId);
             const department = state.departments.find((item) => item.id === course.departmentId);
@@ -145,7 +145,7 @@ function CourseDetail({ courseId, onBack }: { courseId: string; onBack: () => vo
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader title="Assignments" subtitle="Your submission status for this course" />
           {assignments.length === 0 ? (

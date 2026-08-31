@@ -62,7 +62,9 @@ const receiptText = (fields: { institution: string; receiptId?: string; studentN
 export function StudentDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const { viewerRole, linkedStudents, selectedStudentId, selectedStudent: currentChild, permissions, selectStudent } = useStudentPortal();
+  // The linked-student switcher lives in `DashboardLayout` so it is reachable from every
+  // Student/Parent route; the dashboard deliberately does not render a second copy.
+  const { viewerRole, selectedStudent: currentChild, permissions } = useStudentPortal();
   const { state, getStudentPortalInsights, getStudentAssignments, getStudentFees } = useLmsData();
   const isParent = viewerRole === 'parent';
 
@@ -111,32 +113,6 @@ export function StudentDashboard() {
             {isParent ? `Viewing ${currentChild.name}'s learning overview` : `Welcome back, ${studentName} — here's your learning overview`}
           </p>
         </div>
-
-        {/* Parent Child Selector Dropdown */}
-        {isParent && (
-          <div className="relative bg-white border border-ink-300 rounded-control px-3.5 py-2 shadow-soft flex items-center gap-3 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/25">
-            <GraduationCap className="w-5 h-5 text-primary-600 shrink-0" />
-            <div className="text-left">
-              <p className="text-[11px] uppercase font-semibold tracking-[0.08em] text-ink-500">Viewing child</p>
-              {linkedStudents.length > 1 ? (
-                <select
-                  aria-label="Select student to view"
-                  value={selectedStudentId ?? ''}
-                  onChange={(e) => selectStudent(e.target.value)}
-                  className="text-sm font-semibold text-ink-900 bg-transparent border-none p-0 focus:outline-none cursor-pointer pr-6 min-w-44"
-                >
-                  {linkedStudents.map((child) => (
-                    <option key={child.id} value={child.id}>
-                      {child.name} ({child.batch})
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p className="text-sm font-semibold text-ink-900">{currentChild.name}</p>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Compact operational summary */}
@@ -216,7 +192,7 @@ export function StudentDashboard() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5 lg:gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 items-start">
         {/* Main Left Column (2 Cols) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Today Timeline */}
@@ -484,7 +460,7 @@ export function StudentAttendance() {
     <div className="grid grid-cols-2 lg:grid-cols-4 border-y border-ink-200 divide-x divide-y lg:divide-y-0 divide-ink-200 bg-white mb-6">
       {[['Overall', `${summary.attendance}%`], ['This month', `${insights.monthAttendance}%`], ['Attended / conducted', `${summary.attended} / ${summary.conducted}`], ['Required minimum', '75%']].map(([label, value]) => <div key={label} className="p-4"><p className="text-[11px] uppercase tracking-wide font-semibold text-ink-500">{label}</p><p className="text-2xl font-bold text-ink-900 mt-2" data-kpi-value>{value}</p></div>)}
     </div>
-    <div className="grid lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,0.8fr)] gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,0.8fr)] gap-6 items-start">
       <section aria-labelledby="subject-attendance"><div className="mb-3"><h2 id="subject-attendance" className="font-semibold text-ink-900">Subject-wise attendance</h2><p className="text-xs text-ink-500 mt-1">Late arrivals count as attended; excused sessions are excluded from conducted classes.</p></div><Card><DataTable columns={[
         { key: 'subject', label: 'Subject', render: (row) => <div><p className="font-medium text-ink-900">{row.subject}</p><p className="text-[11px] text-ink-500">{row.code}</p></div> },
         { key: 'classes', label: 'Attended', render: (row) => `${row.attended} / ${row.conducted}` },
@@ -513,7 +489,7 @@ export function StudentResults() {
     <div className="grid grid-cols-2 lg:grid-cols-4 border-y border-ink-200 divide-x divide-y lg:divide-y-0 divide-ink-200 bg-white mb-6">
       {[['Overall performance', `${summary.overallPerformance}%`], ['Semester average', `${insights.semesterAverage}%`], ['Strongest subject', strongest?.subject ?? 'Not available'], ['Needs attention', needsAttention?.subject ?? 'Not available']].map(([label, value]) => <div key={label} className="p-4 min-w-0"><p className="text-[11px] uppercase tracking-wide font-semibold text-ink-500">{label}</p><p className="text-lg lg:text-xl font-bold text-ink-900 mt-2 truncate" title={value}>{value}</p></div>)}
     </div>
-    <div className="grid lg:grid-cols-2 gap-6 mb-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <section className="border-b lg:border-b-0 lg:border-r border-ink-200 pb-5 lg:pb-0 lg:pr-6"><h2 className="font-semibold text-ink-900">Subject performance</h2><div className="mt-4 space-y-4">{insights.subjectPerformance.map((subject) => <div key={subject.courseId}><div className="flex justify-between gap-4 text-sm"><span className="font-medium text-ink-800">{subject.subject}</span><span className="font-semibold text-ink-900">{subject.percentage}%</span></div><div className="h-1.5 bg-ink-100 rounded-full overflow-hidden mt-1.5"><div className="h-full bg-primary-600 rounded-full" style={{ width: `${subject.percentage}%` }} /></div><p className="text-[11px] text-ink-500 mt-1">{subject.assessmentCount} assessed item{subject.assessmentCount === 1 ? '' : 's'}</p></div>)}</div></section>
       <section><h2 className="font-semibold text-ink-900">Performance trend</h2><div className="mt-4 flex items-center gap-3"><div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', insights.performanceTrend >= 0 ? 'bg-success-50 text-success-700' : 'bg-error-50 text-error-700')}><TrendingUp className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-ink-900">{insights.performanceTrend > 0 ? '+' : ''}{insights.performanceTrend}%</p><p className="text-xs text-ink-500">Recent assessment average versus earlier results</p></div></div><h3 className="font-semibold text-ink-900 mt-6">Teacher remarks</h3><div className="mt-2 divide-y divide-ink-100">{insights.teacherFeedback.slice(0, 4).map((feedback) => <div key={feedback.id} className="py-3"><p className="text-sm font-semibold text-ink-800">{feedback.title} <span className="font-normal text-ink-500">· {feedback.subject}</span></p><p className="text-sm text-ink-600 mt-1">{feedback.feedback}</p></div>)}{!insights.teacherFeedback.length && <p className="py-3 text-sm text-ink-500">No teacher remarks have been published.</p>}</div></section>
     </div>
@@ -601,8 +577,8 @@ export function StudentDigitalLocker() {
     }));
   };
   return <div><PageHeader title="Digital Locker" subtitle="Receipts and institution-issued records available in this demo browser." />
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 border-y border-ink-200 divide-x divide-y lg:divide-y-0 divide-ink-200 bg-white mb-6">{[['Certificates', 'Not issued'], ['Reports', 'Available'], ['Receipts', String(receipts.length)], ['Hall tickets', 'Not issued']].map(([label, value]) => <div key={label} className="p-4"><p className="text-xs text-ink-500">{label}</p><p className="text-lg font-semibold text-ink-950 mt-1.5 tabular-nums">{value}</p></div>)}</div>
-    <div className="grid lg:grid-cols-2 gap-6"><section><h2 className="font-semibold text-ink-900 mb-3">Available documents</h2><div className="border-y border-ink-200 divide-y divide-ink-100">{receipts.map((receipt) => <div key={receipt.id} className="py-4 flex items-center gap-3"><FolderArchive className="w-5 h-5 text-primary-700 shrink-0" aria-hidden="true" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-ink-900 truncate">Fee receipt · {receipt.reference}</p><p className="text-xs text-ink-500">₹{receipt.amount.toLocaleString('en-IN')} · {new Date(receipt.date).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p></div><button type="button" onClick={() => download(receipt)} className="btn-secondary text-xs shrink-0" aria-label={`Download fee receipt ${receipt.reference}`}><Download className="w-3.5 h-3.5" aria-hidden="true" /> Download</button></div>)}{!receipts.length && <p className="py-4 text-sm text-ink-600">No fee receipts yet. A receipt is filed here whenever a payment is recorded against an invoice.</p>}<button onClick={() => navigate('/student/reports')} className="w-full py-4 px-2 -mx-2 flex items-center gap-3 text-left hover:bg-ink-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"><FileBarChart className="w-5 h-5 text-primary-700 shrink-0" aria-hidden="true" /><span className="flex-1"><span className="block text-sm font-semibold text-ink-900">Academic report</span><span className="block text-xs text-ink-500 mt-0.5">Generated from current shared records</span></span><ChevronRight className="w-4 h-4 text-ink-400 shrink-0" aria-hidden="true" /></button></div></section><aside className="rounded-card border border-warning-200 bg-warning-50 p-4"><div className="flex gap-3"><LockKeyhole className="w-5 h-5 text-warning-700 shrink-0" aria-hidden="true" /><div><h2 className="text-sm font-semibold text-warning-900">Browser-local document access</h2><p className="text-sm leading-6 text-warning-800 mt-1.5">Receipts and metadata persist in this demo store. Teacher file attachments remain in IndexedDB and may be unavailable in another browser or device. No certificate QR verification is configured.</p></div></div></aside></div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 border-y border-ink-200 divide-x divide-y lg:divide-y-0 divide-ink-200 bg-white mb-6">{[['Certificates', 'Not issued'], ['Reports', 'Available'], ['Receipts', String(receipts.length)], ['Hall tickets', 'Not issued']].map(([label, value]) => <div key={label} className="p-4"><p className="text-xs text-ink-500">{label}</p><p className="text-lg font-semibold text-ink-950 mt-1.5 tabular-nums">{value}</p></div>)}</div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><section><h2 className="font-semibold text-ink-900 mb-3">Available documents</h2><div className="border-y border-ink-200 divide-y divide-ink-100">{receipts.map((receipt) => <div key={receipt.id} className="py-4 flex items-center gap-3"><FolderArchive className="w-5 h-5 text-primary-700 shrink-0" aria-hidden="true" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-ink-900 truncate">Fee receipt · {receipt.reference}</p><p className="text-xs text-ink-500">₹{receipt.amount.toLocaleString('en-IN')} · {new Date(receipt.date).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p></div><button type="button" onClick={() => download(receipt)} className="btn-secondary text-xs shrink-0" aria-label={`Download fee receipt ${receipt.reference}`}><Download className="w-3.5 h-3.5" aria-hidden="true" /> Download</button></div>)}{!receipts.length && <p className="py-4 text-sm text-ink-600">No fee receipts yet. A receipt is filed here whenever a payment is recorded against an invoice.</p>}<button onClick={() => navigate('/student/reports')} className="w-full py-4 px-2 -mx-2 flex items-center gap-3 text-left hover:bg-ink-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"><FileBarChart className="w-5 h-5 text-primary-700 shrink-0" aria-hidden="true" /><span className="flex-1"><span className="block text-sm font-semibold text-ink-900">Academic report</span><span className="block text-xs text-ink-500 mt-0.5">Generated from current shared records</span></span><ChevronRight className="w-4 h-4 text-ink-400 shrink-0" aria-hidden="true" /></button></div></section><aside className="rounded-card border border-warning-200 bg-warning-50 p-4"><div className="flex gap-3"><LockKeyhole className="w-5 h-5 text-warning-700 shrink-0" aria-hidden="true" /><div><h2 className="text-sm font-semibold text-warning-900">Browser-local document access</h2><p className="text-sm leading-6 text-warning-800 mt-1.5">Receipts and metadata persist in this demo store. Teacher file attachments remain in IndexedDB and may be unavailable in another browser or device. No certificate QR verification is configured.</p></div></div></aside></div>
   </div>;
 }
 
@@ -660,7 +636,7 @@ export function StudentClasses() {
           </div>
         </Card>
       )}
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Live Now" subtitle="Class currently in progress" />
           <div className="p-5">
@@ -781,7 +757,7 @@ export function StudentRecordings() {
   return (
     <div>
       <PageHeader title="Class Recordings" subtitle="Recordings published for the selected student's batch. Playback URLs are not configured in this demo." />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {visibleRecordings.map((r) => (
           <Card key={r.id} hover className="overflow-hidden">
             <div className="relative aspect-video bg-ink-100">
@@ -909,7 +885,7 @@ export function MyNotes() {
       ) : visibleNotes.length === 0 ? (
         <Card><EmptyState icon={FileSearch} title="No matching notes" description={`Nothing matches “${search.trim()}”. Clear the search to see all ${notes.length} notes.`} action={<button onClick={() => setSearch('')} className="btn-secondary">Clear search</button>} /></Card>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleNotes.map((note) => (
             <Card key={note.id} hover className="p-5">
               <div className="flex items-start justify-between mb-2">
@@ -1100,7 +1076,7 @@ export function StudentExams() {
   return (
     <div>
       <PageHeader title="Exams" subtitle={isParent ? `Exam schedule and results for ${selectedStudent?.name ?? 'your child'}` : 'Upcoming, practice and completed exams'} />
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Upcoming Exams" />
           <div className="p-4 space-y-3">
@@ -1227,7 +1203,7 @@ export function StudentCommunity() {
         <AlertTriangle className="w-5 h-5 shrink-0 text-warning-700" aria-hidden="true" />
         <p className="text-sm leading-6 text-warning-800">No messaging backend is configured. Messages you send stay in this browser tab for the current session only — nobody else receives them, and they are cleared on reload.</p>
       </div>
-      <div className="grid lg:grid-cols-3 gap-4 lg:h-[600px]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:h-[600px]">
         <Card className="p-3 overflow-y-auto scrollbar-thin">
           <h2 className="px-2 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">My channels</h2>
           <div role="group" aria-label="Community channels" className="mt-1 space-y-1">
@@ -1330,7 +1306,7 @@ export function StudentForum() {
         <AlertTriangle className="w-5 h-5 shrink-0 text-warning-700" aria-hidden="true" />
         <p className="text-sm leading-6 text-warning-800">No forum backend is configured. Existing posts are demo content, and a post you publish stays in this browser tab for the current session only — it is not visible to anyone else and is cleared on reload.</p>
       </div>
-      <div className="grid lg:grid-cols-3 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         <div className="lg:col-span-2 space-y-3">
           {posts.map((p) => (
             <Card key={p.id} className="p-5">
@@ -1381,7 +1357,7 @@ export function StudentCalendar() {
   return (
     <div>
       <PageHeader title="Calendar" subtitle={`Upcoming classes, deadlines, exams, fees and events for ${selectedStudent?.name ?? 'the selected student'}.`} />
-      <div className="border-y border-ink-200 divide-y divide-ink-100 bg-white">{Object.entries(groups).map(([date, items]) => <section key={date} className="grid sm:grid-cols-[9rem_minmax(0,1fr)] gap-3 p-4"><div><p className="text-sm font-semibold text-ink-900">{new Date(`${date}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'long' })}</p><p className="text-xs text-ink-500">{new Date(`${date}T12:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div><div className="divide-y divide-ink-100">{items.map((item) => <button key={`${item.kind}-${item.id}`} onClick={() => navigate(item.path)} className="w-full py-2.5 first:pt-0 last:pb-0 flex items-center gap-3 text-left hover:text-primary-700"><StatusBadge status={item.kind} /><span className="min-w-0 flex-1"><span className="block text-sm font-medium text-ink-900 truncate">{item.title}</span><span className="block text-xs text-ink-500">{item.detail}</span></span><span className="text-xs text-ink-500">{new Date(item.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span></button>)}</div></section>)}{!deadlines.length && <EmptyState icon={CalendarCheck} title="No upcoming calendar items" description="Scheduled classes and deadlines will appear here." />}</div>
+      <div className="border-y border-ink-200 divide-y divide-ink-100 bg-white">{Object.entries(groups).map(([date, items]) => <section key={date} className="grid grid-cols-1 sm:grid-cols-[9rem_minmax(0,1fr)] gap-3 p-4"><div><p className="text-sm font-semibold text-ink-900">{new Date(`${date}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'long' })}</p><p className="text-xs text-ink-500">{new Date(`${date}T12:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div><div className="divide-y divide-ink-100">{items.map((item) => <button key={`${item.kind}-${item.id}`} onClick={() => navigate(item.path)} className="w-full py-2.5 first:pt-0 last:pb-0 flex items-center gap-3 text-left hover:text-primary-700"><StatusBadge status={item.kind} /><span className="min-w-0 flex-1"><span className="block text-sm font-medium text-ink-900 truncate">{item.title}</span><span className="block text-xs text-ink-500">{item.detail}</span></span><span className="text-xs text-ink-500">{new Date(item.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span></button>)}</div></section>)}{!deadlines.length && <EmptyState icon={CalendarCheck} title="No upcoming calendar items" description="Scheduled classes and deadlines will appear here." />}</div>
     </div>
   );
 }
@@ -1426,7 +1402,7 @@ export function StudentFees() {
   return (
     <div>
       <PageHeader title="Fees & Payments" subtitle={viewerRole === 'parent' ? `Fee ledger for ${selectedStudent?.name ?? 'selected student'}` : 'View fee structure, pending dues & download invoices'} />
-      <div className="grid lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <Card className="p-6">
           <p className="text-sm text-ink-500">Total Fee</p>
           <p className="text-3xl font-bold font-display text-ink-950 tabular-nums mt-1">₹{fee.total.toLocaleString()}</p>
@@ -1619,7 +1595,7 @@ export function StudentProfile() {
   return (
     <div>
       <PageHeader title="Student Profile" subtitle={viewerRole === 'parent' ? `Read-only profile for ${student.name}` : 'Your contact and academic information'} actions={permissions.canEditProfile ? <button onClick={openEdit} className="btn-primary"><Edit className="w-4 h-4" /> Edit Profile</button> : undefined} />
-      <div className="grid lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="p-6 text-center">
           <img src={profile?.avatarUrl || student.avatar} alt="Profile" className="w-24 h-24 rounded-2xl bg-ink-100 mx-auto mb-4 object-cover" />
           <input ref={avatarInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="sr-only" onChange={async (event) => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setAvatarError('Choose a JPG, PNG, or WEBP image up to 5 MB.'); return; } setAvatarError(''); await updateProfileAvatar(file); }} />

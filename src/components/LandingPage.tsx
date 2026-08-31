@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { ROLES } from '@/lib/types';
 import { cn } from '@/lib/cn';
-import { enter, prefersReducedMotion, reveal } from '@/lib/motion';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -16,13 +15,14 @@ export function LandingPage() {
   useEffect(() => {
     document.documentElement.classList.add('landing-scroll');
     const sections = Array.from(document.querySelectorAll<HTMLElement>('.landing-reveal'));
-    const heroGroups = Array.from(document.querySelectorAll<HTMLElement>('.landing-hero-group'));
-    const heroAnimation = enter(heroGroups, { offset: 16, duration: 420, staggerMs: 50 });
-    if (prefersReducedMotion()) sections.forEach((section) => { section.style.opacity = '1'; });
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      sections.forEach((section) => { section.dataset.visible = 'true'; });
+      return () => document.documentElement.classList.remove('landing-scroll');
+    }
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          reveal(entry.target as HTMLElement);
+          (entry.target as HTMLElement).dataset.visible = 'true';
           observer.unobserve(entry.target);
         }
       });
@@ -30,7 +30,6 @@ export function LandingPage() {
     sections.forEach((section) => observer.observe(section));
     return () => {
       observer.disconnect();
-      heroAnimation.revert();
       document.documentElement.classList.remove('landing-scroll');
     };
   }, []);
@@ -59,10 +58,10 @@ function Nav({ onLogin }: { onLogin: () => void }) {
           <span className="font-bold font-display text-lg text-ink-900">Skill Toss</span>
         </div>
         <div className="hidden md:flex items-center gap-7 text-sm font-medium text-ink-600">
-          <a href="#features" className="hover:text-ink-900 transition-colors rounded focus-ring">Features</a>
-          <a href="#roles" className="hover:text-ink-900 transition-colors rounded focus-ring">Roles</a>
-          <a href="#automation" className="hover:text-ink-900 transition-colors rounded focus-ring">Automation</a>
-          <a href="#pricing" className="hover:text-ink-900 transition-colors rounded focus-ring">Pricing</a>
+          <a href="#features" className="hover:text-ink-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded">Features</a>
+          <a href="#roles" className="hover:text-ink-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded">Roles</a>
+          <a href="#automation" className="hover:text-ink-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded">Automation</a>
+          <a href="#pricing" className="hover:text-ink-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 rounded">Pricing</a>
         </div>
         <button onClick={onLogin} className="btn-primary text-sm">
           Sign In <ArrowRight className="w-4 h-4" />
@@ -76,11 +75,11 @@ function Hero({ onLogin }: { onLogin: () => void }) {
   return (
     <section className="border-b border-ink-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 lg:py-28 grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-        <div className="lg:col-span-7 landing-hero-group">
-        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-primary-700 mb-6">
+        <div className="lg:col-span-7 animate-slide-up">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-700 mb-6">
           Learning operations, unified
         </p>
-        <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-semibold font-display text-ink-950 leading-[1.03] tracking-[-0.032em]">
+        <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-semibold font-display text-ink-950 leading-[1.02] tracking-[-0.045em]">
           Run your institution from one accountable system.
         </h1>
         <p className="mt-7 text-base sm:text-lg leading-8 text-ink-600 max-w-xl">
@@ -104,8 +103,8 @@ function Hero({ onLogin }: { onLogin: () => void }) {
         </div>
 
         {/* Hero dashboard preview */}
-        <div className="lg:col-span-5 landing-hero-group">
-          <div className="border border-ink-300 rounded-card bg-ink-950 p-5 sm:p-6 shadow-card">
+        <div className="lg:col-span-5 animate-slide-up">
+          <div className="border border-ink-300 bg-ink-950 p-5 sm:p-6 shadow-card">
             <div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
@@ -151,9 +150,9 @@ function Hero({ onLogin }: { onLogin: () => void }) {
 
 function TrustBar() {
   return (
-    <div className="border-y border-ink-200 bg-ink-50">
+    <div className="border-y border-ink-100 bg-ink-50/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <p className="text-center text-xs uppercase tracking-[0.08em] text-ink-500 font-semibold mb-4">Built for every type of institution</p>
+        <p className="text-center text-xs uppercase tracking-wider text-ink-400 font-semibold mb-4">Built for every type of institution</p>
         <div className="flex flex-wrap items-center justify-center gap-8">
           {[
             { icon: Building2, label: 'Schools' },
@@ -188,7 +187,7 @@ function Features() {
     <section id="features" className="landing-reveal py-20 sm:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid lg:grid-cols-12 gap-5 lg:gap-12 items-end mb-12">
-          <h2 className="lg:col-span-5 text-3xl sm:text-4xl font-semibold font-display text-ink-950">One operational layer for the entire institution.</h2>
+          <h2 className="lg:col-span-5 text-3xl sm:text-4xl font-semibold font-display text-ink-950 tracking-tight">One operational layer for the entire institution.</h2>
           <p className="lg:col-span-5 lg:col-start-8 text-ink-500 leading-7">From scheduling a class to issuing a receipt, every workflow stays attached to the same student and institutional record.</p>
         </div>
         <div className="grid md:grid-cols-2 border-y border-ink-200 md:divide-x divide-ink-200">
@@ -212,7 +211,7 @@ function RolesSection({ onLogin }: { onLogin: () => void }) {
     <section id="roles" className="landing-reveal py-20 sm:py-24 bg-ink-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid lg:grid-cols-12 gap-5 lg:gap-12 items-end mb-12">
-          <h2 className="lg:col-span-6 text-3xl sm:text-4xl font-semibold font-display text-ink-950">Different responsibilities. One source of truth.</h2>
+          <h2 className="lg:col-span-6 text-3xl sm:text-4xl font-semibold font-display text-ink-950 tracking-tight">Different responsibilities. One source of truth.</h2>
           <p className="lg:col-span-4 lg:col-start-9 text-ink-500 leading-7">Each role sees the tools and records relevant to its work—without duplicating the platform.</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -221,12 +220,12 @@ function RolesSection({ onLogin }: { onLogin: () => void }) {
               <button
                 key={role.id}
                 onClick={onLogin}
-                className="p-5 text-left group cursor-pointer border-t border-ink-300 hover:bg-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40"
+                className="p-5 text-left group cursor-pointer border-t border-ink-300 hover:bg-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
               >
                 <div className="w-9 h-9 rounded-lg bg-ink-900 flex items-center justify-center text-white font-bold font-display text-sm mb-4">
                   {i + 1}
                 </div>
-                <h3 className="font-semibold text-ink-900 mb-1.5 group-hover:text-primary-700 transition-colors">{role.label}</h3>
+                <h3 className="font-semibold text-ink-900 mb-1.5 group-hover:text-primary-700 transition">{role.label}</h3>
                 <p className="text-xs text-ink-500 leading-relaxed">{role.description}</p>
                 <div className="mt-4 flex items-center gap-1 text-xs font-medium text-primary-600">
                   Explore <ChevronRight className="w-3.5 h-3.5" />
@@ -252,10 +251,10 @@ function AutomationSection() {
     <section id="automation" className="landing-reveal py-20 sm:py-24 bg-white">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <div className="mb-14 border-b border-ink-200 pb-8">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary-700 mb-4">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary-700 mb-4">
             <Zap className="w-4 h-4" /> Automation engine
           </p>
-          <h2 className="text-3xl sm:text-4xl font-semibold font-display text-ink-950 max-w-3xl">A class ends. The administrative work continues automatically.</h2>
+          <h2 className="text-3xl sm:text-4xl font-semibold font-display text-ink-950 tracking-tight max-w-3xl">A class ends. The administrative work continues automatically.</h2>
         </div>
         <div className="space-y-0">
           {steps.map((step, i) => (
@@ -291,8 +290,8 @@ function StatsSection() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((s) => (
             <div key={s.label} className="text-center">
-              <p className="text-3xl sm:text-4xl font-bold font-display text-white tabular-nums">{s.value}</p>
-              <p className="text-sm text-primary-200 mt-1.5">{s.label}</p>
+              <p className="text-3xl sm:text-4xl font-bold font-display text-white">{s.value}</p>
+              <p className="text-sm text-primary-200 mt-1">{s.label}</p>
             </div>
           ))}
         </div>
@@ -305,9 +304,9 @@ function CTASection({ onLogin }: { onLogin: () => void }) {
   return (
     <section id="pricing" className="landing-reveal py-20 bg-ink-50 border-t border-ink-200">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-        <h2 className="text-3xl sm:text-4xl font-semibold font-display text-ink-950">Ready to automate your institution?</h2>
-        <p className="mt-3.5 text-ink-600 leading-7">Sign in to explore each portal with rich demo data — see exactly how Skill Toss works for your role.</p>
-        <button onClick={onLogin} className="btn-primary px-6 py-3 text-base mt-7">
+        <h2 className="text-3xl sm:text-4xl font-bold font-display text-ink-900">Ready to automate your institution?</h2>
+        <p className="mt-3 text-ink-500">Sign in to explore each portal with rich demo data — see exactly how Skill Toss works for your role.</p>
+        <button onClick={onLogin} className="btn-primary px-6 py-3 text-base mt-6">
           Get Started <ArrowRight className="w-5 h-5" />
         </button>
       </div>

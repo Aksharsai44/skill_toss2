@@ -77,8 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(data.session.user);
             setProfile(userProfile);
           }
-        } else {
-          // Check for demo session fallback
+        } else if (isDemoSignInFallbackEnabled) {
+          // Restore a demo session across a page reload. Gated on the same flag as `signIn`:
+          // without it, writing this key in devtools would mint any role's session.
           const demoEmail = localStorage.getItem('demo_session_email');
           if (demoEmail && DEMO_PROFILES[demoEmail]) {
             const demoProf = DEMO_PROFILES[demoEmail];
@@ -126,6 +127,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
         }
       } else {
+        // A restored demo session has no Supabase session behind it, so the null
+        // `INITIAL_SESSION` event that fires on every page load must not clear it — and must
+        // not end `loading` either, or the route guard redirects to /login before `initAuth`
+        // has finished restoring. Only `signOut`, which removes the key, ends a demo session.
+        if (isDemoSignInFallbackEnabled && localStorage.getItem('demo_session_email')) return;
         setSession(null);
         setUser(null);
         setProfile(null);
