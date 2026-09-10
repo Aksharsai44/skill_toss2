@@ -17,6 +17,8 @@ import { useStudentPortal } from '@/lib/studentPortalContext';
 import { useLmsData } from '@/lib/lmsDataContext';
 import { useNotificationPreferences } from '@/lib/notificationPreferences';
 import { emphasize, enter, openPopup } from '@/lib/motion';
+import { Modal } from '@/components/ui/Modal';
+import { StatusBadge } from '@/components/ui/Badge';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Building2, Tags, ToggleLeft, Palette, Inbox, Network, TrendingUp,
@@ -51,6 +53,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchOpen = searchQuery.trim().length >= 2;
@@ -368,28 +371,18 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                       <UserCircle className="w-4 h-4" aria-hidden="true" /> My Profile
                     </button>
                   ) : (
-                    <div className="px-4 py-2.5">
-                      <p className="flex items-center gap-2.5 text-sm font-medium text-ink-400">
-                        <UserCircle className="w-4 h-4" aria-hidden="true" /> My Profile
-                      </p>
-                      <p className="mt-1 pl-[1.625rem] text-xs leading-5 text-ink-500">
-                        Not available for the {roleLabels[profile.role]} role yet.
-                      </p>
-                    </div>
+                    <button onClick={() => { setShowProfile(false); setShowAccountModal(true); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-600 hover:bg-ink-50 hover:text-ink-900 focus-visible:outline-none focus-visible:bg-ink-100 transition-colors">
+                      <UserCircle className="w-4 h-4" aria-hidden="true" /> My Account Overview
+                    </button>
                   )}
                   {settingsRoute ? (
                     <button onClick={() => { setShowProfile(false); navigate(settingsRoute); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-600 hover:bg-ink-50 hover:text-ink-900 focus-visible:outline-none focus-visible:bg-ink-100 transition-colors">
                       <Settings className="w-4 h-4" aria-hidden="true" /> Settings
                     </button>
                   ) : (
-                    <div className="px-4 py-2.5">
-                      <p className="flex items-center gap-2.5 text-sm font-medium text-ink-400">
-                        <Settings className="w-4 h-4" aria-hidden="true" /> Settings
-                      </p>
-                      <p className="mt-1 pl-[1.625rem] text-xs leading-5 text-ink-500">
-                        No settings page exists for the {roleLabels[profile.role]} role yet.
-                      </p>
-                    </div>
+                    <button onClick={() => { setShowProfile(false); setShowAccountModal(true); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-600 hover:bg-ink-50 hover:text-ink-900 focus-visible:outline-none focus-visible:bg-ink-100 transition-colors">
+                      <Settings className="w-4 h-4" aria-hidden="true" /> System Settings
+                    </button>
                   )}
                   <button
                     onClick={handleSignOut}
@@ -410,6 +403,35 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      <Modal open={showAccountModal} onClose={() => setShowAccountModal(false)} title="Account Overview & Profile" size="md">
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 p-4 rounded-card bg-ink-50 border border-ink-200">
+            <img src={displayAvatar} alt="" className="w-14 h-14 rounded-card bg-white object-cover border border-ink-200" />
+            <div>
+              <h4 className="font-bold text-ink-900 text-base">{displayName}</h4>
+              <p className="text-sm text-ink-500">{user?.email}</p>
+              <div className="mt-1 flex items-center gap-2">
+                <StatusBadge status={profile.isActive ? 'active' : 'inactive'} />
+                <span className="text-xs font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-200">{roleLabels[profile.role]}</span>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="p-3 rounded-control border border-ink-200 bg-white">
+              <p className="text-xs text-ink-500 font-medium">Institution</p>
+              <p className="font-semibold text-ink-900 mt-0.5 truncate">{displayInstitution}</p>
+            </div>
+            <div className="p-3 rounded-control border border-ink-200 bg-white">
+              <p className="text-xs text-ink-500 font-medium">Account ID</p>
+              <p className="font-mono text-xs text-ink-700 mt-0.5 truncate">{profile.id}</p>
+            </div>
+          </div>
+          <div className="pt-3 border-t border-ink-100 flex justify-end">
+            <button onClick={() => setShowAccountModal(false)} className="btn-secondary text-sm">Close</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

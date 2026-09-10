@@ -174,21 +174,21 @@ function TrustBar() {
 
 function Features() {
   const features = [
-    { icon: Video, title: 'Live Classes & Auto-Recordings', desc: 'Zoom, Meet & Teams integration. Recordings auto-sync to dashboards within minutes of class ending.' },
-    { icon: MessageCircle, title: 'WhatsApp & Email Automation', desc: 'Auto-send recordings, notes, fee reminders, salary slips & certificates via WhatsApp, email & SMS.' },
-    { icon: Brain, title: 'AI Exam Generator', desc: 'Upload documents and let AI create questions — MCQs, true/false, descriptive — with auto-grading.' },
-    { icon: CreditCard, title: 'Fee Management', desc: 'Term/semester-based fees, Razorpay integration, auto-invoices to parents, overdue tracking & analytics.' },
-    { icon: Fingerprint, title: 'Biometric Attendance', desc: 'Hardware integration for staff attendance with hours tracked, synced to salary calculations.' },
-    { icon: Award, title: 'Certification Courses', desc: 'Udemy-style course builder with video uploads, AI exams & auto-generated certificates.' },
-    { icon: Calendar, title: 'Google Calendar Sync', desc: 'Two-way sync with Google Calendar. Color-coded events, exams, holidays & meetings.' },
-    { icon: Users, title: 'Community & Forum', desc: 'WhatsApp-style community chats & Quora-style discussion forums across all branches.' },
+    { icon: Video, title: 'Live Classes & Session Management', desc: 'Integrated live classroom sessions via Jitsi Meet. Session status and attendance tracking sync directly to student and teacher dashboards.' },
+    { icon: Bell, title: 'Centralized Notifications & Alerts', desc: 'Instant in-app alerts for scheduled classes, upcoming assignment deadlines, fee notices, and academic performance updates.' },
+    { icon: BookOpen, title: 'Structured Course & Batch Management', desc: 'Organize academic departments, batches, subjects, timetable schedules, and learning resource libraries under clean institution structures.' },
+    { icon: CreditCard, title: 'Fee & Payment Management', desc: 'Semester fee structures, installment tracking, due date alerts, payment recording, and verifiable digital receipts.' },
+    { icon: Fingerprint, title: 'Attendance & Recovery Tracking', desc: 'Mark session attendance with present, absent, late, or excused statuses. Automatic attendance threshold and recovery calculations.' },
+    { icon: Award, title: 'Assignments & Assessments', desc: 'Publish coursework instructions, file attachments, and submission deadlines. Grade student submissions with detailed teacher feedback.' },
+    { icon: Calendar, title: 'Academic Calendar & Timetable', desc: 'Integrated daily and weekly timetable grids, batch class schedules, exam dates, and institutional holidays.' },
+    { icon: Users, title: 'Multi-Portal Collaboration', desc: 'Dedicated, role-tailored workspaces for Product Admins, Super Admins, Institution Admins, Teachers, Students, and Parent Observers.' },
   ];
   return (
     <section id="features" className="landing-reveal py-20 sm:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid lg:grid-cols-12 gap-5 lg:gap-12 items-end mb-12">
           <h2 className="lg:col-span-5 text-3xl sm:text-4xl font-semibold font-display text-ink-950 tracking-tight">One operational layer for the entire institution.</h2>
-          <p className="lg:col-span-5 lg:col-start-8 text-ink-500 leading-7">From scheduling a class to issuing a receipt, every workflow stays attached to the same student and institutional record.</p>
+          <p className="lg:col-span-5 lg:col-start-8 text-ink-500 leading-7">From scheduling a class to recording a fee payment, every workflow stays attached to the official student and institutional record.</p>
         </div>
         <div className="grid md:grid-cols-2 border-y border-ink-200 md:divide-x divide-ink-200">
           {features.map((f) => (
@@ -241,20 +241,20 @@ function RolesSection({ onLogin }: { onLogin: () => void }) {
 
 function AutomationSection() {
   const steps = [
-    { icon: Video, title: 'Teacher schedules a class', desc: 'Zoom link auto-created and sent to all batch students via WhatsApp & email.' },
-    { icon: Cloud, title: 'Class ends — recording syncs', desc: 'Within 10-15 minutes, the recording appears in every student & teacher dashboard automatically.' },
-    { icon: Bell, title: 'Auto-notifications fire', desc: 'Students get WhatsApp + email with the recording link, notes & PPTs uploaded by the teacher.' },
-    { icon: CreditCard, title: 'Fees & invoices automated', desc: 'Overdue fees trigger reminders to parents via WhatsApp, email & SMS. Pay online via Razorpay.' },
-    { icon: Award, title: 'Course complete — certificate', desc: 'AI generates certificate, sends it to student\'s WhatsApp & email with congratulations.' },
+    { icon: Video, title: '1. Teacher schedules a class session', desc: 'Live session link is created and added to the batch timetable and student dashboards.' },
+    { icon: Fingerprint, title: '2. Live class occurs & attendance is marked', desc: 'Students join via Jitsi; attendance join/leave times are recorded and summarized.' },
+    { icon: Bell, title: '3. In-app notifications fire', desc: 'Students receive alerts for new learning materials, assignment uploads, and scheduled exams.' },
+    { icon: CreditCard, title: '4. Fees & invoices tracked', desc: 'Pending fee installments and overdue items are tracked with clear receipts and payment history.' },
+    { icon: Award, title: '5. Grading & academic feedback', desc: 'Teachers review assignment submissions, issue grades, and publish performance records.' },
   ];
   return (
     <section id="automation" className="landing-reveal py-20 sm:py-24 bg-white">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <div className="mb-14 border-b border-ink-200 pb-8">
           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary-700 mb-4">
-            <Zap className="w-4 h-4" /> Automation engine
+            <Zap className="w-4 h-4" /> Operational Workflows
           </p>
-          <h2 className="text-3xl sm:text-4xl font-semibold font-display text-ink-950 tracking-tight max-w-3xl">A class ends. The administrative work continues automatically.</h2>
+          <h2 className="text-3xl sm:text-4xl font-semibold font-display text-ink-950 tracking-tight max-w-3xl">Connected academic workflows from enrollment to graduation.</h2>
         </div>
         <div className="space-y-0">
           {steps.map((step, i) => (

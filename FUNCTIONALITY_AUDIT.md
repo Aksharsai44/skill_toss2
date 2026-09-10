@@ -1,13 +1,10 @@
-# Skill Toss — Phase 0 Functionality Audit
+# Skill Toss — Unified Institutional LMS Functionality Audit
 
-**Audit date:** 2026-08-22
-**Commit state:** working tree, no edits made during the audit
-**Method:** every row below is one of
-
-- **line-read** — the component was read in full and the exact control located, or
-- **scan-derived** — produced by a brace-aware JSX opening-tag scanner (`<button>`/`<a>`/`<Link>`/`<input>`/`<select>`/`<textarea>` with no `onClick`/`onChange`/`onSubmit`/`type="submit"`/`to=`/`href=`/`disabled`), plus a `.from('<table>')` cross-check against `supabase/migrations/`.
-
-Rows are marked so nothing is presented as verified that was not.
+**Audit update date:** 2026-09-02
+**Status:** Unified Institutional LMS Redesign & Cross-Portal Consistency Complete.
+- Design Tokens & Primitives: Standardized typography (`tabular-nums`), responsive touch targets, accessible modals, tabs, search, and badges.
+- Landing & Auth: Refined public landing page to showcase practical institutional LMS workflows. Secured search results and demo prefill UX.
+- Portal Consistency: Unified Product Admin, Super Admin, Institution Admin, Teacher, Student, and Parent viewer navigation and account menus.
 
 ## Status vocabulary
 

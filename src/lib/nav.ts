@@ -11,7 +11,7 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
     {
       group: 'Onboarding',
       items: [
-        { label: 'Demo Requests', path: '/product-admin/demos', icon: 'Inbox', badge: '4' },
+        { label: 'Demo Requests', path: '/product-admin/demos', icon: 'Inbox' },
         { label: 'Clients', path: '/product-admin/clients', icon: 'Building2' },
       ],
     },
@@ -105,7 +105,7 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
     {
       group: 'Finance',
       items: [
-        { label: 'Fees', path: '/admin/fees', icon: 'CreditCard', badge: '6' },
+        { label: 'Fees', path: '/admin/fees', icon: 'CreditCard' },
         { label: 'Salary', path: '/admin/salary', icon: 'Wallet' },
       ],
     },
@@ -136,7 +136,7 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
         { label: 'Live Classes', path: '/teacher/classes', icon: 'Video' },
         { label: 'Recordings', path: '/teacher/recordings', icon: 'PlayCircle' },
         { label: 'Attendance', path: '/teacher/attendance', icon: 'CheckSquare' },
-        { label: 'Leave Requests', path: '/teacher/leaves', icon: 'CalendarOff', badge: '3' },
+        { label: 'Leave Requests', path: '/teacher/leaves', icon: 'CalendarOff' },
         { label: 'My Courses', path: '/teacher/courses', icon: 'PlayCircle' },
         { label: 'Assignments', path: '/teacher/assignments', icon: 'ClipboardList' },
         { label: 'Exams', path: '/teacher/exams', icon: 'FileQuestion' },

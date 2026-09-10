@@ -115,6 +115,7 @@ Teacher assignment/resource creation currently creates open/shared local records
 - Added profile avatar persistence/removal, profile/settings navigation behavior, and teacher/admin/product-admin addon areas.
 - Reworked the shared Student/Parent portal with record-derived academic progress, attendance recovery math, weekly summaries, feedback, deadlines, course progress, categorized notifications, resource bookmarks, document locker presentation, leave categories, and global linked-child switching.
 - Finished Product Admin and Super Admin frontend dashboards by replacing placeholder text/charts with functional `Recharts` and adding `Modal` forms for all creation actions (Branches, Campaigns, Roadmaps, AI Betas).
+- Completed global institutional LMS redesign across all 6 portals, public landing, login/auth, shared shell navigation, search scoping, and UI primitives (tabular-nums, accessible modals, tabs, status badges, page headers) to deliver a unified institutional application experience.
 
 ## Update Rules and Source of Truth
 

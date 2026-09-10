@@ -578,14 +578,21 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
   const searchRecords = useCallback((query: string, options?: { studentId?: string; role?: Role }) => {
     const term = query.trim().toLowerCase();
     if (term.length < 2) return [];
+    const role = options?.role || 'student';
     const student = state.students.find((item) => item.id === options?.studentId);
     const batchId = student?.batchId;
-    const canSeeDirectory = options?.role === 'admin';
+    const canSeeDirectory = role === 'admin' || role === 'super_admin';
+    
+    const coursePath = role === 'teacher' ? '/teacher/courses' : role === 'admin' ? '/admin/courses' : '/student/courses';
+    const assignmentPath = role === 'teacher' ? '/teacher/assignments' : '/student/assignments';
+    const resourcePath = role === 'teacher' ? '/teacher/resources' : '/student/resources';
+    const examPath = role === 'teacher' ? '/teacher/exams' : '/student/exams';
+
     return [
-      ...state.courses.filter((item) => (!batchId || item.batchIds.includes(batchId)) && `${item.code} ${item.title}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'course' as const, title: item.title, subtitle: item.code, path: '/student/courses' })),
-      ...state.assignments.filter((item) => (!batchId || item.batchId === batchId) && `${item.title} ${state.courses.find((course) => course.id === item.courseId)?.title}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'assignment' as const, title: item.title, subtitle: 'Assignment', path: '/student/assignments' })),
-      ...state.resources.filter((item) => (!batchId || item.batchId === batchId) && `${item.title} ${item.description}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'resource' as const, title: item.title, subtitle: item.type, path: '/student/resources' })),
-      ...state.exams.filter((item) => (!batchId || item.batchId === batchId) && `${item.title} ${item.syllabus}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'exam' as const, title: item.title, subtitle: item.date, path: '/student/exams' })),
+      ...state.courses.filter((item) => (!batchId || item.batchIds.includes(batchId)) && `${item.code} ${item.title}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'course' as const, title: item.title, subtitle: item.code, path: coursePath })),
+      ...state.assignments.filter((item) => (!batchId || item.batchId === batchId) && `${item.title} ${state.courses.find((course) => course.id === item.courseId)?.title}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'assignment' as const, title: item.title, subtitle: 'Assignment', path: assignmentPath })),
+      ...state.resources.filter((item) => (!batchId || item.batchId === batchId) && `${item.title} ${item.description}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'resource' as const, title: item.title, subtitle: item.type, path: resourcePath })),
+      ...state.exams.filter((item) => (!batchId || item.batchId === batchId) && `${item.title} ${item.syllabus}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'exam' as const, title: item.title, subtitle: item.date, path: examPath })),
       ...(canSeeDirectory ? state.students.filter((item) => `${item.name} ${item.rollNo} ${item.email}`.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'student' as const, title: item.name, subtitle: item.rollNo, path: '/admin/students' })) : []),
       ...(canSeeDirectory ? state.batches.filter((item) => item.name.toLowerCase().includes(term)).map((item) => ({ id: item.id, type: 'batch' as const, title: item.name, subtitle: state.departments.find((department) => department.id === item.departmentId)?.name ?? 'Batch', path: '/admin/batches' })) : []),
     ].slice(0, 12);
