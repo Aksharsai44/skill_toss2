@@ -11,7 +11,7 @@ import { SkipToContent } from '@/components/SkipToContent';
 
 import { ProductAdminDashboard, DemoRequests, Clients, PlansPricing, FeatureToggles, WhiteLabel, CustomerSupport, AiFeatureLab, SlaDashboard, RoadmapManager, SystemHealthMap, WorkflowAutomation, IntegrationHub, AdminManagement, UsageAnalytics, BillingInvoicing } from '@/portals/product-admin';
 import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports, UserManagement, ExecutiveDecisionCenter, GlobalCampaignManager, DataQualityMonitoring, InterBranchTransfer, RoleBuilder, AuditLogs, BranchTheming, GlobalCurriculum, ComplianceReporting, EmergencyBroadcast, AlumniNetwork } from '@/portals/super-admin';
-import { AdminDashboard, AdminTeachers, AdminStudents, AdminBatches, AdminFees, AdminSalary, AdminAttendance, AdminLeaves, AdminEvents, AdminIntegrations, AdminCertifications, AdminCalendar, AdminCourses } from '@/portals/admin';
+import { AdminDashboard, AdminTeachers, AdminStudents, AdminBatches, AdminFees, AdminSalary, AdminAttendance, AdminLeaves, AdminEvents, AdminIntegrations, AdminCertifications, AdminCalendar, AdminCourses, AdminCommunity, AdminForum, AdminExams } from '@/portals/admin';
 import { TeacherDashboard, TeacherBatches, LiveClasses, TeacherRecordings, TeacherAttendance, TeacherLeaves, TeacherCourses, TeacherAssignments, TeacherExams, TeacherResources, TeacherCommunity, TeacherForum, TeacherCalendar, TeacherSalary, TeacherProfile } from '@/portals/teacher';
 import { StudentDashboard, StudentClasses, StudentRecordings, StudentResources, MyNotes, StudentAssignments, StudentExams, StudentTimetable, StudentDiary, StudentLeaves, StudentCommunity, StudentForum, StudentCalendar, StudentFees, StudentReports, StudentCertifications, AiHub, StudentProfile, StudentSettings } from '@/portals/student';
 
@@ -72,13 +72,16 @@ function AppRoutes() {
       <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['admin']}><AdminCourses /></ProtectedRoute>} />
       <Route path="/admin/certifications" element={<ProtectedRoute allowedRoles={['admin']}><AdminCertifications /></ProtectedRoute>} />
       <Route path="/admin/calendar" element={<ProtectedRoute allowedRoles={['admin']}><AdminCalendar /></ProtectedRoute>} />
+      <Route path="/admin/community" element={<ProtectedRoute allowedRoles={['admin']}><AdminCommunity /></ProtectedRoute>} />
+      <Route path="/admin/forum" element={<ProtectedRoute allowedRoles={['admin']}><AdminForum /></ProtectedRoute>} />
+      <Route path="/admin/exams" element={<ProtectedRoute allowedRoles={['admin']}><AdminExams /></ProtectedRoute>} />
 
       {/* Teacher */}
       <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
       <Route path="/teacher/batches" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherBatches /></ProtectedRoute>} />
       <Route path="/teacher/classes" element={<ProtectedRoute allowedRoles={['teacher']}><LiveClasses /></ProtectedRoute>} />
       <Route path="/teacher/classes/:sessionId/live" element={<ProtectedRoute allowedRoles={['teacher']}><LiveClassroomPage role="teacher" /></ProtectedRoute>} />
-      <Route path="/teacher/recordings" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherRecordings /></ProtectedRoute>} />
+      <Route path="/teacher/recordings" element={<ProtectedRoute allowedRoles={['teacher', 'admin', 'super_admin', 'product_admin']}><TeacherRecordings /></ProtectedRoute>} />
       <Route path="/teacher/attendance" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherAttendance /></ProtectedRoute>} />
       <Route path="/teacher/leaves" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLeaves /></ProtectedRoute>} />
       <Route path="/teacher/courses" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherCourses /></ProtectedRoute>} />

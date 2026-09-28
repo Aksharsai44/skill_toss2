@@ -44,10 +44,14 @@ export function StudentPortalProvider({ children }: { children: ReactNode }) {
     if (!isParent && selectedStudentId !== null) setSelectedStudentId(null);
   }, [isParent, linkedStudents, selectedStudentId]);
 
-  const selectedStudent = useMemo(() => isParent
-    ? linkedStudents.find((student) => student.id === selectedStudentId) ?? null
-    : profile?.role === 'student' ? toLinkedStudent('student_001') : null,
-  [isParent, linkedStudents, profile?.role, selectedStudentId, toLinkedStudent]);
+  const selectedStudent = useMemo(() => {
+    if (isParent) return linkedStudents.find((student) => student.id === selectedStudentId) ?? null;
+    if (profile?.role === 'student' || !profile) {
+      const match = state.students.find((s) => s.email.toLowerCase() === profile?.fullName?.toLowerCase() || s.name.toLowerCase() === profile?.fullName?.toLowerCase());
+      return toLinkedStudent(match?.id || 'student_001');
+    }
+    return null;
+  }, [isParent, linkedStudents, profile, selectedStudentId, state.students, toLinkedStudent]);
 
   const value = useMemo<StudentPortalContextValue>(() => ({
     viewerRole,

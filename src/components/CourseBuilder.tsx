@@ -1,40 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   PlayCircle, Plus, Edit, Trash2, Save, Upload, Video, Clock,
-  Layers, ArrowLeft, Award, Eye, Check,
+  Layers, ArrowLeft, Award, Eye, Check, Sparkles, Send, FileText,
+  AlertTriangle, CheckCircle2, XCircle, Globe, HelpCircle, Code2,
+  ChevronRight, FileCheck, ExternalLink, BarChart2, BookOpen
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useLmsData } from '@/lib/lmsDataContext';
+import type { LmsCourse, CourseModule, CourseLesson, CourseStatus, LessonType } from '@/lib/types';
 import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';
 import { StatCard } from '@/components/ui/StatCard';
-import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { cn } from '@/lib/cn';
-
-type Course = {
-  id: string;
-  title: string;
-  description: string;
-  instructor_name: string;
-  instructor_role: string;
-  thumbnail: string;
-  category: string;
-  level: string;
-  duration_hours: number;
-  price: number;
-  status: string;
-  enrolled_count: number;
-  created_at: string;
-};
-
-type Lesson = {
-  id: string;
-  course_id: string;
-  title: string;
-  description: string;
-  video_url: string;
-  duration_minutes: number;
-  sort_order: number;
-};
+import { FileAttachmentPicker } from '@/components/FileAttachmentPicker';
+import { AiCourseAssistantModal } from '@/components/courses/AiCourseAssistantModal';
+import { CourseReviewModal } from '@/components/courses/CourseReviewModal';
+import { CourseAnalyticsView } from '@/components/courses/CourseAnalyticsView';
 
 const STOCK_THUMBS = [
   'https://images.pexels.com/photos/1181271/pexels-photo-1181271.jpeg?auto=compress&cs=tinysrgb&w=600',
@@ -42,432 +23,807 @@ const STOCK_THUMBS = [
   'https://images.pexels.com/photos/270404/pexels-photo-270404.jpeg?auto=compress&cs=tinysrgb&w=600',
   'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=600',
   'https://images.pexels.com/photos/4144923/pexels-photo-4144923.jpeg?auto=compress&cs=tinysrgb&w=600',
-  'https://images.pexels.com/photos/590016/pexels-photo-590016.jpeg?auto=compress&cs=tinysrgb&w=600',
 ];
 
-export function CourseBuilder({ instructorName, instructorRole }: { instructorName: string; instructorRole: 'admin' | 'teacher' }) {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<string | null>(null);
-
-  const fetchCourses = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('instructor_role', instructorRole)
-      .order('created_at', { ascending: false });
-    if (!error && data) setCourses(data as Course[]);
-    setLoading(false);
-  }, [instructorRole]);
-
-  useEffect(() => { fetchCourses(); }, [fetchCourses]);
-
-  if (selectedCourse) {
-    return <CourseDetail course={selectedCourse} onBack={() => { setSelectedCourse(null); fetchCourses(); }} />;
-  }
-
-  const published = courses.filter((c) => c.status === 'published');
-  const drafts = courses.filter((c) => c.status === 'draft');
-
-  return (
-    <div>
-      <PageHeader
-        title={instructorRole === 'admin' ? 'Course Builder' : 'My Courses'}
-        subtitle={instructorRole === 'admin' ? 'Create courses with video lessons — students see published courses' : 'Build courses with video lessons — admin reviews before publishing'}
-        actions={<button onClick={() => { setEditing(null); setShowForm(true); }} className="btn-primary"><Plus className="w-4 h-4" /> New Course</button>}
-      />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Courses" value={courses.length} icon={PlayCircle} color="primary" />
-        <StatCard label="Published" value={published.length} icon={Check} color="success" />
-        <StatCard label="Drafts" value={drafts.length} icon={Edit} color="warning" />
-        <StatCard label="Total Enrolled" value={courses.reduce((s, c) => s + c.enrolled_count, 0)} icon={Layers} color="accent" />
-      </div>
-      {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => <div key={i} className="card p-5 animate-pulse"><div className="h-32 bg-ink-100 rounded-xl mb-3" /><div className="h-4 bg-ink-100 rounded w-2/3 mb-2" /><div className="h-3 bg-ink-100 rounded w-1/2" /></div>)}
-        </div>
-      ) : courses.length === 0 ? (
-        <Card><EmptyState icon={PlayCircle} title="No courses yet" description="Create your first course — add video lessons, topics, and a certificate template. Students will see published courses." action={<button onClick={() => { setEditing(null); setShowForm(true); }} className="btn-primary"><Plus className="w-4 h-4" /> New Course</button>} /></Card>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {courses.map((c) => (
-            <Card key={c.id} hover className="overflow-hidden">
-              <div className="relative aspect-video bg-ink-100">
-                {c.thumbnail ? (
-                  <img src={c.thumbnail} alt={c.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"><PlayCircle className="w-12 h-12 text-ink-300" /></div>
-                )}
-                <div className="absolute top-2 right-2">
-                  <StatusBadge status={c.status} />
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-ink-900 text-sm">{c.title}</h3>
-                <p className="text-xs text-ink-400 mt-1 line-clamp-2">{c.description}</p>
-                <div className="flex items-center gap-3 mt-2 text-xs text-ink-500">
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {c.duration_hours}h</span>
-                  <span className="flex items-center gap-1"><Layers className="w-3 h-3" /> {c.level}</span>
-                  <span className="flex items-center gap-1"><Award className="w-3 h-3" /> {c.enrolled_count}</span>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => setSelectedCourse(c)} className="btn-secondary flex-1 text-xs"><Eye className="w-3.5 h-3.5" /> Manage</button>
-                  <button onClick={() => { setEditing(c.id); setShowForm(true); }} className="p-2 rounded-lg hover:bg-ink-100 text-ink-400"><Edit className="w-4 h-4" /></button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-      {showForm && (
-        <CourseForm
-          courseId={editing}
-          instructorName={instructorName}
-          instructorRole={instructorRole}
-          onClose={() => setShowForm(false)}
-          onSaved={() => { setShowForm(false); fetchCourses(); }}
-        />
-      )}
-    </div>
-  );
+interface CourseBuilderProps {
+  instructorName: string;
+  instructorRole: 'admin' | 'teacher';
 }
 
-function CourseForm({ courseId, instructorName, instructorRole, onClose, onSaved }: {
-  courseId: string | null;
-  instructorName: string;
-  instructorRole: string;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('General');
-  const [level, setLevel] = useState('Beginner');
-  const [durationHours, setDurationHours] = useState(0);
-  const [price, setPrice] = useState(0);
-  const [status, setStatus] = useState('draft');
-  const [thumbnail, setThumbnail] = useState(STOCK_THUMBS[0]);
-  const [saving, setSaving] = useState(false);
+export function CourseBuilder({ instructorName, instructorRole }: CourseBuilderProps) {
+  const { state, saveCourseDraft, submitCourseForReview, adminReviewCourse, setFeedback } = useLmsData();
 
-  useEffect(() => {
-    if (!courseId) return;
-    (async () => {
-      const { data } = await supabase.from('courses').select('*').eq('id', courseId).maybeSingle();
-      if (data) {
-        setTitle(data.title); setDescription(data.description); setCategory(data.category);
-        setLevel(data.level); setDurationHours(data.duration_hours); setPrice(data.price);
-        setStatus(data.status); setThumbnail(data.thumbnail || STOCK_THUMBS[0]);
-      }
-    })();
-  }, [courseId]);
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('All');
+  const [selectedLevelFilter, setSelectedLevelFilter] = useState<string>('All');
+  const [activeCourse, setActiveCourse] = useState<LmsCourse | null>(null);
+  const [showBuilderModal, setShowBuilderModal] = useState<boolean>(false);
+  const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
+  const [showAiModal, setShowAiModal] = useState<boolean>(false);
+  const [showAnalyticsView, setShowAnalyticsView] = useState<boolean>(false);
 
-  const save = async () => {
-    if (!title.trim()) return;
-    setSaving(true);
-    if (courseId) {
-      await supabase.from('courses').update({
-        title, description, category, level, duration_hours: durationHours,
-        price, status, thumbnail, updated_at: new Date().toISOString(),
-      }).eq('id', courseId);
-    } else {
-      await supabase.from('courses').insert({
-        title, description, instructor_name: instructorName, instructor_role: instructorRole,
-        thumbnail, category, level, duration_hours: durationHours, price, status,
-      });
-    }
-    setSaving(false);
-    onSaved();
+  // Multi-step builder state
+  const [step, setStep] = useState<number>(1);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Form Fields
+  const [courseForm, setCourseForm] = useState<{
+    id?: string;
+    code: string;
+    title: string;
+    description: string;
+    category: string;
+    level: 'Beginner' | 'Intermediate' | 'Advanced';
+    durationHours: number;
+    thumbnail: string;
+    objectivesText: string;
+    prerequisitesText: string;
+    skillsText: string;
+  }>({
+    code: 'CS-101',
+    title: '',
+    description: '',
+    category: 'Computer Science',
+    level: 'Beginner',
+    durationHours: 12,
+    thumbnail: STOCK_THUMBS[0],
+    objectivesText: 'Master fundamental data structures\nImplement efficient algorithms',
+    prerequisitesText: 'Basic programming knowledge in C++ or Python',
+    skillsText: 'Data Structures, Problem Solving, Algorithmic Thinking',
+  });
+
+  // Modules & Lessons state in builder
+  const [builderModules, setBuilderModules] = useState<CourseModule[]>([
+    { id: 'mod_1', courseId: '', title: 'Module 1: Foundations', sortOrder: 1 }
+  ]);
+  const [builderLessons, setBuilderLessons] = useState<CourseLesson[]>([
+    { id: 'les_1', courseId: '', moduleId: 'mod_1', title: 'Lesson 1.1: Overview & Introduction', lessonType: 'VIDEO', durationMinutes: 15, sortOrder: 1, videoUrl: 'https://www.youtube.com/watch?v=RBSGKlAvoiM' }
+  ]);
+
+  // Selected lesson being edited in builder
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [lessonForm, setLessonForm] = useState<Partial<CourseLesson>>({
+    title: '',
+    lessonType: 'VIDEO',
+    durationMinutes: 10,
+    videoUrl: '',
+    resourceUrl: '',
+    richText: '',
+  });
+
+  const allCourses = state.courses || [];
+  const teacherCourses = instructorRole === 'teacher'
+    ? allCourses.filter((c) => c.instructorName === instructorName || c.instructorRole === 'teacher')
+    : allCourses;
+
+  const filteredCourses = teacherCourses.filter((c) => {
+    const statusMatch = selectedStatusFilter === 'All' || c.status === selectedStatusFilter;
+    const levelMatch = selectedLevelFilter === 'All' || c.level === selectedLevelFilter;
+    return statusMatch && levelMatch;
+  });
+
+  const publishedCount = teacherCourses.filter((c) => c.status === 'PUBLISHED').length;
+  const pendingCount = teacherCourses.filter((c) => c.status === 'PENDING_REVIEW').length;
+  const draftCount = teacherCourses.filter((c) => c.status === 'DRAFT' || c.status === 'CHANGES_REQUESTED').length;
+  const totalEnrolled = teacherCourses.reduce((sum, c) => sum + (c.enrolledCount || 0), 0);
+
+  const handleOpenNewCourse = () => {
+    setCourseForm({
+      code: `CS-${Math.floor(100 + Math.random() * 900)}`,
+      title: '',
+      description: '',
+      category: 'Computer Science',
+      level: 'Beginner',
+      durationHours: 12,
+      thumbnail: STOCK_THUMBS[Math.floor(Math.random() * STOCK_THUMBS.length)],
+      objectivesText: 'Master core principles\nBuild practical projects',
+      prerequisitesText: 'Basic programming skills',
+      skillsText: 'Software Engineering, Algorithmic Analysis',
+    });
+    setBuilderModules([{ id: `mod_${Date.now()}`, courseId: '', title: 'Module 1: Introduction', sortOrder: 1 }]);
+    setBuilderLessons([]);
+    setStep(1);
+    setValidationErrors([]);
+    setShowBuilderModal(true);
   };
 
-  return (
-    <Modal open onClose={onClose} title={courseId ? 'Edit Course' : 'New Course'} size="lg">
+  const handleOpenEditCourse = (course: LmsCourse) => {
+    setActiveCourse(course);
+    setCourseForm({
+      id: course.id,
+      code: course.code || 'CS-101',
+      title: course.title,
+      description: course.description || '',
+      category: course.category || 'General',
+      level: course.level || 'Beginner',
+      durationHours: course.durationHours || 10,
+      thumbnail: course.thumbnail || STOCK_THUMBS[0],
+      objectivesText: (course.learningObjectives || []).join('\n'),
+      prerequisitesText: (course.prerequisites || []).join(', '),
+      skillsText: (course.skillsGained || []).join(', '),
+    });
+
+    const cMods = (state.courseModules || []).filter((m) => m.courseId === course.id);
+    const cLess = (state.courseLessons || []).filter((l) => l.courseId === course.id);
+    setBuilderModules(cMods.length > 0 ? cMods : [{ id: `mod_${Date.now()}`, courseId: course.id, title: 'Module 1: Core', sortOrder: 1 }]);
+    setBuilderLessons(cLess);
+    setStep(1);
+    setValidationErrors([]);
+    setShowBuilderModal(true);
+  };
+
+  const handleAddModule = () => {
+    const newMod: CourseModule = {
+      id: `mod_${Date.now()}`,
+      courseId: courseForm.id || '',
+      title: `Module ${builderModules.length + 1}: New Topic`,
+      sortOrder: builderModules.length + 1,
+    };
+    setBuilderModules([...builderModules, newMod]);
+  };
+
+  const handleAddLessonToModule = (moduleId: string) => {
+    const modLessons = builderLessons.filter((l) => l.moduleId === moduleId);
+    const newLes: CourseLesson = {
+      id: `les_${Date.now()}`,
+      courseId: courseForm.id || '',
+      moduleId,
+      title: `Lesson ${modLessons.length + 1}`,
+      lessonType: 'VIDEO',
+      durationMinutes: 10,
+      sortOrder: modLessons.length + 1,
+    };
+    setBuilderLessons([...builderLessons, newLes]);
+    setEditingLessonId(newLes.id);
+    setLessonForm(newLes);
+  };
+
+  const handleSaveDraftAction = () => {
+    const objectives = courseForm.objectivesText.split('\n').map((s) => s.trim()).filter(Boolean);
+    const prerequisites = courseForm.prerequisitesText.split(',').map((s) => s.trim()).filter(Boolean);
+    const skillsGained = courseForm.skillsText.split(',').map((s) => s.trim()).filter(Boolean);
+
+    const draftCourse: Partial<LmsCourse> = {
+      id: courseForm.id,
+      code: courseForm.code,
+      title: courseForm.title || 'Untitled Draft Course',
+      description: courseForm.description,
+      category: courseForm.category,
+      level: courseForm.level,
+      durationHours: Number(courseForm.durationHours) || 10,
+      thumbnail: courseForm.thumbnail,
+      learningObjectives: objectives,
+      prerequisites,
+      skillsGained,
+      instructorName,
+      instructorRole,
+      status: 'DRAFT',
+    };
+
+    saveCourseDraft(draftCourse, builderModules, builderLessons);
+    setShowBuilderModal(false);
+  };
+
+  const validateCourseForm = (): boolean => {
+    const errors: string[] = [];
+    if (!courseForm.title.trim()) errors.push('Please enter a course title.');
+    if (!courseForm.description.trim()) errors.push('Please enter a course description.');
+    if (builderModules.length === 0) errors.push('Please add at least one module.');
+    if (builderLessons.length === 0) errors.push('Please add at least one lesson.');
+    if (!courseForm.objectivesText.trim()) errors.push('Please add at least one learning objective.');
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const handleSubmitForReviewAction = () => {
+    if (!validateCourseForm()) return;
+
+    const objectives = courseForm.objectivesText.split('\n').map((s) => s.trim()).filter(Boolean);
+    const prerequisites = courseForm.prerequisitesText.split(',').map((s) => s.trim()).filter(Boolean);
+    const skillsGained = courseForm.skillsText.split(',').map((s) => s.trim()).filter(Boolean);
+
+    const finalCourse: Partial<LmsCourse> = {
+      id: courseForm.id,
+      code: courseForm.code,
+      title: courseForm.title,
+      description: courseForm.description,
+      category: courseForm.category,
+      level: courseForm.level,
+      durationHours: Number(courseForm.durationHours) || 10,
+      thumbnail: courseForm.thumbnail,
+      learningObjectives: objectives,
+      prerequisites,
+      skillsGained,
+      instructorName,
+      instructorRole,
+      status: 'PENDING_REVIEW',
+    };
+
+    const res = saveCourseDraft(finalCourse, builderModules, builderLessons);
+    if (res.ok) {
+      const cId = courseForm.id || (state.courses.find((c) => c.title === courseForm.title)?.id);
+      if (cId) submitCourseForReview(cId);
+    }
+    setShowBuilderModal(false);
+  };
+
+  if (showAnalyticsView && activeCourse) {
+    const cMods = (state.courseModules || []).filter((m) => m.courseId === activeCourse.id);
+    const cLess = (state.courseLessons || []).filter((l) => l.courseId === activeCourse.id);
+    return (
       <div className="space-y-4">
-        <div><label className="label">Course Title</label><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Data Structures & Algorithms" /></div>
-        <div><label className="label">Description</label><textarea className="input min-h-20" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What will students learn?" /></div>
-        <div className="grid grid-cols-2 gap-3">
-          <div><label className="label">Category</label>
-            <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-              {['General', 'Computer Science', 'Programming', 'Web Development', 'AI & ML', 'Mathematics', 'Business'].map((c) => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-          <div><label className="label">Level</label>
-            <select className="input" value={level} onChange={(e) => setLevel(e.target.value)}>
-              {['Beginner', 'Intermediate', 'Advanced'].map((l) => <option key={l}>{l}</option>)}
-            </select>
-          </div>
+        <button onClick={() => setShowAnalyticsView(false)} className="btn-secondary text-xs flex items-center gap-1">
+          <ArrowLeft className="w-4 h-4" /> Back to My Courses
+        </button>
+        <CourseAnalyticsView
+          course={activeCourse}
+          modules={cMods}
+          lessons={cLess}
+          enrollments={state.courseEnrollments || []}
+          progressList={state.lessonProgress || []}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={instructorRole === 'admin' ? 'Course Review & Management' : 'My Courses'}
+        subtitle={instructorRole === 'admin' ? 'Review teacher-created courses, approve changes, and publish to students' : 'Create structured courses with video, PDF, and AI assistance — admin reviews before publishing'}
+        actions={
+          <button onClick={handleOpenNewCourse} className="btn-primary flex items-center gap-2">
+            <Plus className="w-4 h-4" /> + New Course
+          </button>
+        }
+      />
+
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Total Courses" value={teacherCourses.length} icon={PlayCircle} color="primary" />
+        <StatCard label="Published" value={publishedCount} icon={CheckCircle2} color="success" />
+        <StatCard label="Pending Review" value={pendingCount} icon={Clock} color="warning" />
+        <StatCard label="Total Enrolled Students" value={totalEnrolled} icon={Layers} color="accent" />
+      </div>
+
+      {/* Status Filters */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-ink-50 p-2 rounded-2xl border border-ink-200/80">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-semibold text-ink-500 px-2 flex items-center gap-1">
+            <Layers className="w-3.5 h-3.5" /> Status:
+          </span>
+          {['All', 'DRAFT', 'PENDING_REVIEW', 'CHANGES_REQUESTED', 'APPROVED', 'PUBLISHED', 'REJECTED'].map((st) => (
+            <button
+              key={st}
+              onClick={() => setSelectedStatusFilter(st)}
+              className={cn(
+                'px-3 py-1.5 rounded-xl text-xs font-medium transition',
+                selectedStatusFilter === st
+                  ? 'bg-white text-primary-700 font-semibold shadow-xs border border-ink-200'
+                  : 'text-ink-600 hover:text-ink-900'
+              )}
+            >
+              {st}
+              {st !== 'All' && (
+                <span className="ml-1 text-[10px] opacity-70">
+                  ({teacherCourses.filter((c) => c.status === st).length})
+                </span>
+              )}
+            </button>
+          ))}
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div><label className="label">Duration (hrs)</label><input className="input" type="number" value={durationHours} onChange={(e) => setDurationHours(Number(e.target.value))} /></div>
-          <div><label className="label">Price (₹)</label><input className="input" type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} /></div>
-          <div><label className="label">Status</label>
-            <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-            </select>
-          </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-ink-400">Level:</span>
+          {['All', 'Beginner', 'Intermediate', 'Advanced'].map((lvl) => (
+            <button
+              key={lvl}
+              onClick={() => setSelectedLevelFilter(lvl)}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-xs transition',
+                selectedLevelFilter === lvl ? 'bg-ink-200 text-ink-900 font-semibold' : 'text-ink-500 hover:text-ink-800'
+              )}
+            >
+              {lvl}
+            </button>
+          ))}
         </div>
-        <div>
-          <label className="label">Thumbnail</label>
-          <div className="grid grid-cols-6 gap-2">
-            {STOCK_THUMBS.map((t) => (
-              <button key={t} onClick={() => setThumbnail(t)} className={cn('aspect-video rounded-lg overflow-hidden border-2', thumbnail === t ? 'border-primary-500' : 'border-transparent')}>
-                <img src={t} alt="thumb" className="w-full h-full object-cover" />
+      </div>
+
+      {/* Course Cards Grid */}
+      {filteredCourses.length === 0 ? (
+        <Card className="p-8 text-center">
+          <EmptyState
+            icon={BookOpen}
+            title="No courses found"
+            description="Create your first course and organize your modules, lessons, assessments, and AI resources in one place."
+          />
+          <button onClick={handleOpenNewCourse} className="btn-primary mt-4 inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Create First Course
+          </button>
+        </Card>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredCourses.map((c) => {
+            const cMods = (state.courseModules || []).filter((m) => m.courseId === c.id);
+            const cLess = (state.courseLessons || []).filter((l) => l.courseId === c.id);
+
+            return (
+              <Card key={c.id} className="overflow-hidden flex flex-col group hover:shadow-md transition">
+                <div className="relative h-44 overflow-hidden bg-ink-100">
+                  <img
+                    src={c.thumbnail || STOCK_THUMBS[0]}
+                    alt={c.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <Badge
+                      variant={
+                        c.status === 'PUBLISHED' ? 'success' :
+                        c.status === 'APPROVED' ? 'accent' :
+                        c.status === 'PENDING_REVIEW' ? 'warning' :
+                        c.status === 'CHANGES_REQUESTED' ? 'warning' : 'neutral'
+                      }
+                    >
+                      {c.status}
+                    </Badge>
+                  </div>
+                  <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-xs text-white text-[11px] px-2.5 py-1 rounded-lg font-medium">
+                    {c.level} • {c.durationHours} hrs
+                  </div>
+                </div>
+
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-1">{c.category}</div>
+                    <h3 className="font-bold text-ink-900 text-base line-clamp-1">{c.title}</h3>
+                    <p className="text-xs text-ink-500 mt-1 line-clamp-2">{c.description || 'No course description provided.'}</p>
+                  </div>
+
+                  {c.status === 'CHANGES_REQUESTED' && c.adminFeedback && (
+                    <div className="p-3 bg-warning-50 border border-warning-200 rounded-xl text-xs text-warning-900">
+                      <p className="font-semibold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5 text-warning-600" /> Admin Feedback:</p>
+                      <p className="mt-0.5 text-warning-800 line-clamp-2">{c.adminFeedback}</p>
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-ink-100 flex items-center justify-between text-xs text-ink-500">
+                    <span>{cMods.length} Modules • {cLess.length} Lessons</span>
+                    <span>{c.enrolledCount || 0} Enrolled</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => handleOpenEditCourse(c)}
+                      className="btn-secondary flex-1 text-xs py-2 flex items-center justify-center gap-1"
+                    >
+                      <Edit className="w-3.5 h-3.5" /> Edit / Content
+                    </button>
+
+                    {instructorRole === 'admin' ? (
+                      <button
+                        onClick={() => { setActiveCourse(c); setShowReviewModal(true); }}
+                        className="btn-primary flex-1 text-xs py-2 flex items-center justify-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Review Course
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { setActiveCourse(c); setShowAnalyticsView(true); }}
+                        className="btn-secondary text-xs p-2 flex items-center justify-center"
+                        title="View Course Analytics"
+                      >
+                        <BarChart2 className="w-4 h-4 text-primary-600" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Multi-Step Course Builder Modal */}
+      <Modal
+        open={showBuilderModal}
+        onClose={() => setShowBuilderModal(false)}
+        title={courseForm.id ? `Edit Course — ${courseForm.title}` : 'Create New Course Workflow'}
+        size="xl"
+      >
+        <div className="space-y-6">
+          {/* Step Indicator */}
+          <div className="flex items-center justify-between bg-ink-50 p-3 rounded-2xl border border-ink-200/70">
+            {[
+              { s: 1, l: 'Course Information' },
+              { s: 2, l: 'Curriculum & Lessons' },
+              { s: 3, l: 'File Resources & AI' },
+              { s: 4, l: 'Preview & Submit' },
+            ].map((stItem) => (
+              <button
+                key={stItem.s}
+                onClick={() => setStep(stItem.s)}
+                className={cn(
+                  'flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl transition',
+                  step === stItem.s ? 'bg-primary-600 text-white shadow-xs' : 'text-ink-600 hover:text-ink-900'
+                )}
+              >
+                <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">{stItem.s}</span>
+                <span className="hidden sm:inline">{stItem.l}</span>
               </button>
             ))}
           </div>
-        </div>
-        <div className="flex gap-2 pt-2">
-          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-          <button onClick={save} disabled={saving || !title.trim()} className="btn-primary flex-1"><Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Course'}</button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
 
-function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }) {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showLesson, setShowLesson] = useState(false);
-  const [editingLesson, setEditingLesson] = useState<string | null>(null);
-  const [showCert, setShowCert] = useState(false);
-
-  const fetchLessons = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('course_lessons')
-      .select('*')
-      .eq('course_id', course.id)
-      .order('sort_order', { ascending: true });
-    if (!error && data) setLessons(data as Lesson[]);
-    setLoading(false);
-  }, [course.id]);
-
-  useEffect(() => { fetchLessons(); }, [fetchLessons]);
-
-  const deleteLesson = async (id: string) => {
-    await supabase.from('course_lessons').delete().eq('id', id);
-    fetchLessons();
-  };
-
-  const totalDuration = lessons.reduce((s, l) => s + l.duration_minutes, 0);
-
-  return (
-    <div>
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-ink-500 hover:text-primary-600 mb-4"><ArrowLeft className="w-4 h-4" /> Back to courses</button>
-      <div className="grid lg:grid-cols-3 gap-4 mb-6">
-        <Card className="lg:col-span-2 overflow-hidden">
-          <div className="relative aspect-video bg-ink-100">
-            {course.thumbnail ? <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><PlayCircle className="w-16 h-16 text-ink-300" /></div>}
-          </div>
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <StatusBadge status={course.status} />
-              <Badge variant="primary">{course.level}</Badge>
-              <Badge variant="accent">{course.category}</Badge>
-            </div>
-            <h2 className="text-xl font-bold font-display text-ink-900">{course.title}</h2>
-            <p className="text-sm text-ink-500 mt-2">{course.description}</p>
-            <div className="flex items-center gap-4 mt-3 text-sm text-ink-500">
-              <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {course.duration_hours}h total</span>
-              <span className="flex items-center gap-1"><Layers className="w-4 h-4" /> {lessons.length} lessons</span>
-              <span className="flex items-center gap-1"><Award className="w-4 h-4" /> {course.enrolled_count} enrolled</span>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-5">
-          <h3 className="font-semibold text-ink-900 mb-3">Course Actions</h3>
-          <div className="space-y-2">
-            <button onClick={() => { setEditingLesson(null); setShowLesson(true); }} className="btn-primary w-full text-sm"><Plus className="w-4 h-4" /> Add Lesson / Topic</button>
-            <button onClick={() => setShowCert(true)} className="btn-secondary w-full text-sm"><Award className="w-4 h-4" /> Certificate Template</button>
-            <div className="pt-3 border-t border-ink-100 text-sm text-ink-500 space-y-1">
-              <p><span className="text-ink-400">Instructor:</span> {course.instructor_name}</p>
-              <p><span className="text-ink-400">Price:</span> {course.price === 0 ? 'Free' : `₹${course.price}`}</p>
-              <p><span className="text-ink-400">Status:</span> {course.status === 'published' ? 'Visible to students' : 'Draft — not visible'}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader title="Lessons & Topics" subtitle={`${lessons.length} lessons · ${Math.floor(totalDuration / 60)}h ${totalDuration % 60}m total`} />
-        {loading ? (
-          <div className="p-8 text-center text-ink-400">Loading...</div>
-        ) : lessons.length === 0 ? (
-          <EmptyState icon={Video} title="No lessons yet" description="Add your first video lesson — students will see these as topics in the course." action={<button onClick={() => { setEditingLesson(null); setShowLesson(true); }} className="btn-primary"><Plus className="w-4 h-4" /> Add Lesson</button>} />
-        ) : (
-          <div className="p-4 space-y-2">
-            {lessons.map((l, i) => (
-              <div key={l.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50">
-                <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-sm font-semibold text-primary-600">{i + 1}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink-800">{l.title}</p>
-                  <p className="text-xs text-ink-400 truncate">{l.description}</p>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-ink-500">
-                  <Clock className="w-3.5 h-3.5" /> {l.duration_minutes}m
-                </div>
-                <button onClick={() => { setEditingLesson(l.id); setShowLesson(true); }} className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-400"><Edit className="w-4 h-4" /></button>
-                <button onClick={() => deleteLesson(l.id)} className="p-1.5 rounded-lg hover:bg-error-50 text-error-500"><Trash2 className="w-4 h-4" /></button>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {showLesson && (
-        <LessonForm
-          courseId={course.id}
-          lessonId={editingLesson}
-          nextOrder={lessons.length}
-          onClose={() => setShowLesson(false)}
-          onSaved={() => { setShowLesson(false); fetchLessons(); }}
-        />
-      )}
-      {showCert && (
-        <CertTemplateEditor courseId={course.id} courseTitle={course.title} onClose={() => setShowCert(false)} />
-      )}
-    </div>
-  );
-}
-
-function LessonForm({ courseId, lessonId, nextOrder, onClose, onSaved }: {
-  courseId: string;
-  lessonId: string | null;
-  nextOrder: number;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [duration, setDuration] = useState(0);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!lessonId) return;
-    (async () => {
-      const { data } = await supabase.from('course_lessons').select('*').eq('id', lessonId).maybeSingle();
-      if (data) {
-        setTitle(data.title); setDescription(data.description);
-        setVideoUrl(data.video_url); setDuration(data.duration_minutes);
-      }
-    })();
-  }, [lessonId]);
-
-  const save = async () => {
-    if (!title.trim()) return;
-    setSaving(true);
-    if (lessonId) {
-      await supabase.from('course_lessons').update({
-        title, description, video_url: videoUrl, duration_minutes: duration,
-      }).eq('id', lessonId);
-    } else {
-      await supabase.from('course_lessons').insert({
-        course_id: courseId, title, description, video_url: videoUrl,
-        duration_minutes: duration, sort_order: nextOrder,
-      });
-    }
-    setSaving(false);
-    onSaved();
-  };
-
-  return (
-    <Modal open onClose={onClose} title={lessonId ? 'Edit Lesson' : 'Add Lesson / Topic'} size="md">
-      <div className="space-y-4">
-        <div><label className="label">Lesson Title</label><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Introduction to Arrays" /></div>
-        <div><label className="label">Description</label><textarea className="input min-h-16" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What does this lesson cover?" /></div>
-        <div><label className="label">Video URL</label><input className="input" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://...mp4 or YouTube/Vimeo link" /></div>
-        <div className="flex items-center gap-2 p-3 bg-ink-50 rounded-xl text-sm text-ink-500">
-          <Upload className="w-4 h-4" /> Paste a video link (MP4, YouTube, or Vimeo). Direct file upload can be added later.
-        </div>
-        <div><label className="label">Duration (minutes)</label><input className="input" type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} /></div>
-        <div className="flex gap-2 pt-2">
-          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-          <button onClick={save} disabled={saving || !title.trim()} className="btn-primary flex-1"><Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Lesson'}</button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function CertTemplateEditor({ courseId, courseTitle, onClose }: { courseId: string; courseTitle: string; onClose: () => void }) {
-  const [title, setTitle] = useState('Certificate of Completion');
-  const [issuedBy, setIssuedBy] = useState('Bright Future College');
-  const [signatureText, setSignatureText] = useState('Director of Studies');
-  const [borderStyle, setBorderStyle] = useState('Classic');
-  const [saving, setSaving] = useState(false);
-  const [existingId, setExistingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from('certificate_templates').select('*').eq('course_id', courseId).maybeSingle();
-      if (data) {
-        setExistingId(data.id);
-        setTitle(data.title); setIssuedBy(data.issued_by);
-        setSignatureText(data.signature_text); setBorderStyle(data.border_style);
-      }
-    })();
-  }, [courseId]);
-
-  const save = async () => {
-    setSaving(true);
-    if (existingId) {
-      await supabase.from('certificate_templates').update({
-        title, issued_by: issuedBy, signature_text: signatureText, border_style: borderStyle,
-      }).eq('id', existingId);
-    } else {
-      await supabase.from('certificate_templates').insert({
-        course_id: courseId, title, issued_by: issuedBy, signature_text: signatureText, border_style: borderStyle,
-      });
-    }
-    setSaving(false);
-    onClose();
-  };
-
-  const borderColors: Record<string, string> = {
-    Classic: 'border-primary-600', Modern: 'border-accent-600',
-    Elegant: 'border-success-600', Minimal: 'border-ink-400',
-  };
-
-  return (
-    <Modal open onClose={onClose} title="Certificate Template" size="lg">
-      <div className="grid lg:grid-cols-2 gap-5">
-        <div className="space-y-4">
-          <div><label className="label">Certificate Title</label><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-          <div><label className="label">Course Name</label><input className="input" defaultValue={courseTitle} disabled /></div>
-          <div><label className="label">Issued By</label><input className="input" value={issuedBy} onChange={(e) => setIssuedBy(e.target.value)} /></div>
-          <div><label className="label">Signature Line Text</label><input className="input" value={signatureText} onChange={(e) => setSignatureText(e.target.value)} /></div>
-          <div>
-            <label className="label">Border Style</label>
-            <div className="flex gap-2">
-              {['Classic', 'Modern', 'Elegant', 'Minimal'].map((s) => (
-                <button key={s} onClick={() => setBorderStyle(s)} className={cn('px-3 py-2 rounded-lg text-sm border-2', borderStyle === s ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-ink-200 text-ink-600 hover:border-ink-300')}>{s}</button>
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <div className="p-4 bg-error-50 border border-error-200 rounded-2xl text-xs text-error-800 space-y-1">
+              <p className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-error-600" /> Required Fields Missing:</p>
+              {validationErrors.map((err, idx) => (
+                <p key={idx} className="pl-5">• {err}</p>
               ))}
             </div>
-          </div>
-          <button onClick={save} disabled={saving} className="btn-primary w-full"><Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Template'}</button>
-        </div>
-        <div>
-          <h3 className="font-semibold text-ink-900 mb-3 text-sm">Live Preview</h3>
-          <div className={cn('rounded-xl border-4 p-6 bg-gradient-to-br from-primary-50 to-accent-50 text-center', borderColors[borderStyle])}>
-            <div className="w-14 h-14 rounded-full bg-primary-600 mx-auto mb-3 flex items-center justify-center text-white"><Award className="w-7 h-7" /></div>
-            <p className="text-xs text-ink-500 uppercase tracking-widest">{title}</p>
-            <h2 className="text-lg font-bold font-display text-ink-900 mt-2">{courseTitle}</h2>
-            <p className="text-sm text-ink-500 mt-3">This certifies that</p>
-            <p className="text-lg font-semibold text-primary-700 mt-1">{'{{student_name}}'}</p>
-            <p className="text-sm text-ink-500 mt-2">has successfully completed the course</p>
-            <div className="mt-5 flex justify-between items-end text-xs text-ink-500">
-              <div><p className="font-semibold text-ink-700">{issuedBy}</p><p>Issued On</p></div>
-              <div><p className="font-semibold text-ink-700">{signatureText}</p><p>Signature</p></div>
+          )}
+
+          {/* STEP 1: Course Info */}
+          {step === 1 && (
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Course Title *</label>
+                  <input
+                    type="text"
+                    value={courseForm.title}
+                    onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                    placeholder="e.g. Master Data Structures & Algorithms"
+                    className="input w-full"
+                  />
+                </div>
+                <div>
+                  <label className="label">Course Code *</label>
+                  <input
+                    type="text"
+                    value={courseForm.code}
+                    onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value })}
+                    placeholder="e.g. CS-201"
+                    className="input w-full"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Description *</label>
+                <textarea
+                  value={courseForm.description}
+                  onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                  placeholder="Detailed summary of what this course offers..."
+                  className="input w-full min-h-[90px] text-xs"
+                />
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <label className="label">Category</label>
+                  <input
+                    type="text"
+                    value={courseForm.category}
+                    onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
+                    className="input w-full"
+                  />
+                </div>
+                <div>
+                  <label className="label">Level</label>
+                  <select
+                    value={courseForm.level}
+                    onChange={(e) => setCourseForm({ ...courseForm, level: e.target.value as any })}
+                    className="input w-full"
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Duration (Hours)</label>
+                  <input
+                    type="number"
+                    value={courseForm.durationHours}
+                    onChange={(e) => setCourseForm({ ...courseForm, durationHours: Number(e.target.value) })}
+                    className="input w-full"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Thumbnail Image URL</label>
+                <input
+                  type="text"
+                  value={courseForm.thumbnail}
+                  onChange={(e) => setCourseForm({ ...courseForm, thumbnail: e.target.value })}
+                  className="input w-full text-xs"
+                />
+                <div className="flex gap-2 mt-2">
+                  {STOCK_THUMBS.map((thumb, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCourseForm({ ...courseForm, thumbnail: thumb })}
+                      className={cn('w-12 h-10 rounded-lg overflow-hidden border-2 transition', courseForm.thumbnail === thumb ? 'border-primary-600 scale-105' : 'border-transparent opacity-70')}
+                    >
+                      <img src={thumb} alt="Stock" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Learning Objectives (One per line)</label>
+                  <textarea
+                    value={courseForm.objectivesText}
+                    onChange={(e) => setCourseForm({ ...courseForm, objectivesText: e.target.value })}
+                    className="input w-full min-h-[80px] text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="label">Prerequisites (Comma separated)</label>
+                  <textarea
+                    value={courseForm.prerequisitesText}
+                    onChange={(e) => setCourseForm({ ...courseForm, prerequisitesText: e.target.value })}
+                    className="input w-full min-h-[80px] text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Curriculum Builder */}
+          {step === 2 && (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-ink-900 text-sm">Curriculum Architecture (Modules & Lessons)</h3>
+                <button onClick={handleAddModule} className="btn-secondary text-xs flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5" /> + Add Module
+                </button>
+              </div>
+
+              <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
+                {builderModules.map((mod, modIdx) => {
+                  const modLessons = builderLessons.filter((l) => l.moduleId === mod.id);
+                  return (
+                    <div key={mod.id} className="p-4 border border-ink-200 rounded-2xl bg-white space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <input
+                          type="text"
+                          value={mod.title}
+                          onChange={(e) => {
+                            const updated = builderModules.map((m) => m.id === mod.id ? { ...m, title: e.target.value } : m);
+                            setBuilderModules(updated);
+                          }}
+                          className="font-bold text-ink-900 text-sm bg-transparent border-b border-ink-200 focus:outline-none focus:border-primary-600 flex-1 py-1"
+                        />
+                        <button
+                          onClick={() => setBuilderModules(builderModules.filter((m) => m.id !== mod.id))}
+                          className="p-1 text-ink-400 hover:text-error-600 transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 bg-ink-50/60 p-3 rounded-xl">
+                        {modLessons.map((les) => (
+                          <div key={les.id} className="p-3 bg-white border border-ink-200 rounded-xl flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="w-4 h-4 text-primary-600" />
+                              <span className="font-semibold text-ink-900">{les.title}</span>
+                              <Badge variant="neutral">{les.lessonType}</Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => { setEditingLessonId(les.id); setLessonForm(les); }}
+                                className="text-xs text-primary-600 hover:underline"
+                              >
+                                Edit Content
+                              </button>
+                              <button
+                                onClick={() => setBuilderLessons(builderLessons.filter((l) => l.id !== les.id))}
+                                className="text-ink-400 hover:text-error-600"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+
+                        <button
+                          onClick={() => handleAddLessonToModule(mod.id)}
+                          className="w-full py-2 border border-dashed border-ink-300 rounded-xl text-xs text-ink-600 hover:bg-white transition flex items-center justify-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Add Lesson to {mod.title}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Lesson Edit Form Drawer */}
+              {editingLessonId && (
+                <div className="p-4 bg-primary-50/50 border border-primary-200 rounded-2xl space-y-3">
+                  <h4 className="font-bold text-xs uppercase text-primary-900 tracking-wider">Edit Lesson Details</h4>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      value={lessonForm.title}
+                      onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
+                      placeholder="Lesson title"
+                      className="input text-xs"
+                    />
+                    <select
+                      value={lessonForm.lessonType}
+                      onChange={(e) => setLessonForm({ ...lessonForm, lessonType: e.target.value as LessonType })}
+                      className="input text-xs"
+                    >
+                      <option value="VIDEO">Video Lesson</option>
+                      <option value="PDF">PDF Document</option>
+                      <option value="DOC">Word Document (DOCX)</option>
+                      <option value="PPT">Presentation (PPTX)</option>
+                      <option value="TEXT">Rich Text Article</option>
+                      <option value="EXTERNAL_LINK">External Resource Link</option>
+                      <option value="CODING_EXERCISE">Coding Exercise</option>
+                      <option value="QUIZ">Quiz / Assessment</option>
+                      <option value="ASSIGNMENT">Assignment Task</option>
+                    </select>
+                  </div>
+
+                  {lessonForm.lessonType === 'VIDEO' && (
+                    <input
+                      type="text"
+                      value={lessonForm.videoUrl}
+                      onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
+                      placeholder="Video Stream URL (e.g. YouTube embed link or MP4 URL)"
+                      className="input text-xs w-full"
+                    />
+                  )}
+
+                  {lessonForm.lessonType === 'TEXT' && (
+                    <textarea
+                      value={lessonForm.richText}
+                      onChange={(e) => setLessonForm({ ...lessonForm, richText: e.target.value })}
+                      placeholder="Write lesson text content..."
+                      className="input text-xs w-full min-h-[80px]"
+                    />
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button onClick={() => setEditingLessonId(null)} className="btn-secondary text-xs">Close</button>
+                    <button
+                      onClick={() => {
+                        setBuilderLessons(builderLessons.map((l) => l.id === editingLessonId ? { ...l, ...lessonForm } as CourseLesson : l));
+                        setEditingLessonId(null);
+                      }}
+                      className="btn-primary text-xs"
+                    >
+                      Save Lesson Content
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 3: File Resources & AI */}
+          {step === 3 && (
+            <div className="space-y-6">
+              {/* AI Assistant Banner */}
+              <div className="p-5 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-2xl flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-warning-300" /> ✨ Skill Toss AI Course Assistant
+                  </h3>
+                  <p className="text-xs text-white/80 mt-1 max-w-lg">
+                    Automatically generate course summaries, learning objectives, key concepts, quiz questions, and flashcards from your lesson content.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAiModal(true)}
+                  className="px-4 py-2 bg-white text-primary-700 font-bold rounded-xl text-xs shadow-md hover:bg-ink-50 transition"
+                >
+                  ✨ Generate with AI
+                </button>
+              </div>
+
+              {/* Real File Attachment Storage */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-ink-900 text-sm">Course Resource Attachments (PDF / DOC / PPT)</h4>
+                <FileAttachmentPicker
+                  ownerId={courseForm.id || 'course_new'}
+                  ownerType="resource"
+                  files={[]}
+                  onChange={() => {}}
+                  label="Upload Supplementary Material Files"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Preview & Submit */}
+          {step === 4 && (
+            <div className="space-y-5">
+              <div className="p-5 bg-ink-50 border border-ink-200 rounded-2xl space-y-3">
+                <h3 className="font-bold text-ink-900 text-base">{courseForm.title || 'Untitled Course'}</h3>
+                <p className="text-xs text-ink-600">{courseForm.description}</p>
+
+                <div className="flex flex-wrap gap-4 text-xs text-ink-500 pt-2 border-t border-ink-200">
+                  <span>Category: <strong>{courseForm.category}</strong></span>
+                  <span>Level: <strong>{courseForm.level}</strong></span>
+                  <span>Duration: <strong>{courseForm.durationHours} Hours</strong></span>
+                  <span>Modules: <strong>{builderModules.length}</strong></span>
+                  <span>Lessons: <strong>{builderLessons.length}</strong></span>
+                </div>
+              </div>
+
+              <div className="p-4 bg-primary-50 rounded-2xl border border-primary-200 text-xs text-primary-900">
+                <p className="font-bold mb-1">Status Workflow Notice:</p>
+                <p>Clicking <strong>"Submit for Review"</strong> will update status to <strong>PENDING REVIEW</strong> and notify Administrators to review and publish your course.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Action Controls */}
+          <div className="pt-4 border-t border-ink-200 flex items-center justify-between">
+            <button onClick={handleSaveDraftAction} className="btn-secondary text-xs flex items-center gap-1.5">
+              <Save className="w-3.5 h-3.5" /> Save Draft
+            </button>
+
+            <div className="flex items-center gap-2">
+              {step > 1 && (
+                <button onClick={() => setStep(step - 1)} className="btn-secondary text-xs">
+                  ← Back
+                </button>
+              )}
+
+              {step < 4 ? (
+                <button onClick={() => setStep(step + 1)} className="btn-primary text-xs flex items-center gap-1">
+                  Next Step →
+                </button>
+              ) : (
+                <button onClick={handleSubmitForReviewAction} className="btn-primary text-xs flex items-center gap-1.5 shadow-sm">
+                  <Send className="w-4 h-4" /> Submit for Review
+                </button>
+              )}
             </div>
           </div>
-          <p className="text-xs text-ink-400 mt-3 text-center">Auto-sent to student's WhatsApp & email upon course completion</p>
         </div>
-      </div>
-    </Modal>
+      </Modal>
+
+      {/* AI Assistant Modal */}
+      <AiCourseAssistantModal
+        isOpen={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        contextTitle={courseForm.title}
+        contextText={courseForm.description}
+        onAcceptAiContent={(generated) => {
+          setCourseForm({
+            ...courseForm,
+            objectivesText: generated.objectives.join('\n'),
+          });
+          setFeedback({ kind: 'success', message: 'AI generated content inserted into course builder.' });
+        }}
+      />
+
+      {/* Admin Review Modal */}
+      {showReviewModal && activeCourse && (
+        <CourseReviewModal
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          course={activeCourse}
+          modules={(state.courseModules || []).filter((m) => m.courseId === activeCourse.id)}
+          lessons={(state.courseLessons || []).filter((l) => l.courseId === activeCourse.id)}
+          onApprove={(cId) => adminReviewCourse(cId, 'APPROVED', '', instructorName)}
+          onRequestChanges={(cId, fb) => adminReviewCourse(cId, 'CHANGES_REQUESTED', fb, instructorName)}
+          onReject={(cId) => adminReviewCourse(cId, 'REJECTED', 'Course did not meet standards.', instructorName)}
+          onPublish={(cId) => adminReviewCourse(cId, 'PUBLISHED', '', instructorName)}
+        />
+      )}
+    </div>
   );
 }

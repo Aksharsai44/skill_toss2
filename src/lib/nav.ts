@@ -136,6 +136,13 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
         { label: 'Calendar', path: '/admin/calendar', icon: 'Calendar' },
       ],
     },
+    {
+      group: 'Engagement',
+      items: [
+        { label: 'Community', path: '/admin/community', icon: 'Users' },
+        { label: 'Discussion Forum', path: '/admin/forum', icon: 'MessagesSquare' },
+      ],
+    },
   ],
   'teacher': [
     {
@@ -151,7 +158,6 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
         { label: 'Live Classes', path: '/teacher/classes', icon: 'Video' },
         { label: 'Recordings', path: '/teacher/recordings', icon: 'PlayCircle' },
         { label: 'Attendance', path: '/teacher/attendance', icon: 'CheckSquare' },
-        { label: 'Leave Requests', path: '/teacher/leaves', icon: 'CalendarOff', badge: '3' },
         { label: 'My Courses', path: '/teacher/courses', icon: 'PlayCircle' },
         { label: 'Assignments', path: '/teacher/assignments', icon: 'ClipboardList' },
         { label: 'Exams', path: '/teacher/exams', icon: 'FileQuestion' },
@@ -161,6 +167,7 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
     {
       group: 'Engagement',
       items: [
+        { label: 'Announcements', path: '/teacher/batches', icon: 'Bell' },
         { label: 'Community', path: '/teacher/community', icon: 'Users' },
         { label: 'Discussion Forum', path: '/teacher/forum', icon: 'MessagesSquare' },
         { label: 'Calendar', path: '/teacher/calendar', icon: 'Calendar' },
@@ -169,6 +176,7 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
     {
       group: 'Personal',
       items: [
+        { label: 'Leave Requests', path: '/teacher/leaves', icon: 'CalendarOff', badge: '3' },
         { label: 'Salary', path: '/teacher/salary', icon: 'Wallet' },
         { label: 'My Profile', path: '/teacher/profile', icon: 'UserCircle' },
       ],

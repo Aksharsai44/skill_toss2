@@ -3,7 +3,7 @@ import {
   Users, Wallet, TrendingUp, GraduationCap, Layers, CreditCard, Fingerprint,
   CalendarOff, Award, Calendar, Plus, Search, Download,
   Check, X, MessageCircle, Mail, Smartphone, Video,
-  Clock, Phone, ChevronRight,
+  Clock, Phone, ChevronRight, Activity, CheckCircle2
 } from 'lucide-react';
 import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';
 import { StatCard } from '@/components/ui/StatCard';
@@ -14,6 +14,9 @@ import { Tabs, Select } from '@/components/ui/Tabs';
 import { RevenueAreaChart, AttendanceBarChart, DepartmentPieChart } from '@/components/ui/Charts';
 import { supabase } from '@/lib/supabase';
 import { CourseBuilder } from '@/components/CourseBuilder';
+import { CommunityHub } from '@/components/CommunityHub';
+import { CommunityChatWorkspace } from '@/components/CommunityChatWorkspace';
+import { DiscussionForumHub } from '@/components/DiscussionForumHub';
 import {
   teachers, leaveRequests, events,
   salaryRecords, revenueData, attendanceData, departmentData,
@@ -21,6 +24,7 @@ import {
 import type { Student, Teacher, FeeRecord } from '@/lib/types';
 import { cn } from '@/lib/cn';
 import { useLmsData } from '@/lib/lmsDataContext';
+import { AcademicCalendarView } from '@/components/AcademicCalendarView';
 
 export function AdminDashboard() {
   const { state, getStudentFees } = useLmsData();
@@ -75,21 +79,40 @@ export function AdminDashboard() {
 }
 
 export function AdminTeachers() {
+  const { state } = useLmsData();
   const [selected, setSelected] = useState<Teacher | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const displayTeachers: Teacher[] = state.teachers.map((t) => {
+    const assignedBatches = state.batches.filter((b) => b.teacherId === t.id).map((b) => b.name);
+    return {
+      id: t.id,
+      name: t.name,
+      email: t.email,
+      phone: t.phone,
+      subjects: ['Data Structures', 'Algorithms'],
+      batches: assignedBatches.length > 0 ? assignedBatches : (t.batchIds || ['CS-2024-A']),
+      avatar: t.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(t.name)}`,
+      salary: 65000,
+      attendance: 96,
+      status: (t.status as 'active' | 'on-leave') || 'active',
+    };
+  }).filter((t) => `${t.name} ${t.email}`.toLowerCase().includes(search.toLowerCase()));
+
   return (
     <div>
       <PageHeader title="Teachers & Mentors" subtitle="Manage faculty members, subjects & batches" actions={
         <>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input placeholder="Search teachers..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search teachers..." className="pl-9 pr-4 py-2.5 text-sm bg-white border border-ink-200 rounded-xl focus:outline-none focus:border-primary-500 w-48" />
           </div>
           <button onClick={() => setShowAdd(true)} className="btn-primary"><Plus className="w-4 h-4" /> Add Teacher</button>
         </>
       } />
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {teachers.map((t) => (
+        {displayTeachers.map((t) => (
           <button key={t.id} onClick={() => setSelected(t)} className="card card-hover p-5 text-left">
             <div className="flex items-center gap-3 mb-4">
               <img src={t.avatar} alt={t.name} className="w-12 h-12 rounded-xl bg-ink-100" />
@@ -165,8 +188,8 @@ export function AdminStudents() {
   const lmsStudents: Student[] = state.students.map((student) => {
     const batch = state.batches.find((item) => item.id === student.batchId);
     const department = state.departments.find((item) => item.id === student.departmentId);
-    const records = state.attendance.filter((item) => item.studentId === student.id && item.status !== 'excused');
-    const attended = records.filter((item) => item.status === 'present' || item.status === 'late').length;
+    const records = state.attendance.filter((item) => item.studentId === student.id);
+    const attended = records.filter((item) => item.status === 'present').length;
     const invoiceTotal = state.feeInvoices.filter((item) => item.studentId === student.id).reduce((sum, item) => sum + item.total, 0);
     const paid = state.payments.filter((item) => item.studentId === student.id).reduce((sum, item) => sum + item.amount, 0);
     return { id: student.id, name: student.name, rollNo: student.rollNo, batch: batch?.name ?? '', department: department?.name ?? '', email: student.email, phone: student.phone, parentPhone: student.parentPhone, avatar: student.avatar, attendance: records.length ? Math.round((attended / records.length) * 100) : 0, feeTotal: invoiceTotal, feePaid: paid, status: student.status };
@@ -760,7 +783,7 @@ export function AdminCertifications() {
 }
 
 export function AdminCalendar() {
-  return <CalendarView />;
+  return <AcademicCalendarView currentUserRole="admin" />;
 }
 
 function CalendarView() {
@@ -828,6 +851,81 @@ function CalendarView() {
           </div>
         </Card>
       </div>
+    </div>
+  );
+}
+
+export function AdminCommunity() {
+  return <CommunityChatWorkspace currentUserRole="admin" />;
+}
+
+export function AdminForum() {
+  return <DiscussionForumHub currentUserRole="admin" />;
+}
+
+export function AdminExams() {
+  const { state } = useLmsData();
+
+  const totalExams = state.exams.length;
+  const nowYMD = new Date().toISOString().split('T')[0];
+  const upcomingExams = state.exams.filter((e) => e.date >= nowYMD && e.status !== 'completed' && e.status !== 'results_published').length;
+  const liveExams = state.exams.filter((e) => e.status === 'live' || (e.date === nowYMD && e.status === 'scheduled')).length;
+  const totalSubmissions = (state.examResults || []).length;
+  const evaluatedCount = (state.examResults || []).filter((r) => r.status === 'evaluated').length;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Institution Exam & Assessment Monitor"
+        subtitle="Monitor institution-wide exams, scheduling, submissions, and pass rate analytics"
+      />
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <StatCard label="Total Exams" value={totalExams} icon={Award} color="primary" />
+        <StatCard label="Live Today" value={liveExams} icon={Activity} color="error" />
+        <StatCard label="Upcoming" value={upcomingExams} icon={Clock} color="warning" />
+        <StatCard label="Total Submissions" value={totalSubmissions} icon={CheckCircle2} color="success" />
+        <StatCard label="Evaluated Papers" value={evaluatedCount} icon={Check} color="accent" />
+      </div>
+
+      <Card>
+        <CardHeader title="All Scheduled Assessments & Results" subtitle="Institution-wide exam overview" />
+        <div className="p-4 overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-ink-50 text-[11px] font-semibold text-ink-600 uppercase">
+              <tr>
+                <th className="px-4 py-3">Exam Title</th>
+                <th className="px-4 py-3">Course / Subject</th>
+                <th className="px-4 py-3">Batch</th>
+                <th className="px-4 py-3">Date & Time</th>
+                <th className="px-4 py-3">Max Marks</th>
+                <th className="px-4 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ink-100 bg-white">
+              {state.exams.map((exam) => (
+                <tr key={exam.id} className="hover:bg-ink-50/50">
+                  <td className="px-4 py-3 font-bold text-ink-900">{exam.title}</td>
+                  <td className="px-4 py-3 text-ink-600">{exam.subject} ({exam.courseTitle})</td>
+                  <td className="px-4 py-3 text-ink-600">{exam.batchName}</td>
+                  <td className="px-4 py-3 text-ink-500">{exam.date} at {exam.startTime}</td>
+                  <td className="px-4 py-3 font-medium text-ink-800">{exam.maxMarks} Marks ({exam.durationMinutes}m)</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={exam.status === 'results_published' ? 'success' : exam.status === 'live' ? 'warning' : 'primary'}>
+                      {exam.status.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+              {state.exams.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-ink-400">No exams currently created in the institution.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }

@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS courses (
   instructor_role text NOT NULL DEFAULT 'admin',
   thumbnail text NOT NULL DEFAULT '',
   category text NOT NULL DEFAULT 'General',
-  level text NOT NULL DEFAULT 'Beginner',
+  level text NOT NULL DEFAULT 'Beginner' CHECK (level IN ('Beginner', 'Intermediate', 'Advanced')),
   duration_hours integer NOT NULL DEFAULT 0,
   price numeric NOT NULL DEFAULT 0,
   status text NOT NULL DEFAULT 'draft',

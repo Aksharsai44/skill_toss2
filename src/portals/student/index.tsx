@@ -6,9 +6,14 @@ import {
   Bookmark, MessageCircle, Plus, TrendingUp, Mic, FileSearch, Code2,
   CalendarCheck, ChevronRight, Mail, Phone, Edit, Trash2, Save, CalendarOff,
   GraduationCap, AlertTriangle, CheckCircle2, ArrowUpRight, ShieldAlert, Activity, Paperclip, UploadCloud, X,
+  Search, ExternalLink, Loader2, FolderOpen, Eye
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { CommunityHub } from '@/components/CommunityHub';
+import { CommunityChatWorkspace } from '@/components/CommunityChatWorkspace';
+import { DiscussionForumHub } from '@/components/DiscussionForumHub';
 import { PageHeader, Card, CardHeader, EmptyState } from '@/components/ui/Layout';
+
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
@@ -19,8 +24,12 @@ import { useAuth } from '@/lib/authContext';
 import { useNavigate } from 'react-router-dom';
 import { useStudentPortal } from '@/lib/studentPortalContext';
 import { useLmsData } from '@/lib/lmsDataContext';
-import type { SubmissionAttachment } from '@/lib/types';
+import type { SubmissionAttachment, ClassRecording } from '@/lib/types';
+import { VideoPlayerModal } from '@/components/VideoPlayerModal';
+import { ViewsModal } from '@/components/ViewsModal';
 import { getAttachment, removeAttachment } from '@/lib/attachmentStorage';
+import { AcademicCalendarView } from '@/components/AcademicCalendarView';
+import { StudentExamPlayerModal } from '@/components/StudentExamPlayerModal';
 import { MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS, ACCEPTED_ATTACHMENT_EXTENSIONS, formatAttachmentSize as formatSharedAttachmentSize, attachmentExtension as sharedAttachmentExtension, attachmentIdFor as sharedAttachmentIdFor } from '@/lib/attachmentConfig';
 
 const formatFileSize = formatSharedAttachmentSize;
@@ -186,6 +195,82 @@ export function StudentDashboard() {
       <div className="grid lg:grid-cols-3 gap-5 lg:gap-6 items-start">
         {/* Main Left Column (2 Cols) */}
         <div className="lg:col-span-2 space-y-6">
+          {/* My Courses & Learning Progress Section */}
+          <Card>
+            <CardHeader
+              title="My Courses & Available Learning"
+              subtitle="Enrolled & published educational courses from database"
+              action={
+                <button onClick={() => navigate('/student/courses')} className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1">
+                  View All Catalog <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              }
+            />
+            <div className="p-5">
+              {(() => {
+                const currentStudentId = profile?.id || 'student_001';
+                const pubCourses = (state.courses || []).filter((c) => c.status === 'PUBLISHED' || c.status === 'APPROVED');
+                const enrollments = (state.courseEnrollments || []).filter((e) => e.studentId === currentStudentId);
+                const enrolledSet = new Set(enrollments.map((e) => e.courseId));
+                const studentProgList = (state.lessonProgress || []).filter((p) => p.studentId === currentStudentId);
+
+                if (pubCourses.length === 0) {
+                  return (
+                    <div className="text-center py-6 text-xs text-ink-400">
+                      <BookOpen className="w-8 h-8 text-ink-300 mx-auto mb-2" />
+                      No published courses available yet. When teachers publish courses, they will appear here.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {pubCourses.slice(0, 4).map((c) => {
+                      const isEnrolled = enrolledSet.has(c.id);
+                      const cLess = (state.courseLessons || []).filter((l) => l.courseId === c.id);
+                      const cMods = (state.courseModules || []).filter((m) => m.courseId === c.id);
+                      const compCount = cLess.filter((l) => studentProgList.some((p) => p.lessonId === l.id)).length;
+                      const progressPct = cLess.length > 0 ? Math.round((compCount / cLess.length) * 100) : 0;
+
+                      return (
+                        <div key={c.id} className="p-4 rounded-2xl border border-ink-200 bg-white hover:border-primary-300 transition flex flex-col justify-between space-y-3">
+                          <div>
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-primary-600">{c.category}</span>
+                              <Badge variant={isEnrolled ? (progressPct === 100 ? 'success' : 'primary') : 'neutral'}>
+                                {isEnrolled ? `${progressPct}%` : 'Published'}
+                              </Badge>
+                            </div>
+                            <h4 className="font-bold text-ink-900 text-sm line-clamp-1">{c.title}</h4>
+                            <p className="text-xs text-ink-500 mt-0.5">Instructor: {c.instructorName}</p>
+                          </div>
+
+                          {isEnrolled && (
+                            <div className="space-y-1">
+                              <div className="w-full bg-ink-100 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-primary-600 h-full transition-all duration-300" style={{ width: `${progressPct}%` }} />
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between pt-2 border-t border-ink-100 text-xs">
+                            <span className="text-[11px] text-ink-400">{cMods.length || 2} Modules • {cLess.length || 6} Lessons</span>
+                            <button
+                              onClick={() => navigate('/student/courses')}
+                              className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                            >
+                              {isEnrolled ? 'Continue →' : 'Enroll →'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </Card>
+
           {/* Today Timeline */}
           <Card>
             <CardHeader title="Today's Schedule & Tasks" subtitle="Live classes, sessions and assignments" />
@@ -595,54 +680,301 @@ export function StudentClasses() {
 
 
 export function StudentRecordings() {
+  const { user } = useAuth();
+  const { selectedStudent } = useStudentPortal();
+  const { state, recordRecordingView, downloadRecordingFile, getViewsForRecording } = useLmsData();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRecordingForPlayer, setSelectedRecordingForPlayer] = useState<ClassRecording | null>(null);
+  const [selectedRecordingForViews, setSelectedRecordingForViews] = useState<ClassRecording | null>(null);
+  const [viewsList, setViewsList] = useState<Array<{ id: string; studentId: string; studentName: string; rollNo: string; department: string; viewedAt: string }>>([]);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  // Student's batch and enrolled courses
+  const activeStudent: any = selectedStudent || state.students[0];
+  const studentBatchId = activeStudent?.batchId || activeStudent?.studentBatch || 'batch_001';
+  const studentBatchName = activeStudent?.studentBatch || activeStudent?.batchId || activeStudent?.batch || 'CS-2024-A';
+
+  const allRecordings = state.classRecordings && state.classRecordings.length > 0 ? state.classRecordings : recordings;
+
+  // Filter recordings for student's batch or enrolled courses
+  const studentRecordings = allRecordings.filter((r) => {
+    const matchesBatch = r.batchId === studentBatchId || r.batchName === studentBatchName || r.batch === studentBatchName;
+    return matchesBatch;
+  });
+
+  const filteredRecordings = studentRecordings.filter((r) => {
+    const term = searchQuery.toLowerCase().trim();
+    if (!term) return true;
+    return (
+      r.title.toLowerCase().includes(term) ||
+      (r.courseTitle && r.courseTitle.toLowerCase().includes(term)) ||
+      (r.subject && r.subject.toLowerCase().includes(term)) ||
+      (r.teacherName && r.teacherName.toLowerCase().includes(term))
+    );
+  });
+
+  const handleOpenViews = (rec: ClassRecording) => {
+    const vList = getViewsForRecording(rec.id);
+    setViewsList(vList);
+    setSelectedRecordingForViews(rec);
+  };
+
+  const handleDownload = async (rec: ClassRecording) => {
+    setDownloadingId(rec.id);
+    try {
+      await downloadRecordingFile(rec);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
-    <div>
-      <PageHeader title="Class Recordings" subtitle="Auto-synced after each class ends" />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {recordings.filter((r) => r.status === 'ready').map((r) => (
-          <Card key={r.id} hover className="overflow-hidden">
-            <div className="relative aspect-video bg-ink-100">
-              <img src={r.thumbnail} alt={r.title} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-ink-950/30 flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center"><Play className="w-6 h-6 text-primary-600 ml-0.5" /></div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Class Recordings"
+        subtitle="Auto-synced video recordings of your completed classes"
+        actions={
+          <div className="relative w-64">
+            <Search className="w-4 h-4 text-ink-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search recordings by subject, title..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input pl-9 text-xs"
+            />
+          </div>
+        }
+      />
+
+      {filteredRecordings.length === 0 ? (
+        <Card className="p-12 text-center">
+          <EmptyState
+            icon={Video}
+            title="No class recordings yet"
+            description="Recordings from your completed live classes will automatically appear here."
+          />
+        </Card>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredRecordings.map((r) => (
+            <Card key={r.id} hover className="overflow-hidden group flex flex-col justify-between">
+              <div>
+                <div className="relative aspect-video bg-ink-100 overflow-hidden">
+                  <img src={r.thumbnail} alt={r.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-ink-950/30 flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => setSelectedRecordingForPlayer(r)}
+                      disabled={r.status === 'processing'}
+                      className="w-12 h-12 rounded-full bg-white/90 text-primary-600 flex items-center justify-center shadow-lg hover:scale-110 hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Play className="w-6 h-6 ml-0.5 fill-primary-600" />
+                    </button>
+                  </div>
+                  <div className="absolute bottom-2 right-2 badge bg-ink-950/80 text-white text-[10px] font-mono">{r.duration}</div>
+                  {r.status === 'processing' && (
+                    <div className="absolute top-2 right-2 badge bg-warning-500 text-white text-[10px] animate-pulse">Processing...</div>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="primary" size="sm">{r.batchName || r.batch}</Badge>
+                    {r.subject && <span className="text-[10px] text-ink-400 font-medium truncate">{r.subject}</span>}
+                  </div>
+                  <h3 className="font-semibold text-ink-800 text-sm truncate" title={r.title}>{r.title}</h3>
+                  <p className="text-xs text-ink-400 mt-1 flex items-center gap-2">
+                    <span>{r.date}</span>
+                    {r.teacherName && <span>• {r.teacherName}</span>}
+                  </p>
+                </div>
               </div>
-              <div className="absolute bottom-2 right-2 badge bg-ink-950/70 text-white text-[10px]">{r.duration}</div>
-            </div>
-            <div className="p-4">
-              <h3 className="font-medium text-ink-800 text-sm">{r.title}</h3>
-              <p className="text-xs text-ink-400 mt-1">{r.batch} · {r.date}</p>
-              <button className="btn-secondary w-full mt-3 text-xs"><PlayCircle className="w-3.5 h-3.5" /> Watch Recording</button>
-            </div>
-          </Card>
-        ))}
-      </div>
+
+              <div className="p-4 pt-0 space-y-2">
+                <div className="flex items-center justify-between text-xs text-ink-500 border-t border-ink-100 pt-2">
+                  <button
+                    onClick={() => handleOpenViews(r)}
+                    className="flex items-center gap-1 text-[11px] text-ink-600 hover:text-accent-600 font-medium cursor-pointer"
+                    title="View student view history"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-accent-600" />
+                    <span>{r.viewsCount || 0} views</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleDownload(r)}
+                    disabled={downloadingId === r.id || r.status === 'processing'}
+                    className="flex items-center gap-1 text-xs text-ink-600 hover:text-primary-600 font-medium disabled:opacity-50"
+                  >
+                    {downloadingId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    Download
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setSelectedRecordingForPlayer(r)}
+                  disabled={r.status === 'processing'}
+                  className="btn-secondary w-full text-xs py-2 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <PlayCircle className="w-4 h-4 text-primary-600" />
+                  {r.status === 'processing' ? 'Processing...' : 'Watch Recording'}
+                </button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Video Player Modal */}
+      <VideoPlayerModal
+        recording={selectedRecordingForPlayer}
+        isOpen={Boolean(selectedRecordingForPlayer)}
+        onClose={() => setSelectedRecordingForPlayer(null)}
+        currentUserId={activeStudent?.id || user?.id}
+        onRecordView={recordRecordingView}
+      />
+
+      {/* Views History Modal */}
+      <ViewsModal
+        recording={selectedRecordingForViews}
+        views={viewsList}
+        isOpen={Boolean(selectedRecordingForViews)}
+        onClose={() => setSelectedRecordingForViews(null)}
+      />
     </div>
   );
 }
 
 export function StudentResources() {
   const { selectedStudent } = useStudentPortal();
-  const { state, getStudentResources } = useLmsData();
-  const resources = selectedStudent ? getStudentResources(selectedStudent.id) : [];
+  const { state, getStudentResources, downloadResourceFile } = useLmsData();
+  const [resSearch, setResSearch] = useState('');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('ALL');
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const rawResources = selectedStudent ? getStudentResources(selectedStudent.id) : state.resources;
+  const filteredResources = rawResources.filter((r) => {
+    const term = resSearch.toLowerCase().trim();
+    const matchesSearch = !term ||
+      r.title.toLowerCase().includes(term) ||
+      (r.subject && r.subject.toLowerCase().includes(term)) ||
+      r.type.toLowerCase().includes(term) ||
+      r.description.toLowerCase().includes(term);
+    const matchesType = selectedTypeFilter === 'ALL' || r.type === selectedTypeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = { PDF: FileText, PPT: FileText, DOC: FileText, LINK: ExternalLink };
   const typeColors: Record<string, string> = { PDF: 'text-error-600 bg-error-50', PPT: 'text-warning-600 bg-warning-50', DOC: 'text-primary-600 bg-primary-50', LINK: 'text-success-600 bg-success-50' };
+
+  const handleDownloadOrOpen = async (r: typeof rawResources[0]) => {
+    setDownloadingId(r.id);
+    try {
+      await downloadResourceFile(r);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
-    <div>
-      <PageHeader title="Notes & Resources" subtitle="All study materials shared by your teachers" />
-      <Card>
-        <div className="p-4 space-y-2">
-          {resources.map((r) => (
-            <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50 transition">
-              <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', typeColors[r.type])}><FileText className="w-5 h-5" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-ink-800 truncate">{r.title}</p>
-                <p className="text-xs text-ink-400">{state.courses.find((course) => course.id === r.courseId)?.title} · {r.type} · Shared {new Date(r.uploadedAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p>
-                <p className="text-xs text-ink-500 mt-1">{r.description}</p>
-                {r.attachments?.map((attachment) => <button key={attachment.id} type="button" onClick={() => void downloadLocalAttachment(attachment)} className="mt-2 flex max-w-full items-center gap-1 text-xs font-medium text-primary-700 hover:text-primary-800"><Download className="w-3.5 h-3.5" /><span className="truncate">{attachment.fileName}</span><span className="text-ink-400">({formatFileSize(attachment.fileSize)})</span></button>)}
-              </div>
-              <Badge variant="primary">Demo metadata</Badge>
-            </div>
+    <div className="space-y-4">
+      <PageHeader title="Notes & Resources" subtitle="Study materials and reference links shared by your instructors" />
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 pb-3">
+        <div className="flex gap-1.5">
+          {['ALL', 'PDF', 'PPT', 'DOC', 'LINK'].map((t) => (
+            <button
+              key={t}
+              onClick={() => setSelectedTypeFilter(t)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-semibold transition',
+                selectedTypeFilter === t ? 'bg-primary-600 text-white shadow-sm' : 'bg-ink-100 text-ink-600 hover:bg-ink-200'
+              )}
+            >
+              {t}
+            </button>
           ))}
-          {resources.length === 0 && <EmptyState icon={FileText} title="No resources" description="Resources shared by teachers will appear here." />}
+        </div>
+
+        <div className="relative w-64">
+          <Search className="w-4 h-4 text-ink-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search by title, subject, type..."
+            value={resSearch}
+            onChange={(e) => setResSearch(e.target.value)}
+            className="input pl-9 text-xs"
+          />
+        </div>
+      </div>
+
+      <Card>
+        <div className="p-4 space-y-3">
+          {filteredResources.length > 0 ? (
+            filteredResources.map((r) => {
+              const Icon = typeIcons[r.type] || FileText;
+              const course = state.courses.find((c) => c.id === r.courseId);
+              const isDownloading = downloadingId === r.id;
+
+              return (
+                <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-ink-100 hover:border-ink-200 hover:bg-ink-50/50 transition">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5', typeColors[r.type])}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-ink-900 truncate">{r.title}</p>
+                        <Badge variant={r.type === 'LINK' ? 'success' : 'primary'} size="sm">{r.type}</Badge>
+                        {r.subject && <span className="text-xs px-2 py-0.5 rounded-md bg-ink-100 text-ink-600 font-medium">{r.subject}</span>}
+                      </div>
+                      <p className="text-xs text-ink-400 mt-1">
+                        {course?.title || 'General Course'} · Shared {new Date(r.uploadedAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                        {r.fileName ? ` · ${r.fileName}` : ''}
+                      </p>
+                      {r.description && <p className="text-xs text-ink-600 mt-1 line-clamp-2">{r.description}</p>}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right">
+                      <span className="flex items-center gap-1 text-xs font-semibold text-ink-700">
+                        <Download className="w-3.5 h-3.5 text-primary-600" />
+                        {r.downloadCount ?? 0} downloads
+                      </span>
+                    </div>
+
+                    {r.type === 'LINK' ? (
+                      <button
+                        onClick={() => handleDownloadOrOpen(r)}
+                        disabled={isDownloading}
+                        className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1.5"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-success-600" />
+                        Open Link
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleDownloadOrOpen(r)}
+                        disabled={isDownloading}
+                        className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5"
+                      >
+                        {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                        {isDownloading ? 'Downloading...' : 'Download'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <EmptyState
+              icon={FolderOpen}
+              title={selectedTypeFilter !== 'ALL' ? `No ${selectedTypeFilter} resources found` : 'No study materials available'}
+              description={resSearch ? 'No resources match your search term.' : 'Study materials shared by your instructors will appear here.'}
+            />
+          )}
         </div>
       </Card>
     </div>
@@ -755,6 +1087,11 @@ type StudentLeaveRow = {
 };
 
 export function StudentLeaves() {
+  const { profile } = useAuth();
+  const { selectedStudent } = useStudentPortal();
+  const studentName = selectedStudent?.name || profile?.fullName || 'Arjun Verma';
+  const batchName = selectedStudent?.batch || 'CS-2024-A';
+
   const [leaves, setLeaves] = useState<StudentLeaveRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -769,11 +1106,11 @@ export function StudentLeaves() {
       .from('leave_requests')
       .select('*')
       .eq('requester_type', 'student')
-      .eq('student_name', 'Arjun Verma')
+      .or(`student_name.eq.${studentName},student_name.eq.Arjun Verma`)
       .order('created_at', { ascending: false });
     if (!error && data) setLeaves(data as StudentLeaveRow[]);
     setLoading(false);
-  }, []);
+  }, [studentName]);
 
   useEffect(() => { fetchLeaves(); }, [fetchLeaves]);
 
@@ -781,8 +1118,8 @@ export function StudentLeaves() {
     if (!fromDate || !toDate || !reason.trim()) return;
     setSubmitting(true);
     await supabase.from('leave_requests').insert({
-      student_name: 'Arjun Verma',
-      batch: 'CS-2024-A',
+      student_name: studentName,
+      batch: batchName,
       leave_from: fromDate,
       leave_to: toDate,
       reason,
@@ -970,60 +1307,186 @@ export function StudentExams() {
   const { viewerRole, permissions, selectedStudent } = useStudentPortal();
   const { state, getStudentExams } = useLmsData();
   const isParent = viewerRole === 'parent';
-  const exams = selectedStudent ? getStudentExams(selectedStudent.id) : [];
-  const upcoming = exams.filter((exam) => exam.status === 'scheduled');
-  const completed = exams.filter((exam) => exam.status === 'completed').map((exam) => ({ exam, result: state.examResults.find((result) => result.examId === exam.id && result.studentId === selectedStudent?.id) }));
+
+  const [activePlayerExam, setActivePlayerExam] = useState<any | null>(null);
+  const [viewDetailsExam, setViewDetailsExam] = useState<any | null>(null);
+
+  const studentBatchId = (selectedStudent as any)?.batchId || selectedStudent?.batch || 'batch_001';
+  const exams = selectedStudent ? getStudentExams(selectedStudent.id) : state.exams.filter((e) => e.batchId === studentBatchId);
+
+  const nowYMD = new Date().toISOString().split('T')[0];
+
+  const liveExams = exams.filter((exam) => exam.status === 'live' || (exam.date === nowYMD && exam.status === 'scheduled'));
+  const upcomingExams = exams.filter((exam) => exam.date > nowYMD && exam.status === 'scheduled');
+  const completedExams = exams.filter((exam) => exam.status === 'completed' || exam.status === 'evaluation_pending' || exam.status === 'results_published').map((exam) => ({
+    exam,
+    submission: (state.examResults || []).find((result) => result.examId === exam.id && (result.studentId === selectedStudent?.id || result.studentName === selectedStudent?.name)),
+  }));
+
   return (
-    <div>
-      <PageHeader title="Exams" subtitle={isParent ? `Exam schedule and results for ${selectedStudent?.name ?? 'your child'}` : 'Upcoming, practice and completed exams'} />
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader title="Upcoming Exams" />
-          <div className="p-4 space-y-3">
-            {upcoming.map((exam) => (
-              <div key={exam.id} className="p-4 rounded-xl bg-ink-50">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-ink-800">{exam.title}</p>
-                  <Badge variant="error">Exam</Badge>
+    <div className="space-y-6">
+      <PageHeader
+        title="Exams & Assessments"
+        subtitle={isParent ? `Exam schedule and results for ${selectedStudent?.name ?? 'your child'}` : 'Upcoming, live and evaluated assessments'}
+      />
+
+      {/* Live Exams Banner */}
+      {liveExams.length > 0 && (
+        <div className="rounded-2xl bg-gradient-to-r from-error-600 to-primary-700 p-5 text-white shadow-lg space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-3 w-3 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            <h3 className="text-sm font-extrabold uppercase tracking-wider">LIVE ASSESSMENT IN PROGRESS</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {liveExams.map((exam) => (
+              <div key={exam.id} className="rounded-xl bg-white/10 backdrop-blur-md p-4 border border-white/20 flex flex-col justify-between">
+                <div>
+                  <h4 className="text-base font-bold">{exam.title}</h4>
+                  <p className="text-xs text-white/80 mt-0.5">{exam.subject} • {exam.durationMinutes} Mins • {exam.maxMarks} Marks</p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div><p className="text-ink-400">Date</p><p className="font-medium text-ink-700">{new Date(exam.date).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p></div>
-                  <div><p className="text-ink-400">Marks</p><p className="font-medium text-ink-700">{exam.maxMarks}</p></div>
-                  <div><p className="text-ink-400">Time</p><p className="font-medium text-ink-700">{exam.durationMinutes}m</p></div>
-                </div>
-                <p className="text-xs text-ink-500 mt-3"><strong>Syllabus:</strong> {exam.syllabus}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                  <button className="btn-secondary text-sm">Syllabus Shown</button>
-                  {permissions.canTakeExam && <button className="btn-primary text-sm">Start Practice Quiz</button>}
+                <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-xs font-semibold">Starts: {exam.startTime}</span>
+                  {!isParent && permissions.canTakeExam && (
+                    <button
+                      onClick={() => setActivePlayerExam(exam)}
+                      className="px-4 py-1.5 rounded-xl bg-white text-error-700 text-xs font-bold shadow-md hover:bg-white/90 transition-all"
+                    >
+                      Start Exam Now →
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
-            {upcoming.length === 0 && <p className="p-6 text-sm text-center text-ink-500">No upcoming exams.</p>}
+          </div>
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Upcoming Exams Card */}
+        <Card>
+          <CardHeader title="Upcoming Scheduled Exams" subtitle="Prepare for upcoming assessments" />
+          <div className="p-4 space-y-3">
+            {upcomingExams.map((exam) => (
+              <div key={exam.id} className="p-4 rounded-xl bg-ink-50 border border-ink-100 flex flex-col justify-between space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-bold text-ink-900">{exam.title}</h4>
+                    <p className="text-xs text-ink-500">{exam.subject} • {exam.courseTitle}</p>
+                  </div>
+                  <Badge variant="primary">SCHEDULED</Badge>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center text-xs bg-white p-2.5 rounded-lg border border-ink-100">
+                  <div><p className="text-ink-400">Date</p><p className="font-semibold text-ink-800">{exam.date}</p></div>
+                  <div><p className="text-ink-400">Start Time</p><p className="font-semibold text-ink-800">{exam.startTime}</p></div>
+                  <div><p className="text-ink-400">Max Marks</p><p className="font-semibold text-ink-800">{exam.maxMarks}</p></div>
+                </div>
+
+                {exam.syllabus && (
+                  <p className="text-xs text-ink-600 line-clamp-2"><strong>Syllabus:</strong> {exam.syllabus}</p>
+                )}
+
+                <div className="pt-2 border-t border-ink-100 flex justify-end">
+                  <button
+                    onClick={() => setViewDetailsExam(exam)}
+                    className="btn-secondary text-xs py-1.5 px-3"
+                  >
+                    View Details
+                  </button>
+                </div>
+              </div>
+            ))}
+            {upcomingExams.length === 0 && <p className="p-6 text-sm text-center text-ink-500">No upcoming exams scheduled.</p>}
           </div>
         </Card>
+
+        {/* Results & Submissions Card */}
         <Card>
-          <CardHeader title="Completed Exams" subtitle="Instant AI-graded results" />
+          <CardHeader title="Completed & Evaluated Exams" subtitle="View your scores, grades and teacher feedback" />
           <div className="p-4 space-y-3">
-            {completed.map(({ exam, result }) => {
-              const percentage = result ? Math.round((result.marks / exam.maxMarks) * 100) : null;
-              return <div key={exam.id} className="p-4 rounded-xl bg-ink-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-ink-800">{exam.title}</p>
-                    <p className="text-xs text-ink-400">{new Date(exam.date).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</p>
+            {completedExams.map(({ exam, submission }) => {
+              const isEvaluated = exam.status === 'results_published' || submission?.status === 'evaluated';
+              const pct = submission?.percentage ?? (submission ? Math.round((submission.marks / exam.maxMarks) * 100) : null);
+
+              return (
+                <div key={exam.id} className="p-4 rounded-xl bg-ink-50 border border-ink-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-ink-900">{exam.title}</h4>
+                      <p className="text-xs text-ink-500">{exam.subject} • {exam.date}</p>
+                    </div>
+                    <div className="text-right">
+                      {isEvaluated ? (
+                        <>
+                          <p className={`text-xl font-black ${ (pct ?? 0) >= 40 ? 'text-success-600' : 'text-error-600'}`}>
+                            {pct !== null ? `${pct}%` : 'Graded'}
+                          </p>
+                          <p className="text-xs text-ink-500 font-semibold">{submission?.marks} / {exam.maxMarks} Marks</p>
+                        </>
+                      ) : (
+                        <Badge variant="warning">SUBMITTED (PENDING EVAL)</Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className={cn('text-2xl font-bold font-display', (percentage ?? 0) >= 80 ? 'text-success-600' : 'text-warning-600')}>{percentage === null ? 'Pending' : `${percentage}%`}</p>
-                    {result && <p className="text-xs text-ink-400">{result.marks}/{exam.maxMarks}</p>}
-                  </div>
+
+                  {submission?.feedback && (
+                    <div className="p-2.5 rounded-lg bg-white border border-ink-100 text-xs text-ink-700 italic">
+                      "<strong>Teacher Feedback:</strong> {submission.feedback}"
+                    </div>
+                  )}
                 </div>
-                <button className="btn-secondary w-full mt-2 text-xs"><FileBarChart className="w-3.5 h-3.5" /> View Detailed Report</button>
-              </div>;
+              );
             })}
-            {completed.length === 0 && <p className="p-6 text-sm text-center text-ink-500">No completed exams.</p>}
+            {completedExams.length === 0 && <p className="p-6 text-sm text-center text-ink-500">No completed exams yet.</p>}
           </div>
         </Card>
       </div>
+
+      {/* Student Exam Player Modal */}
+      {activePlayerExam && (
+        <StudentExamPlayerModal
+          isOpen={!!activePlayerExam}
+          onClose={() => setActivePlayerExam(null)}
+          exam={activePlayerExam}
+          studentId={selectedStudent?.id}
+          studentName={selectedStudent?.name}
+          rollNo={(selectedStudent as any)?.rollNo}
+          batchId={studentBatchId}
+        />
+      )}
+
+      {/* View Exam Details Modal */}
+      {viewDetailsExam && (
+        <Modal open={!!viewDetailsExam} onClose={() => setViewDetailsExam(null)} title={viewDetailsExam.title} size="md">
+          <div className="space-y-4 text-xs text-ink-800">
+            <div className="grid grid-cols-2 gap-3 p-3 bg-ink-50 rounded-xl">
+              <div><span className="text-ink-400 block">Course</span><strong className="text-ink-900">{viewDetailsExam.courseTitle}</strong></div>
+              <div><span className="text-ink-400 block">Subject</span><strong className="text-ink-900">{viewDetailsExam.subject}</strong></div>
+              <div><span className="text-ink-400 block">Date & Time</span><strong className="text-ink-900">{viewDetailsExam.date} at {viewDetailsExam.startTime}</strong></div>
+              <div><span className="text-ink-400 block">Duration & Marks</span><strong className="text-ink-900">{viewDetailsExam.durationMinutes} Mins • {viewDetailsExam.maxMarks} Marks</strong></div>
+            </div>
+            {viewDetailsExam.syllabus && (
+              <div>
+                <span className="font-bold text-ink-900 block mb-1">Syllabus Breakdown:</span>
+                <p className="p-3 bg-ink-50 rounded-xl whitespace-pre-line text-ink-600">{viewDetailsExam.syllabus}</p>
+              </div>
+            )}
+            {viewDetailsExam.instructions && (
+              <div>
+                <span className="font-bold text-ink-900 block mb-1">Instructions:</span>
+                <p className="p-3 bg-ink-50 rounded-xl whitespace-pre-line text-ink-600">{viewDetailsExam.instructions}</p>
+              </div>
+            )}
+            <div className="pt-2 flex justify-end">
+              <button onClick={() => setViewDetailsExam(null)} className="btn-secondary text-xs">Close</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -1100,154 +1563,23 @@ export function StudentDiary() {
 }
 
 export function StudentCommunity() {
-  const [messages, setMessages] = useState([
-    { id: 'community_001', author: 'Diya Patel', text: 'Did anyone finish the linked list assignment?', time: '10:20 AM' },
-    { id: 'community_002', author: 'Arjun Verma', text: 'Working on it now. The doubly linked list part is tricky.', time: '10:25 AM' },
-    { id: 'community_003', author: 'Sneha Kapoor', text: 'Focus on the pointer manipulation. I\'ll cover it in tomorrow\'s doubt session.', time: '10:30 AM' },
-  ]);
-  const [message, setMessage] = useState('');
-  const sendMessage = () => { if (!message.trim()) return; setMessages((items) => [...items, { id: `community_${items.length + 1}`, author: 'Arjun Verma', text: message.trim(), time: 'Now' }]); setMessage(''); };
-  return (
-    <div>
-      <PageHeader title="Community" subtitle="Batch & department group chats" />
-      <div className="grid lg:grid-cols-3 gap-4 h-[600px]">
-        <Card className="p-3 overflow-y-auto scrollbar-thin">
-          <p className="px-2 py-1 text-xs font-semibold text-ink-400 uppercase">My Communities</p>
-          {[
-            { id: 'c1', name: 'CS-2024-A', members: 32, unread: 2 },
-            { id: 'c2', name: 'Computer Science Dept', members: 320, unread: 0 },
-            { id: 'c3', name: 'Announcements', members: 1200, unread: 1 },
-          ].map((c) => (
-            <div key={c.id} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-ink-50 cursor-pointer">
-              <div className="w-9 h-9 rounded-lg bg-primary-600 flex items-center justify-center text-white text-xs font-bold">{c.name.slice(0, 2)}</div>
-              <div className="flex-1"><p className="text-sm font-medium text-ink-800">{c.name}</p><p className="text-xs text-ink-400">{c.members} members</p></div>
-              {c.unread > 0 && <span className="badge bg-primary-600 text-white text-[10px] px-1.5">{c.unread}</span>}
-            </div>
-          ))}
-        </Card>
-        <Card className="lg:col-span-2 flex flex-col">
-          <div className="px-4 py-3 border-b border-ink-100 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white text-xs font-bold">CS</div>
-            <div><p className="font-semibold text-ink-900 text-sm">CS-2024-A</p><p className="text-xs text-ink-400">32 members</p></div>
-          </div>
-          <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3">
-            {messages.map((m) => (
-              <div key={m.id} className="flex gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-ink-100 shrink-0" />
-                <div className="max-w-[75%]">
-                  <div className="flex items-center gap-2"><p className="text-xs font-medium text-ink-700">{m.author}</p><p className="text-[10px] text-ink-400">{m.time}</p></div>
-                  <div className="mt-0.5 bg-ink-50 rounded-xl px-3 py-2 text-sm text-ink-700">{m.text}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="p-3 border-t border-ink-100 flex gap-2">
-            <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') sendMessage(); }} placeholder="Type a message..." className="input flex-1" />
-            <button onClick={sendMessage} disabled={!message.trim()} className="btn-primary px-3" aria-label="Send message"><Send className="w-4 h-4" /></button>
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
+  return <CommunityChatWorkspace currentUserRole="student" />;
 }
 
+
 export function StudentForum() {
-  const [posts, setPosts] = useState(forumPosts);
-  const [showPost, setShowPost] = useState(false);
-  const [postContent, setPostContent] = useState('');
-  const publishPost = () => { if (!postContent.trim()) return; setPosts((items) => [{ id: `local-post-${items.length + 1}`, author: 'Arjun Verma', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Arjun%20Verma', role: 'student', content: postContent.trim(), likes: 0, comments: 0, time: 'Now', tags: ['CS-2024-A'] }, ...items]); setPostContent(''); setShowPost(false); };
-  return (
-    <div>
-      <PageHeader title="Discussion Forum" subtitle="Ask questions, share insights across all branches" actions={<button onClick={() => setShowPost(true)} className="btn-primary"><Plus className="w-4 h-4" /> New Post</button>} />
-      <div className="grid lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-3">
-          {posts.map((p) => (
-            <Card key={p.id} hover className="p-5">
-              <div className="flex gap-3">
-                <img src={p.avatar} alt={p.author} className="w-10 h-10 rounded-lg bg-ink-100 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-ink-800">{p.author}</p>
-                    <Badge variant="neutral" size="sm">{p.role}</Badge>
-                    <span className="text-xs text-ink-400">{p.time}</span>
-                  </div>
-                  <p className="text-sm text-ink-700 mt-2">{p.content}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-2">{p.tags.map((t) => <span key={t} className="badge bg-primary-50 text-primary-600 text-[10px]">#{t}</span>)}</div>
-                  <div className="flex items-center gap-4 mt-3 text-xs text-ink-500">
-                    <button className="flex items-center gap-1 hover:text-error-600"><Heart className="w-3.5 h-3.5" /> {p.likes}</button>
-                    <button className="flex items-center gap-1 hover:text-primary-600"><MessageCircle className="w-3.5 h-3.5" /> {p.comments}</button>
-                    <button className="flex items-center gap-1 hover:text-primary-600"><Bookmark className="w-3.5 h-3.5" /></button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-        <Card className="p-5">
-          <h3 className="font-semibold text-ink-900 mb-3">Trending Topics</h3>
-          <div className="space-y-2">
-            {[['Data Structures', 42], ['Linked Lists', 31], ['Sorting', 27], ['Exam Prep', 19], ['Projects', 14]].map(([topic, count]) => (
-              <div key={topic} className="flex items-center justify-between text-sm">
-                <span className="text-ink-600">#{topic}</span><span className="text-xs text-ink-400">{count} posts</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-      <Modal open={showPost} onClose={() => setShowPost(false)} title="New Forum Post" size="md"><div className="space-y-4"><div><label className="label">Post</label><textarea className="input min-h-32" value={postContent} onChange={(event) => setPostContent(event.target.value)} placeholder="Ask a question or share an insight…" /></div><button onClick={publishPost} disabled={!postContent.trim()} className="btn-primary w-full">Publish Post</button></div></Modal>
-    </div>
-  );
+  return <DiscussionForumHub currentUserRole="student" />;
 }
 
 export function StudentCalendar() {
-  const days = Array.from({ length: 35 }, (_, i) => i - 2);
-  const today = 24;
-  const eventDays: Record<number, { type: string; title: string }[]> = {
-    24: [{ type: 'class', title: 'DS Class' }], 25: [{ type: 'class', title: 'Algo' }],
-    28: [{ type: 'exam', title: 'Mid-Sem' }], 15: [{ type: 'holiday', title: 'I-Day' }],
-    20: [{ type: 'event', title: 'Tech Fest' }],
-  };
-  const typeColors: Record<string, string> = {
-    class: 'bg-primary-100 text-primary-700', exam: 'bg-error-100 text-error-700',
-    event: 'bg-accent-100 text-accent-700', holiday: 'bg-success-100 text-success-700', meeting: 'bg-warning-100 text-warning-700',
-  };
+  const { selectedStudent } = useStudentPortal();
+  const { user } = useAuth();
   return (
-    <div>
-      <PageHeader title="Calendar" subtitle="Your classes, exams & events at a glance" />
-      <div className="grid lg:grid-cols-4 gap-4">
-        <Card className="lg:col-span-3 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-ink-900">July 2026</h3>
-            <div className="flex gap-1">
-              <button className="btn-ghost p-2"><ChevronRight className="w-4 h-4 rotate-180" /></button>
-              <button className="btn-ghost p-2"><ChevronRight className="w-4 h-4" /></button>
-            </div>
-          </div>
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => <div key={d} className="text-center text-xs font-medium text-ink-400 py-2">{d}</div>)}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {days.map((day) => (
-              <div key={day} className={cn('min-h-20 rounded-lg p-1.5 border', day === today ? 'border-primary-500 bg-primary-50' : day < 1 || day > 31 ? 'border-transparent bg-ink-50/50' : 'border-ink-100 hover:bg-ink-50')}>
-                {(day >= 1 && day <= 31) && <p className="text-xs text-ink-500 mb-1">{day}</p>}
-                {eventDays[day]?.map((e, i) => <div key={i} className={cn('text-[10px] px-1 py-0.5 rounded mb-0.5 truncate', typeColors[e.type])}>{e.title}</div>)}
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card className="p-5">
-          <h3 className="font-semibold text-ink-900 mb-3">Upcoming</h3>
-          <div className="space-y-2">
-            {events.slice(0, 5).map((e) => (
-              <div key={e.id} className="flex items-start gap-2.5 p-2.5 rounded-lg hover:bg-ink-50">
-                <div className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', typeColors[e.type]?.split(' ')[0].replace('-100', '-500'))} />
-                <div className="flex-1 min-w-0"><p className="text-sm font-medium text-ink-800 truncate">{e.title}</p><p className="text-xs text-ink-400">{e.date}</p></div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-    </div>
+    <AcademicCalendarView
+      currentUserRole="student"
+      currentUserId={selectedStudent?.id || user?.id}
+      currentStudentBatchId={(selectedStudent as any)?.batchId || selectedStudent?.batch || 'batch_001'}
+    />
   );
 }
 
