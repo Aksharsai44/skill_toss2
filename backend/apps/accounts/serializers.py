@@ -63,7 +63,9 @@ class ManagedUserSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "institution", "is_active", "status", "created_at", "updated_at")
 
     def get_status(self, obj):
-        return "active" if obj.is_active else "pending_or_disabled"
+        if obj.is_active:
+            return "active"
+        return "pending_setup" if not obj.has_usable_password() else "disabled"
 
     def validate_email(self, value):
         value = User.objects.normalize_email(value).lower()

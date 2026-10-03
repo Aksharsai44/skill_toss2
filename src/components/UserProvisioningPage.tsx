@@ -7,8 +7,10 @@ import { Modal } from '@/components/ui/Modal';
 import { useAuth } from '@/lib/authContext';
 import {
   getProvisioningCatalog,
+  getApiFieldErrors,
   listManagedUsers,
   provisionUser,
+  resendManagedUserInvite,
   setManagedUserActive,
   updateManagedUser,
   type ManagedUser,
@@ -18,13 +20,24 @@ import {
 } from '@/lib/userProvisioningApi';
 
 type FormState = {
-  fullName: string; email: string; role: ProvisionUserInput['role'];
-  batchId: string; subjectId: string; studentId: string; relationship: string;
+  fullName: string;
+  email: string;
+  role: ProvisionUserInput['role'];
+  batchId: string;
+  subjectId: string;
+  studentId: string;
+  relationship: string;
 };
 
 const initialForm: FormState = {
-  fullName: '', email: '', role: 'teacher', batchId: '', subjectId: '', studentId: '', relationship: 'Parent',
+  fullName: '', email: '', role: 'teacher', batchId: '', subjectId: '', studentId: '', relationship: '',
 };
+
+const statusDetails = {
+  pending_setup: { label: 'Pending Setup', badge: 'pending', description: 'Waiting for the user to set their password' },
+  active: { label: 'Active', badge: 'active', description: 'Can sign in' },
+  disabled: { label: 'Disabled', badge: 'inactive', description: 'Account access disabled' },
+} as const;
 
 export function UserProvisioningPage() {
   const { profile } = useAuth();
@@ -38,7 +51,9 @@ export function UserProvisioningPage() {
   const [editing, setEditing] = useState<ManagedUser | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState('');
+
   const roleOptions = profile?.role === 'super_admin'
     ? [{ value: 'admin', label: 'Admin' }, { value: 'teacher', label: 'Teacher' }, { value: 'student', label: 'Student' }, { value: 'parent', label: 'Parent' }]
     : [{ value: 'teacher', label: 'Teacher' }, { value: 'student', label: 'Student' }, { value: 'parent', label: 'Parent' }];
@@ -67,40 +82,65 @@ export function UserProvisioningPage() {
   useEffect(() => { void load(); }, []);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    const apiKey = key === 'fullName' ? 'full_name' : key === 'batchId' ? 'batch_id' : key === 'subjectId' ? 'subject_id' : key === 'studentId' ? 'student_id' : key;
     setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [apiKey]: '' }));
     setError('');
     setSuccess('');
   };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (submitting) return;
     setError('');
     setSuccess('');
-    if (!profile?.institutionId) {
-      setError('Your administrator account is not assigned to an institution.');
-      return;
+    setFieldErrors({});
+    const validation: Record<string, string> = {};
+    if (!form.fullName.trim()) validation.full_name = 'Full name is required.';
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) validation.email = 'Enter a valid email address.';
+    if (!roleOptions.some((option) => option.value === form.role)) validation.role = 'Select a permitted role.';
+    if (form.role === 'teacher' && form.subjectId && !form.batchId) validation.batch_id = 'Select a batch for this subject.';
+    if (form.role === 'parent' && Boolean(form.studentId) !== Boolean(form.relationship.trim())) {
+      validation.student_id = 'Select both a child and relationship, or choose Link later.';
     }
-    if (form.role === 'parent' && (!form.studentId || !form.relationship.trim())) {
-      setError('Select the child and enter the relationship.');
+    if (Object.keys(validation).length) {
+      setFieldErrors(validation);
+      setError('Correct the highlighted fields and try again.');
       return;
     }
     try {
       setSubmitting(true);
       const created = await provisionUser({
-        fullName: form.fullName.trim(), email: form.email.trim(), role: form.role,
-        institutionId: profile.institutionId,
+        fullName: form.fullName.trim(),
+        email: form.email.trim().toLowerCase(),
+        role: form.role,
         batchId: form.role === 'teacher' || form.role === 'student' ? form.batchId || undefined : undefined,
         subjectId: form.role === 'teacher' ? form.subjectId || undefined : undefined,
-        studentId: form.role === 'parent' ? form.studentId : undefined,
-        relationship: form.role === 'parent' ? form.relationship.trim() : undefined,
+        studentId: form.role === 'parent' ? form.studentId || undefined : undefined,
+        relationship: form.role === 'parent' ? form.relationship.trim() || undefined : undefined,
       });
-      setUsers((current) => [created, ...current]);
-      setSuccess(`${created.email} was created. Django sent a one-time password setup invitation.`);
+      setUsers(await listManagedUsers());
+      setSuccess(`${created.email} was created successfully. Setup invitation generated.`);
       setForm(initialForm);
     } catch (caught) {
+      setFieldErrors(getApiFieldErrors(caught));
       setError(caught instanceof Error ? caught.message : 'The user could not be created.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const resendInvite = async (user: ManagedUser) => {
+    setError('');
+    setSuccess('');
+    setStatusTarget(user.id);
+    try {
+      await resendManagedUserInvite(user.id);
+      setSuccess(`A fresh setup invitation was generated for ${user.email}.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'The invitation could not be regenerated.');
+    } finally {
+      setStatusTarget(null);
     }
   };
 
@@ -121,7 +161,7 @@ export function UserProvisioningPage() {
 
   const saveEdit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editing) return;
+    if (!editing || savingEdit) return;
     const fields = new FormData(event.currentTarget);
     setError('');
     setSuccess('');
@@ -129,7 +169,7 @@ export function UserProvisioningPage() {
       setSavingEdit(true);
       const updated = await updateManagedUser(editing.id, {
         fullName: String(fields.get('fullName') ?? '').trim(),
-        email: String(fields.get('email') ?? '').trim(),
+        email: String(fields.get('email') ?? '').trim().toLowerCase(),
         role: String(fields.get('role') ?? editing.role) as ManagedUser['role'],
       });
       setUsers((current) => current.map((item) => item.id === updated.id ? updated : item));
@@ -151,10 +191,19 @@ export function UserProvisioningPage() {
       <Card className="p-5 sm:p-6">
         <h2 className="font-display text-lg font-bold text-ink-950">Create and invite user</h2>
         <form onSubmit={submit} className="mt-5 space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2"><div><label className="label" htmlFor="provision-name">Full name</label><input id="provision-name" className="input" autoComplete="name" required value={form.fullName} onChange={(event) => update('fullName', event.target.value)} /></div><div><label className="label" htmlFor="provision-email">Email</label><input id="provision-email" className="input" type="email" autoComplete="email" required value={form.email} onChange={(event) => update('email', event.target.value)} /></div></div>
-          <div><label className="label" htmlFor="provision-role">Role</label><Select id="provision-role" value={form.role} onChange={(value) => setForm((current) => ({ ...initialForm, fullName: current.fullName, email: current.email, role: value as FormState['role'] }))} options={roleOptions} /><p className="mt-1.5 text-xs text-ink-500">The Django API rejects roles above your authority even if a request is tampered with.</p></div>
-          {(form.role === 'teacher' || form.role === 'student') && <div className="grid gap-4 sm:grid-cols-2"><div><label className="label" htmlFor="provision-batch">Batch <span className="font-normal text-ink-400">(optional)</span></label><Select id="provision-batch" value={form.batchId} onChange={(value) => { update('batchId', value); update('subjectId', ''); }} options={[{ value: '', label: 'Assign later' }, ...batches.map((batch) => ({ value: batch.id, label: batch.name }))]} /></div>{form.role === 'teacher' && form.batchId && <div><label className="label" htmlFor="provision-subject">Subject <span className="font-normal text-ink-400">(optional)</span></label><Select id="provision-subject" value={form.subjectId} onChange={(value) => update('subjectId', value)} options={[{ value: '', label: 'General assignment' }, ...availableSubjects.map((subject) => ({ value: subject.id, label: `${subject.code} · ${subject.title}` }))]} /></div>}</div>}
-          {form.role === 'parent' && <div className="grid gap-4 sm:grid-cols-2"><div><label className="label" htmlFor="provision-student">Linked student</label><Select id="provision-student" value={form.studentId} onChange={(value) => update('studentId', value)} options={[{ value: '', label: 'Select a student' }, ...activeStudents.map((student) => ({ value: student.id, label: student.fullName }))]} /></div><div><label className="label" htmlFor="provision-relationship">Relationship</label><input id="provision-relationship" className="input" required value={form.relationship} onChange={(event) => update('relationship', event.target.value)} /></div></div>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div><label className="label" htmlFor="provision-name">Full name</label><input id="provision-name" className="input" autoComplete="name" required value={form.fullName} onChange={(event) => update('fullName', event.target.value)} aria-invalid={Boolean(fieldErrors.full_name)} />{fieldErrors.full_name && <p className="mt-1 text-xs text-error-700">{fieldErrors.full_name}</p>}</div>
+            <div><label className="label" htmlFor="provision-email">Email</label><input id="provision-email" className="input" type="email" autoComplete="email" required value={form.email} onChange={(event) => update('email', event.target.value)} aria-invalid={Boolean(fieldErrors.email)} />{fieldErrors.email && <p className="mt-1 text-xs text-error-700">{fieldErrors.email}</p>}</div>
+          </div>
+          <div><label className="label" htmlFor="provision-role">Role</label><Select id="provision-role" value={form.role} onChange={(value) => { setForm((current) => ({ ...initialForm, fullName: current.fullName, email: current.email, role: value as FormState['role'] })); setFieldErrors({}); }} options={roleOptions} />{fieldErrors.role && <p className="mt-1 text-xs text-error-700">{fieldErrors.role}</p>}<p className="mt-1.5 text-xs text-ink-500">The Django API rejects roles above your authority even if a request is tampered with.</p></div>
+          {(form.role === 'teacher' || form.role === 'student') && <div className="grid gap-4 sm:grid-cols-2">
+            <div><label className="label" htmlFor="provision-batch">Batch <span className="font-normal text-ink-400">(optional)</span></label><Select id="provision-batch" value={form.batchId} onChange={(value) => { update('batchId', value); update('subjectId', ''); }} options={[{ value: '', label: 'Assign later' }, ...batches.map((batch) => ({ value: batch.id, label: batch.name }))]} />{fieldErrors.batch_id && <p className="mt-1 text-xs text-error-700">{fieldErrors.batch_id}</p>}</div>
+            {form.role === 'teacher' && form.batchId && <div><label className="label" htmlFor="provision-subject">Subject <span className="font-normal text-ink-400">(optional)</span></label><Select id="provision-subject" value={form.subjectId} onChange={(value) => update('subjectId', value)} options={[{ value: '', label: 'General assignment' }, ...availableSubjects.map((subject) => ({ value: subject.id, label: `${subject.code} · ${subject.title}` }))]} />{fieldErrors.subject_id && <p className="mt-1 text-xs text-error-700">{fieldErrors.subject_id}</p>}</div>}
+          </div>}
+          {form.role === 'parent' && <div className="grid gap-4 sm:grid-cols-2">
+            <div><label className="label" htmlFor="provision-student">Linked student <span className="font-normal text-ink-400">(optional)</span></label><Select id="provision-student" value={form.studentId} onChange={(value) => update('studentId', value)} options={[{ value: '', label: 'Link later' }, ...activeStudents.map((student) => ({ value: student.id, label: student.fullName }))]} />{fieldErrors.student_id && <p className="mt-1 text-xs text-error-700">{fieldErrors.student_id}</p>}</div>
+            <div><label className="label" htmlFor="provision-relationship">Relationship <span className="font-normal text-ink-400">(optional)</span></label><input id="provision-relationship" className="input" value={form.relationship} onChange={(event) => update('relationship', event.target.value)} placeholder="Required only when linking a student" />{fieldErrors.relationship && <p className="mt-1 text-xs text-error-700">{fieldErrors.relationship}</p>}</div>
+          </div>}
           <button type="submit" disabled={submitting} className="btn-primary w-full justify-center sm:w-auto">{submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending invitation…</> : <><UserPlus className="h-4 w-4" /> Create and invite user</>}</button>
         </form>
       </Card>
@@ -163,7 +212,11 @@ export function UserProvisioningPage() {
 
     <Card className="mt-5 overflow-hidden">
       <CardHeader title="Managed accounts" subtitle="Only users inside your server-authorized scope are returned" />
-      {loading ? <div className="flex items-center gap-2 p-6 text-sm text-ink-600"><Loader2 className="h-4 w-4 animate-spin" /> Loading accounts…</div> : users.length === 0 ? <p className="p-6 text-sm text-ink-500">No manageable accounts were returned.</p> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-y border-ink-200 bg-ink-50 text-xs uppercase tracking-wide text-ink-500"><tr><th className="px-5 py-3">User</th><th className="px-5 py-3">Role</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Actions</th></tr></thead><tbody className="divide-y divide-ink-100">{users.map((managedUser) => <tr key={managedUser.id}><td className="px-5 py-4"><p className="font-medium text-ink-900">{managedUser.fullName}</p><p className="text-xs text-ink-500">{managedUser.email}</p></td><td className="px-5 py-4"><Badge variant="primary"><span className="capitalize">{managedUser.role.replace('_', ' ')}</span></Badge></td><td className="px-5 py-4"><StatusBadge status={managedUser.isActive ? 'active' : 'inactive'} /><p className="mt-1 text-xs text-ink-500">{managedUser.isActive ? 'Can sign in' : 'Disabled or awaiting setup'}</p></td><td className="px-5 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => setEditing(managedUser)} disabled={!managedUser.isActive} title={managedUser.isActive ? 'Edit user' : 'Finish setup or reactivate before editing'} className="btn-secondary text-sm">Edit</button><button type="button" disabled={statusTarget === managedUser.id} onClick={() => void toggleStatus(managedUser)} className={managedUser.isActive ? 'btn-secondary text-sm text-error-700' : 'btn-secondary text-sm'}>{statusTarget === managedUser.id ? <Loader2 className="h-4 w-4 animate-spin" /> : managedUser.isActive ? 'Disable' : 'Reactivate'}</button></div></td></tr>)}</tbody></table></div>}
+      {loading ? <div className="flex items-center gap-2 p-6 text-sm text-ink-600"><Loader2 className="h-4 w-4 animate-spin" /> Loading accounts…</div> : users.length === 0 ? <p className="p-6 text-sm text-ink-500">No manageable accounts were returned.</p> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-y border-ink-200 bg-ink-50 text-xs uppercase tracking-wide text-ink-500"><tr><th className="px-5 py-3">User</th><th className="px-5 py-3">Role</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Actions</th></tr></thead><tbody className="divide-y divide-ink-100">{users.map((managedUser) => {
+        const detail = statusDetails[managedUser.status];
+        const busy = statusTarget === managedUser.id;
+        return <tr key={managedUser.id}><td className="px-5 py-4"><p className="font-medium text-ink-900">{managedUser.fullName}</p><p className="text-xs text-ink-500">{managedUser.email}</p></td><td className="px-5 py-4"><Badge variant="primary"><span className="capitalize">{managedUser.role.replace('_', ' ')}</span></Badge></td><td className="px-5 py-4"><StatusBadge status={detail.badge} /><p className="mt-1 text-xs font-medium text-ink-700">{detail.label}</p><p className="mt-0.5 text-xs text-ink-500">{detail.description}</p></td><td className="px-5 py-4"><div className="flex justify-end gap-2">{managedUser.status !== 'disabled' && <button type="button" onClick={() => setEditing(managedUser)} disabled={busy} className="btn-secondary text-sm">Edit</button>}{managedUser.status === 'pending_setup' && <button type="button" disabled={busy} onClick={() => void resendInvite(managedUser)} className="btn-secondary text-sm">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Resend Invite'}</button>}{managedUser.status === 'active' && <button type="button" disabled={busy} onClick={() => void toggleStatus(managedUser)} className="btn-secondary text-sm text-error-700">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Disable'}</button>}{managedUser.status === 'disabled' && <button type="button" disabled={busy} onClick={() => void toggleStatus(managedUser)} className="btn-secondary text-sm">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reactivate'}</button>}</div></td></tr>;
+      })}</tbody></table></div>}
     </Card>
 
     <Modal open={Boolean(editing)} onClose={() => { if (!savingEdit) setEditing(null); }} title="Edit managed user" size="sm">

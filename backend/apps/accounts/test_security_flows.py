@@ -141,6 +141,46 @@ class SecurityFlowTests(APITestCase):
         )
         self.assertEqual(SecurityAuditEvent.objects.filter(action=AuditAction.INVITE_SENT).count(), 3)
 
+    def test_pending_disabled_status_and_resend_invite_security(self):
+        response = self.invite()
+        pending = User.objects.get(email="invited@one.test")
+        self.assertEqual(response.data["status"], "pending_setup")
+        old_uid, old_token = self.password_link_values()
+
+        self.client.force_authenticate(self.admin)
+        with self.captureOnCommitCallbacks(execute=True):
+            resent = self.client.post(
+                reverse("user-management-resend-invite", args=(pending.pk,)), format="json"
+            )
+        self.assertEqual(resent.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 2)
+        new_uid, new_token = self.password_link_values()
+        pending.refresh_from_db()
+        self.assertEqual(new_uid, old_uid)
+        self.assertNotEqual(new_token, old_token)
+        self.assertFalse(default_token_generator.check_token(pending, old_token))
+        self.assertTrue(default_token_generator.check_token(pending, new_token))
+        self.assertEqual(
+            SecurityAuditEvent.objects.filter(
+                action=AuditAction.INVITE_SENT, target_user=pending
+            ).count(),
+            2,
+        )
+
+        active_resend = self.client.post(
+            reverse("user-management-resend-invite", args=(self.teacher.pk,)), format="json"
+        )
+        self.assertEqual(active_resend.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.teacher.is_active = False
+        self.teacher.save(update_fields=("is_active", "updated_at"))
+        disabled = self.client.get(reverse("user-management-detail", args=(self.teacher.pk,)))
+        self.assertEqual(disabled.data["status"], "disabled")
+        disabled_resend = self.client.post(
+            reverse("user-management-resend-invite", args=(self.teacher.pk,)), format="json"
+        )
+        self.assertEqual(disabled_resend.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_creation_permission_role_escalation_and_tenant_tampering(self):
         self.client.force_authenticate(self.admin)
         base = {"full_name": "Blocked", "email": "blocked@one.test"}

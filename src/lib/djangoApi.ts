@@ -33,6 +33,15 @@ export class ApiError extends Error {
   }
 }
 
+export function getApiFieldErrors(error: unknown): Record<string, string> {
+  if (!(error instanceof ApiError) || !error.payload || typeof error.payload !== 'object') return {};
+  return Object.fromEntries(Object.entries(error.payload as Record<string, unknown>).flatMap(([field, value]) => {
+    if (typeof value === 'string') return [[field, value]];
+    if (Array.isArray(value) && typeof value[0] === 'string') return [[field, value[0]]];
+    return [];
+  }));
+}
+
 function parseStoredSession(value: string | null): DjangoSession | null {
   if (!value) return null;
   try {
@@ -227,6 +236,8 @@ export async function changePassword(currentPassword: string, newPassword: strin
   return result;
 }
 
+export type ManagedUserStatus = 'pending_setup' | 'active' | 'disabled';
+
 export type ManagedUser = {
   id: string;
   fullName: string;
@@ -234,13 +245,13 @@ export type ManagedUser = {
   role: UserRole;
   institution: DjangoInstitution | null;
   isActive: boolean;
-  status: string;
+  status: ManagedUserStatus;
   createdAt: string;
 };
 
 type ManagedUserResponse = {
   id: string; full_name: string; email: string; role: UserRole; institution: DjangoInstitution | null;
-  is_active: boolean; status: string; created_at: string;
+  is_active: boolean; status: ManagedUserStatus; created_at: string;
 };
 
 const mapManagedUser = (user: ManagedUserResponse): ManagedUser => ({
@@ -254,17 +265,19 @@ export async function listManagedUsers() {
 
 export type CreateManagedUserInput = {
   fullName: string; email: string; role: 'admin' | 'teacher' | 'student' | 'parent';
-  institutionId?: string; batchId?: string; subjectId?: string; studentId?: string; relationship?: string;
+  batchId?: string; subjectId?: string; studentId?: string; relationship?: string;
 };
 
 export async function createManagedUser(input: CreateManagedUserInput) {
+  const body: Record<string, string> = {
+    full_name: input.fullName.trim(), email: input.email.trim().toLowerCase(), role: input.role,
+  };
+  if (input.batchId) body.batch_id = input.batchId;
+  if (input.subjectId) body.subject_id = input.subjectId;
+  if (input.studentId) body.student_id = input.studentId;
+  if (input.relationship?.trim()) body.relationship = input.relationship.trim();
   const created = await apiRequest<ManagedUserResponse & { invitation_sent: boolean }>('/api/users/', {
-    method: 'POST',
-    body: {
-      full_name: input.fullName, email: input.email, role: input.role,
-      institution_id: input.institutionId, batch_id: input.batchId,
-      subject_id: input.subjectId, student_id: input.studentId, relationship: input.relationship,
-    },
+    method: 'POST', body,
   });
   return { ...mapManagedUser(created), invitationSent: created.invitation_sent };
 }
@@ -279,6 +292,10 @@ export async function setManagedUserActive(id: string, active: boolean) {
   return mapManagedUser(await apiRequest<ManagedUserResponse>(
     `/api/users/${id}/${active ? 'reactivate' : 'disable'}/`, { method: 'POST', body: {} },
   ));
+}
+
+export async function resendManagedUserInvite(id: string) {
+  return apiRequest<{ detail: string }>(`/api/users/${id}/resend-invite/`, { method: 'POST', body: {} });
 }
 
 export type ProvisioningBatch = { id: string; name: string; course: string; status: string };

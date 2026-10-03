@@ -191,3 +191,19 @@ class ManagedUserViewSet(viewsets.ModelViewSet):
                 action=AuditAction.ACCOUNT_REACTIVATED, target_user=user, actor=request.user
             )
         return Response(self.get_serializer(user).data)
+
+    @action(detail=True, methods=("post",), url_path="resend-invite")
+    def resend_invite(self, request, pk=None):
+        user = self.get_object()
+        if user.is_active or user.has_usable_password():
+            return Response(
+                {"detail": "Invitations can only be resent to accounts pending setup."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            # Rotating the unusable password invalidates previously issued setup tokens.
+            user.set_unusable_password()
+            user.auth_version += 1
+            user.save(update_fields=("password", "auth_version", "updated_at"))
+            transaction.on_commit(lambda: send_invite_email(user, request.user))
+        return Response({"detail": "Setup invitation generated."})
