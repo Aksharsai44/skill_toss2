@@ -8,7 +8,7 @@ Skill Toss is a responsive, role-based learning management system for education 
 - Course, batch, student, teacher, attendance, assignment, exam, resource, and fee workflows
 - Parent access with linked-student switching and read-only permissions where appropriate
 - Dashboards, KPI cards, charts, reports, calendars, community, and profile management
-- Supabase authentication, profiles, row-level security, and database migrations
+- Django/PostgreSQL authentication with rotating JWT refresh tokens and server-authoritative roles
 - Seeded demo data with browser-local persistence for interactive demonstrations
 - Responsive navigation and accessible UI states
 - Subtle Anime.js transitions with reduced-motion support
@@ -20,7 +20,8 @@ Skill Toss is a responsive, role-based learning management system for education 
 - Vite 5
 - Tailwind CSS
 - React Router
-- Supabase
+- Django REST Framework and PostgreSQL for authentication/account management
+- Supabase for deferred data domains still awaiting their Django frontend migration
 - Recharts
 - Anime.js
 - Lucide React
@@ -31,7 +32,7 @@ Skill Toss is a responsive, role-based learning management system for education 
 
 - Node.js 18 or newer
 - npm
-- A Supabase project
+- Python and PostgreSQL for the Django backend
 
 ### Installation
 
@@ -44,8 +45,9 @@ npm install
 Create a `.env` file in the project root:
 
 ```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
 The `.env` file is ignored by Git. Never commit production credentials.
@@ -58,26 +60,31 @@ npm run dev
 
 Open the local URL printed by Vite, normally `http://localhost:5173`.
 
-## Demo accounts
+## Development accounts
 
-On the login page, select a role to fill its demo credentials. All demo accounts use the password `demo123`.
+Provision the six Django development users with a runtime-only password, then use the development quick-select to fill an email. The password is never bundled into the frontend.
+
+```powershell
+$env:SKILLTOSS_TEST_USER_PASSWORD='choose-a-local-password'
+python backend/manage.py provision_test_users
+```
 
 | Role | Email |
 | --- | --- |
-| Product Admin | `productadmin@skilltoss.demo` |
-| Super Admin | `superadmin@skilltoss.demo` |
-| Admin | `admin@skilltoss.demo` |
-| Teacher | `teacher@skilltoss.demo` |
-| Student | `student@skilltoss.demo` |
-| Parent | `parent@skilltoss.demo` |
+| Product Admin | `productadmin@skilltoss.test` |
+| Super Admin | `superadmin@skilltoss.test` |
+| Admin | `admin@skilltoss.test` |
+| Teacher | `teacher@skilltoss.test` |
+| Student | `student@skilltoss.test` |
+| Parent | `parent@skilltoss.test` |
 
-Demo profiles fall back locally when matching Supabase users are unavailable. A valid Supabase URL and anonymous key are still required to initialize the client.
+Authentication always uses Django. `/api/auth/me/` supplies the authoritative role, institution, and active status. Supabase configuration is optional for auth and applies only to deferred data modules.
 
 ## Supabase setup
 
 Database migrations are located in [`supabase/migrations`](supabase/migrations). Apply them to a Supabase project in timestamp order using the Supabase CLI or SQL editor. They create the LMS tables, authentication profiles, supported roles, policies, and related workflows.
 
-For real accounts, create users through Supabase Authentication and provide `full_name`, `role`, and, when applicable, `institution_id` in their user metadata. The included trigger creates the corresponding profile record.
+Create production accounts through the Django Admin/Super Admin user-management screens. New accounts receive a one-time Django setup link; administrators never choose a permanent password.
 
 Supported roles are:
 
@@ -94,6 +101,7 @@ product_admin, super_admin, admin, teacher, student, parent
 | `npm run lint` | Run ESLint across the project |
 | `npm run build` | Create an optimized production build in `dist` |
 | `npm run preview` | Preview the production build locally |
+| `npm run verify:django-auth` | Run the six-role Django browser auth smoke against running local servers |
 
 ## Project structure
 

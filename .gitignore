@@ -24,4 +24,6 @@ dist-ssr
 
 *.timestamp-*.mjs
 skill_toss/
-
+__pycache__/
+*.py[cod]
+backend/media/

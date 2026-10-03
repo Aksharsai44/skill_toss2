@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
+import type { DjangoAuthUser, DjangoSession } from '@/lib/djangoApi';
 import type { UserProfile, UserRole } from '@/lib/types';
 
 export const ROLE_HOME_ROUTES: Record<UserRole, string> = {
@@ -8,11 +8,11 @@ export const ROLE_HOME_ROUTES: Record<UserRole, string> = {
 };
 
 export type AuthContextValue = {
-  user: User | null; session: Session | null; profile: UserProfile | null; loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ user: User; profile: UserProfile }>;
+  user: DjangoAuthUser | null; session: DjangoSession | null; profile: UserProfile | null; loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ user: DjangoAuthUser; profile: UserProfile }>;
   signOut: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) => Promise<void>;
   updateProfileAvatar: (file: File | null) => Promise<void>;
-  impersonate: (role: UserRole, institutionId: string) => void;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

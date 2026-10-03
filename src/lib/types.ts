@@ -1,10 +1,17 @@
-export type UserRole =
-  | 'product_admin'
-  | 'super_admin'
-  | 'admin'
-  | 'teacher'
-  | 'student'
-  | 'parent';
+export const USER_ROLES = [
+  'product_admin',
+  'super_admin',
+  'admin',
+  'teacher',
+  'student',
+  'parent',
+] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
+export function isUserRole(value: unknown): value is UserRole {
+  return typeof value === 'string' && (USER_ROLES as readonly string[]).includes(value);
+}
 
 export type Role = UserRole;
 
@@ -375,7 +382,7 @@ export type Ticket = {
   messages: TicketMessage[];
 };
 
-export type AttendanceStatus = 'present' | 'absent';
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 export type SubmissionStatus = 'not-started' | 'in-progress' | 'submitted' | 'graded';
 export type SubmissionAttachment = {
   id: string;

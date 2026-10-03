@@ -284,7 +284,6 @@ export function DemoRequests() {
 }
 
 export function Clients() {
-  const { impersonate } = useAuth();
   const [selected, setSelected] = useState<Client | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [localClients, setLocalClients] = useState(clients);
@@ -367,9 +366,6 @@ export function Clients() {
                 setSelected(null);
               }}>Delete Client</button>
               <button className="btn-secondary" onClick={() => setIsEditing(true)}>Edit Client</button>
-              <button className="btn-primary" onClick={() => impersonate('super_admin', selected.id)}>
-                <Fingerprint className="w-4 h-4 mr-2" /> Impersonate
-              </button>
             </div>
           </div>
         )}

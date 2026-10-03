@@ -67,11 +67,13 @@ export function Tabs({
 }
 
 export function Select({
+  id,
   value,
   onChange,
   options,
   className,
 }: {
+  id?: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
@@ -80,6 +82,7 @@ export function Select({
   return (
     <div className={cn('relative', className)}>
       <select
+        id={id}
         aria-label="Select option"
         value={value}
         onChange={(e) => onChange(e.target.value)}

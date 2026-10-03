@@ -8,9 +8,11 @@ import { LiveClassroomPage } from '@/components/LiveClassroomPage';
 import { StudentPortalProvider } from '@/lib/studentPortal';
 import { LmsDataProvider } from '@/lib/lmsData';
 import { SkipToContent } from '@/components/SkipToContent';
+import { UserProvisioningPage } from '@/components/UserProvisioningPage';
+import { PasswordLinkPage } from '@/components/PasswordLinkPage';
 
 import { ProductAdminDashboard, DemoRequests, Clients, PlansPricing, FeatureToggles, WhiteLabel, CustomerSupport, AiFeatureLab, SlaDashboard, RoadmapManager, SystemHealthMap, WorkflowAutomation, IntegrationHub, AdminManagement, UsageAnalytics, BillingInvoicing } from '@/portals/product-admin';
-import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports, UserManagement, ExecutiveDecisionCenter, GlobalCampaignManager, DataQualityMonitoring, InterBranchTransfer, RoleBuilder, AuditLogs, BranchTheming, GlobalCurriculum, ComplianceReporting, EmergencyBroadcast, AlumniNetwork } from '@/portals/super-admin';
+import { SuperAdminDashboard, Branches, Revenue, LeadsReport, ConsolidatedReports, ExecutiveDecisionCenter, GlobalCampaignManager, DataQualityMonitoring, InterBranchTransfer, RoleBuilder, AuditLogs, BranchTheming, GlobalCurriculum, ComplianceReporting, EmergencyBroadcast, AlumniNetwork } from '@/portals/super-admin';
 import { AdminDashboard, AdminTeachers, AdminStudents, AdminBatches, AdminFees, AdminSalary, AdminAttendance, AdminLeaves, AdminEvents, AdminIntegrations, AdminCertifications, AdminCalendar, AdminCourses, AdminCommunity, AdminForum, AdminExams } from '@/portals/admin';
 import { TeacherDashboard, TeacherBatches, LiveClasses, TeacherRecordings, TeacherAttendance, TeacherLeaves, TeacherCourses, TeacherAssignments, TeacherExams, TeacherResources, TeacherCommunity, TeacherForum, TeacherCalendar, TeacherSalary, TeacherProfile } from '@/portals/teacher';
 import { StudentDashboard, StudentClasses, StudentRecordings, StudentResources, MyNotes, StudentAssignments, StudentExams, StudentTimetable, StudentDiary, StudentLeaves, StudentCommunity, StudentForum, StudentCalendar, StudentFees, StudentReports, StudentCertifications, AiHub, StudentProfile, StudentSettings } from '@/portals/student';
@@ -20,6 +22,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/set-password" element={<PasswordLinkPage kind="set" />} />
+      <Route path="/reset-password" element={<PasswordLinkPage kind="reset" />} />
 
       {/* Product Admin */}
       <Route path="/product-admin" element={<ProtectedRoute allowedRoles={['product_admin']}><ProductAdminDashboard /></ProtectedRoute>} />
@@ -44,7 +48,8 @@ function AppRoutes() {
       <Route path="/super-admin/branches" element={<ProtectedRoute allowedRoles={['super_admin']}><Branches /></ProtectedRoute>} />
       <Route path="/super-admin/inter-branch-transfer" element={<ProtectedRoute allowedRoles={['super_admin']}><InterBranchTransfer /></ProtectedRoute>} />
       <Route path="/super-admin/curriculum" element={<ProtectedRoute allowedRoles={['super_admin']}><GlobalCurriculum /></ProtectedRoute>} />
-      <Route path="/super-admin/users" element={<ProtectedRoute allowedRoles={['super_admin']}><UserManagement /></ProtectedRoute>} />
+      <Route path="/super-admin/users" element={<ProtectedRoute allowedRoles={['super_admin']}><UserProvisioningPage /></ProtectedRoute>} />
+      <Route path="/super-admin/admins" element={<ProtectedRoute allowedRoles={['super_admin']}><UserProvisioningPage /></ProtectedRoute>} />
       <Route path="/super-admin/alumni" element={<ProtectedRoute allowedRoles={['super_admin']}><AlumniNetwork /></ProtectedRoute>} />
       <Route path="/super-admin/revenue" element={<ProtectedRoute allowedRoles={['super_admin']}><Revenue /></ProtectedRoute>} />
       <Route path="/super-admin/leads" element={<ProtectedRoute allowedRoles={['super_admin']}><LeadsReport /></ProtectedRoute>} />
@@ -62,6 +67,7 @@ function AppRoutes() {
       <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/teachers" element={<ProtectedRoute allowedRoles={['admin']}><AdminTeachers /></ProtectedRoute>} />
       <Route path="/admin/students" element={<ProtectedRoute allowedRoles={['admin']}><AdminStudents /></ProtectedRoute>} />
+      <Route path="/admin/users/new" element={<ProtectedRoute allowedRoles={['admin']}><UserProvisioningPage /></ProtectedRoute>} />
       <Route path="/admin/batches" element={<ProtectedRoute allowedRoles={['admin']}><AdminBatches /></ProtectedRoute>} />
       <Route path="/admin/fees" element={<ProtectedRoute allowedRoles={['admin']}><AdminFees /></ProtectedRoute>} />
       <Route path="/admin/salary" element={<ProtectedRoute allowedRoles={['admin']}><AdminSalary /></ProtectedRoute>} />
