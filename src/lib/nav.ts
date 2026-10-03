@@ -97,6 +97,7 @@ export const navConfig: Record<Role, { group: string; items: NavItem[] }[]> = {
     {
       group: 'People',
       items: [
+        { label: 'Add User', path: '/admin/users/new', icon: 'UserPlus' },
         { label: 'Teachers', path: '/admin/teachers', icon: 'GraduationCap' },
         { label: 'Students', path: '/admin/students', icon: 'Users' },
         { label: 'Batches', path: '/admin/batches', icon: 'Layers' },

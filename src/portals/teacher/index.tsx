@@ -17,7 +17,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Tabs, Select } from '@/components/ui/Tabs';
 import { AttendanceBarChart } from '@/components/ui/Charts';
 import {
-  students, batches, recordings, events, salaryRecords,
+  students, recordings, events, salaryRecords,
   forumPosts, attendanceData,
 } from '@/lib/mockData';
 import { cn } from '@/lib/cn';
@@ -121,25 +121,27 @@ export function TeacherDashboard() {
 }
 
 export function TeacherBatches() {
+  const navigate = useNavigate();
+  const { state } = useLmsData();
   return (
     <div>
       <PageHeader title="My Batches" subtitle="Batches & departments assigned to you" />
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {batches.slice(0, 3).map((b) => (
+        {state.batches.map((b) => (
           <Card key={b.id} hover className="p-5">
             <div className="flex items-start justify-between mb-4">
               <div className="w-11 h-11 rounded-xl bg-primary-600 flex items-center justify-center text-white"><Layers className="w-5 h-5" /></div>
-              <Badge variant="primary">{b.department}</Badge>
+              <Badge variant="primary">{state.departments.find((item) => item.id === b.departmentId)?.name ?? 'Department'}</Badge>
             </div>
             <h3 className="font-semibold text-ink-900">{b.name}</h3>
             <p className="text-xs text-ink-500 mb-3">{b.schedule}</p>
             <div className="grid grid-cols-2 gap-2 text-center">
-              <div className="bg-ink-50 rounded-lg py-2"><p className="text-lg font-semibold text-ink-900 tabular-nums">{b.strength}</p><p className="text-[11px] text-ink-500">Students</p></div>
-              <div className="bg-ink-50 rounded-lg py-2"><p className="text-lg font-semibold text-ink-900 tabular-nums">87%</p><p className="text-[11px] text-ink-500">Avg Attendance</p></div>
+              <div className="bg-ink-50 rounded-lg py-2"><p className="text-lg font-semibold text-ink-900 tabular-nums">{state.students.filter((item) => item.batchId === b.id && item.status === 'active').length}</p><p className="text-[11px] text-ink-500">Students</p></div>
+              <div className="bg-ink-50 rounded-lg py-2"><p className="text-lg font-semibold text-ink-900 tabular-nums">{state.attendance.filter((item) => item.batchId === b.id).length}</p><p className="text-[11px] text-ink-500">Attendance marks</p></div>
             </div>
             <div className="mt-3 flex gap-2">
               <button className="btn-secondary flex-1 text-xs">View Students</button>
-              <button className="btn-primary text-xs px-3">Take Attendance</button>
+              <button onClick={() => navigate(`/teacher/attendance?batch=${b.id}`)} className="btn-primary text-xs px-3">Take Attendance</button>
             </div>
           </Card>
         ))}
@@ -264,17 +266,23 @@ export function TeacherRecordings() {
 
 export function TeacherAttendance() {
   const { state, markAttendance } = useLmsData();
-  const batch = state.batches.find((item) => item.id === 'batch_001');
+  const [batchId, setBatchId] = useState('');
+  const batch = state.batches.find((item) => item.id === batchId) ?? state.batches[0];
   const roster = state.students.filter((student) => student.batchId === batch?.id);
   const courses = state.courses.filter((course) => course.batchIds.includes(batch?.id ?? ''));
-  const [courseId, setCourseId] = useState(courses[0]?.id ?? '');
-  const [date, setDate] = useState('2026-08-12');
-  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>(Object.fromEntries(roster.map((student) => [student.id, 'present'])));
+  const [courseId, setCourseId] = useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+  useEffect(() => { if (!batchId && state.batches[0]) setBatchId(state.batches[0].id); }, [batchId, state.batches]);
+  useEffect(() => { if (!courses.some((course) => course.id === courseId)) setCourseId(courses[0]?.id ?? ''); }, [courseId, courses]);
+  useEffect(() => {
+    setAttendance(Object.fromEntries(state.students.filter((student) => student.batchId === batch?.id).map((student) => [student.id, 'present'])));
+  }, [batch?.id, state.students]);
   const saveAttendance = () => roster.forEach((student) => markAttendance(student.id, courseId, batch?.id ?? '', date, attendance[student.id] ?? 'present'));
   return (
     <div>
-      <PageHeader title="Take Attendance" subtitle={`${batch?.name} · changes update student and parent views`} actions={<button onClick={saveAttendance} className="btn-primary"><CheckSquare className="w-4 h-4" /> Save Attendance</button>} />
-      <div className="grid sm:grid-cols-2 gap-3 mb-4"><div><label className="label">Course</label><Select label="Course" value={courseId} onChange={setCourseId} options={courses.map((course) => ({ value: course.id, label: course.title }))} /></div><div><label className="label">Date</label><input className="input" type="date" value={date} onChange={(event) => setDate(event.target.value)} /></div></div>
+      <PageHeader title="Take Attendance" subtitle={`${batch?.name ?? 'No assigned batch'} · changes update student and parent views`} actions={<button onClick={saveAttendance} disabled={!batch || !courseId || !roster.length} className="btn-primary"><CheckSquare className="w-4 h-4" /> Save Attendance</button>} />
+      <div className="grid sm:grid-cols-3 gap-3 mb-4"><div><label className="label">Batch</label><Select label="Batch" value={batch?.id ?? ''} onChange={setBatchId} options={state.batches.map((item) => ({ value: item.id, label: item.name }))} /></div><div><label className="label">Course</label><Select label="Course" value={courseId} onChange={setCourseId} options={courses.map((course) => ({ value: course.id, label: course.title }))} /></div><div><label className="label">Date</label><input className="input" type="date" value={date} onChange={(event) => setDate(event.target.value)} /></div></div>
       <Card>
         <div className="p-4 space-y-2">
           {roster.map((s) => (
@@ -300,6 +308,7 @@ export function TeacherAttendance() {
               </div>
             </div>
           ))}
+          {!roster.length && <EmptyState icon={Users} title="No enrolled students" description="This batch has no active students available for attendance." />}
         </div>
       </Card>
     </div>

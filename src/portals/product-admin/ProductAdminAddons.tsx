@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Sparkles, Activity, Users, FileText, Zap, DollarSign, Target,
+  Sparkles, Activity, Users, FileText, Zap,
   Clock, ShieldAlert, CheckCircle, Map, Layout, Plus, Download
 } from 'lucide-react';
 import { PageHeader, Card, CardHeader } from '@/components/ui/Layout';
@@ -367,7 +367,7 @@ export function SystemHealthMap() {
 
 export function SlaDashboard() {
   const { setFeedback } = useLmsData();
-  const [escalations, setEscalations] = useState([
+  const [escalations] = useState([
     { id: 'ESC-01', client: 'Acme School', issue: 'Portal Down', slaTimeLeft: 'Expired', status: 'Critical', assignedTo: 'L3 Support' },
     { id: 'ESC-02', client: 'Global Tech', issue: 'Billing Error', slaTimeLeft: '2h 15m', status: 'Warning', assignedTo: 'Finance' },
     { id: 'ESC-03', client: 'Sunrise High', issue: 'Missing Grades', slaTimeLeft: '14h 30m', status: 'Normal', assignedTo: 'L1 Support' },

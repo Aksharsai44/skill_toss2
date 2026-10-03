@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { lmsDemoSeed } from '@/lib/mockData';
 import { LmsDataContext, type ActionResult, type Feedback, type LmsDataContextValue, type StudentPortalInsights } from '@/lib/lmsDataContext';
-import type { AttendanceStatus, LmsAssignment, LmsClassSession, LmsExam, LmsResource, LmsState, LmsStudent, OnlineAttendanceSession, Role, LmsBetaProgram, LmsRoadmapFeature, LmsGlobalCampaign, LmsExecutiveDecision, LmsWorkflowRule, LmsIntegration, LmsBranchTheme } from '@/lib/types';
+import type { AttendanceStatus, LmsAssignment, LmsClassSession, LmsExam, LmsResource, LmsState, LmsStudent, OnlineAttendanceSession, Role, LmsBetaProgram, LmsRoadmapFeature, LmsGlobalCampaign, LmsWorkflowRule, LmsIntegration, LmsBranchTheme } from '@/lib/types';
 import { generateDeterministicRoomName } from '@/lib/jitsiConfig';
 import { isClassSessionSyncEnabled, supabase } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { useAuth } from '@/lib/authContext';
+import { emptyBackendState, loadBackendState } from '@/lib/backendState';
 import { putAttachment } from '@/lib/attachmentStorage';
 import type { SubmissionAttachment } from '@/lib/types';
+import { createAssignment as createRemoteAssignment, evaluateSubmission, saveSubmission as saveRemoteSubmission } from '@/lib/assignmentApi';
+import { saveDailyGoal } from '@/lib/dailyTrackerApi';
+import { saveStudentNote, uploadLearningResource } from '@/lib/fileApi';
+import { createAttendanceSession, listAttendanceSessions, markAttendance as markRemoteAttendance } from '@/lib/attendanceApi';
 
 const STORAGE_KEY = 'skill-toss-lms-demo-v4';
 export const LMS_DEMO_NOW = '2026-08-12T12:00:00+05:30';
@@ -14,6 +21,7 @@ const DEMO_NOW = LMS_DEMO_NOW;
 
 const cloneSeed = (): LmsState => JSON.parse(JSON.stringify(lmsDemoSeed)) as LmsState;
 const loadState = (): LmsState => {
+  if (isSupabaseConfigured) return emptyBackendState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return cloneSeed();
@@ -36,10 +44,27 @@ const loadState = (): LmsState => {
 };
 
 export function LmsDataProvider({ children }: { children: ReactNode }) {
+  const { profile, loading: authLoading } = useAuth();
   const [state, setState] = useState<LmsState>(loadState);
   const [feedback, setFeedback] = useState<Feedback>(null);
 
-  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }, [state]);
+  useEffect(() => {
+    if (!isSupabaseConfigured) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+  const refreshBackend = useCallback(async () => {
+    if (!profile) return;
+    try {
+      setState(await loadBackendState(profile));
+    } catch (error) {
+      setState(emptyBackendState());
+      setFeedback({ kind: 'error', message: error instanceof Error ? error.message : 'Backend data could not be loaded.' });
+    }
+  }, [profile]);
+  useEffect(() => {
+    if (authLoading) return;
+    if (!profile) { setState(emptyBackendState()); return; }
+    void refreshBackend();
+  }, [authLoading, profile, refreshBackend]);
   useEffect(() => {
     if (!isClassSessionSyncEnabled) return;
 
@@ -234,16 +259,30 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
 
   const createAssignment = useCallback(async (input: Omit<LmsAssignment, 'id' | 'createdAt' | 'status'> & { attachmentFiles?: Array<{ metadata: SubmissionAttachment; file?: File }> }) => {
     if (!input.title.trim() || !input.instructions.trim() || !input.dueDate || input.maxMarks <= 0) return result(false, 'Title, instructions, due date, and valid marks are required.');
+    if (isSupabaseConfigured) {
+      try {
+        await createRemoteAssignment({ institutionId: profile?.institutionId ?? '', batchId: input.batchId, subjectId: input.courseId, title: input.title, instructions: input.instructions, dueAt: input.dueDate, maxMarks: input.maxMarks, publish: true });
+        await refreshBackend();
+        return result(true, 'Assignment created and shared with the batch.');
+      } catch (error) { return result(false, error instanceof Error ? error.message : 'Assignment could not be created.'); }
+    }
     const id = nextId('assignment');
     const attachments = (input.attachmentFiles || []).map((entry) => ({ ...entry, metadata: { ...entry.metadata, ownerType: 'assignment' as const, ownerId: id, uploadedBy: input.teacherId } }));
     try { await Promise.all(attachments.filter((entry) => Boolean(entry.file)).map((entry) => putAttachment(entry.metadata, entry.file as File))); } catch { return result(false, 'Assignment materials could not be saved locally.'); }
     const targets = state.students.filter((student) => student.batchId === input.batchId);
     setState((current) => bump({ ...current, assignments: [...current.assignments, { ...input, attachments: attachments.map((entry) => entry.metadata), id, createdAt: DEMO_NOW, status: 'open' }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index + 1}`, userId: student.id, type: 'assignment' as const, title: 'New assignment', message: `${input.title} is now available.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/assignments' }))] }));
     return result(true, 'Assignment created and shared with the batch.');
-  }, [bump, nextId, result, state.students]);
+  }, [bump, nextId, profile?.institutionId, refreshBackend, result, state.students]);
 
   const saveSubmission = useCallback(async (assignmentId: string, studentId: string, response: string, submit: boolean, attachments: Array<{ metadata: SubmissionAttachment; file?: File }> = []) => {
     if (!response.trim() && attachments.length === 0) return result(false, 'Add a response or attachment before saving.');
+    if (isSupabaseConfigured) {
+      try {
+        await saveRemoteSubmission({ institutionId: profile?.institutionId ?? '', assignmentId, studentId, response, submit });
+        await refreshBackend();
+        return result(true, submit ? 'Assignment submitted successfully.' : 'Draft saved.');
+      } catch (error) { return result(false, error instanceof Error ? error.message : 'Submission could not be saved.'); }
+    }
     const existing = state.submissions.find((item) => item.assignmentId === assignmentId && item.studentId === studentId);
     if (existing?.status === 'graded') return result(false, 'A graded submission cannot be changed.');
     const submissionId = existing?.id || nextId('submission');
@@ -257,37 +296,37 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     const status = submit ? 'submitted' as const : 'in-progress' as const;
     setState((current) => ({ ...current, submissions: existing ? current.submissions.map((item) => item.id === existing.id ? { ...item, response, attachments: normalizedAttachments.map((entry) => entry.metadata), status, updatedAt: new Date().toISOString(), submittedAt: submit ? DEMO_NOW : item.submittedAt } : item) : [...current.submissions, { id: submissionId, assignmentId, studentId, response, attachments: normalizedAttachments.map((entry) => entry.metadata), status, updatedAt: new Date().toISOString(), submittedAt: submit ? DEMO_NOW : undefined }], nextId: existing ? current.nextId : current.nextId + 1 }));
     return result(true, submit ? 'Assignment submitted successfully.' : 'Draft saved.');
-  }, [nextId, result, state.submissions]);
+  }, [nextId, profile?.institutionId, refreshBackend, result, state.submissions]);
 
   const gradeSubmission = useCallback((submissionId: string, marks: number, feedbackText: string) => {
     const submission = state.submissions.find((item) => item.id === submissionId);
     const assignment = state.assignments.find((item) => item.id === submission?.assignmentId);
     if (!submission || !assignment) return result(false, 'Submission not found.');
     if (marks < 0 || marks > assignment.maxMarks || !feedbackText.trim()) return result(false, `Enter marks between 0 and ${assignment.maxMarks} and include feedback.`);
+    if (isSupabaseConfigured) {
+      void evaluateSubmission({ submissionId, marks, feedback: feedbackText }).then(refreshBackend).then(
+        () => setFeedback({ kind: 'success', message: 'Grade published to the student and parent view.' }),
+        (error) => setFeedback({ kind: 'error', message: error instanceof Error ? error.message : 'Grade could not be published.' }),
+      );
+      return { ok: true, message: 'Publishing grade…' };
+    }
     const notificationId = `notification_grade_${submissionId}`;
     setState((current) => bump({ ...current, submissions: current.submissions.map((item) => item.id === submissionId ? { ...item, status: 'graded', marks, feedback: feedbackText, gradedAt: DEMO_NOW } : item), notifications: [...current.notifications.filter((item) => item.id !== notificationId), { id: notificationId, userId: submission.studentId, type: 'assignment', title: 'Assignment graded', message: `${assignment.title}: ${marks}/${assignment.maxMarks}`, timestamp: DEMO_NOW, read: false, relatedEntityId: assignment.id, path: '/student/assignments' }] }));
     return result(true, 'Grade published to the student and parent view.');
-  }, [bump, result, state.assignments, state.submissions]);
+  }, [bump, refreshBackend, result, state.assignments, state.submissions]);
 
   const markAttendance = useCallback((studentId: string, courseId: string, batchId: string, date: string, status: AttendanceStatus) => {
     if (!date) return result(false, 'Select an attendance date.');
-    const existing = state.attendance.find((item) => item.studentId === studentId && item.courseId === courseId && item.date === date);
-    setState((current) => {
-      const attendance = existing ? current.attendance.map((item) => item.id === existing.id ? { ...item, status } : item) : [...current.attendance, { id: `${nextId('attendance')}_${studentId}_${date}`, studentId, courseId, batchId, date, status }];
-      const courseRecords = attendance.filter((item) => item.studentId === studentId && item.courseId === courseId);
-      const attended = courseRecords.filter((item) => item.status === 'present' || item.status === 'late').length;
-      const conducted = courseRecords.filter((item) => item.status !== 'excused').length;
-      const percentage = conducted ? Math.round((attended / conducted) * 100) : 0;
-      const warningId = `attendance_warning_${studentId}_${courseId}_${date}`;
-      const shouldWarn = percentage < 75 && status === 'absent' && !current.notifications.some((item) => item.id === warningId);
-      const courseTitle = current.courses.find((course) => course.id === courseId)?.title ?? 'Course';
-      return {
-        ...current, attendance, nextId: existing ? current.nextId : current.nextId + 1,
-        notifications: shouldWarn ? [...current.notifications, { id: warningId, userId: studentId, type: 'attendance', title: 'Attendance warning', message: `${courseTitle} attendance is ${percentage}%.`, timestamp: DEMO_NOW, read: false, relatedEntityId: courseId, path: '/student/attendance' }] : current.notifications,
-      };
-    });
-    return result(true, 'Attendance updated across student, parent, and reports.');
-  }, [nextId, result, state.attendance]);
+    void (async () => {
+      const sessions = await listAttendanceSessions({ batchId, date });
+      const session = sessions.find((item) => item.subject_id === courseId)
+        ?? await createAttendanceSession({ batchId, subjectId: courseId, date });
+      await markRemoteAttendance({ sessionId: session.id, studentId, status });
+      await refreshBackend();
+    })().then(() => setFeedback({ kind: 'success', message: 'Attendance updated across student, parent, and reports.' }),
+      (error) => setFeedback({ kind: 'error', message: error instanceof Error ? error.message : 'Attendance could not be saved.' }));
+    return { ok: true, message: 'Saving attendance…' };
+  }, [refreshBackend, result]);
 
   const recordPayment = useCallback((invoiceId: string, studentId: string, amount: number, method: 'cash' | 'bank-transfer' | 'demo-card', reference: string, date: string) => {
     const invoice = state.feeInvoices.find((item) => item.id === invoiceId && item.studentId === studentId);
@@ -303,13 +342,22 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
 
   const addResource = useCallback(async (input: Omit<LmsResource, 'id' | 'uploadedAt'> & { attachmentFiles?: Array<{ metadata: SubmissionAttachment; file?: File }> }) => {
     if (!input.title.trim() || !input.description.trim()) return result(false, 'Resource title and description are required.');
+    if (isSupabaseConfigured) {
+      const file = input.attachmentFiles?.find((entry) => entry.file)?.file;
+      if (!file) return result(false, 'Choose a file before publishing a resource.');
+      try {
+        await uploadLearningResource({ institutionId: profile?.institutionId ?? '', batchId: input.batchId, subjectId: input.courseId, title: input.title, description: input.description, file });
+        await refreshBackend();
+        return result(true, 'Resource uploaded and shared with the batch.');
+      } catch (error) { return result(false, error instanceof Error ? error.message : 'Resource could not be uploaded.'); }
+    }
     const id = nextId('resource');
     const attachments = (input.attachmentFiles || []).map((entry) => ({ ...entry, metadata: { ...entry.metadata, ownerType: 'resource' as const, ownerId: id, uploadedBy: input.uploadedBy } }));
     try { await Promise.all(attachments.filter((entry) => Boolean(entry.file)).map((entry) => putAttachment(entry.metadata, entry.file as File))); } catch { return result(false, 'Resource files could not be saved locally.'); }
     const targets = state.students.filter((student) => student.batchId === input.batchId);
     setState((current) => bump({ ...current, resources: [...current.resources, { ...input, attachments: attachments.map((entry) => entry.metadata), id, uploadedAt: DEMO_NOW }], notifications: [...current.notifications, ...targets.map((student, index) => ({ id: `${id}_notification_${index}`, userId: student.id, type: 'resource' as const, title: 'New resource', message: `${input.title} was added to your resources.`, timestamp: DEMO_NOW, read: false, relatedEntityId: id, path: '/student/resources' }))] }));
     return result(true, 'Resource metadata shared with the batch.');
-  }, [bump, nextId, result, state.students]);
+  }, [bump, nextId, profile?.institutionId, refreshBackend, result, state.students]);
 
   const scheduleExam = useCallback((input: Omit<LmsExam, 'id' | 'status'>) => {
     if (!input.title.trim() || !input.date || input.maxMarks <= 0 || input.durationMinutes <= 0) return result(false, 'Complete all exam fields with valid marks and duration.');
@@ -480,15 +528,30 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
 
   const saveGoal = useCallback((input: { id?: string; studentId: string; title: string; category: string; target: string; deadline: string; progress: number }) => {
     if (!input.title.trim() || !input.target.trim() || !input.deadline || input.progress < 0 || input.progress > 100) return result(false, 'Complete all goal fields and use progress from 0 to 100.');
+    if (isSupabaseConfigured) {
+      void saveDailyGoal({ id: input.id, institutionId: profile?.institutionId ?? '', studentId: input.studentId, title: input.title, category: input.category, target: input.target, targetDate: input.deadline, status: input.progress === 100 ? 'completed' : 'active' })
+        .then(refreshBackend)
+        .then(() => setFeedback({ kind: 'success', message: input.id ? 'Goal updated.' : 'Goal created.' }),
+          (error) => setFeedback({ kind: 'error', message: error instanceof Error ? error.message : 'Goal could not be saved.' }));
+      return { ok: true, message: 'Saving goal…' };
+    }
     if (input.id) setState((current) => ({ ...current, goals: current.goals.map((goal) => goal.id === input.id ? { ...goal, ...input, status: input.progress === 100 ? 'completed' : 'active' } : goal) }));
     else setState((current) => bump({ ...current, goals: [...current.goals, { ...input, id: nextId('goal'), status: input.progress === 100 ? 'completed' : 'active' }] }));
     return result(true, input.id ? 'Goal updated.' : 'Goal created.');
-  }, [bump, nextId, result]);
+  }, [bump, nextId, profile?.institutionId, refreshBackend, result]);
 
   const deleteGoal = useCallback((id: string) => {
+    if (isSupabaseConfigured) {
+      void supabase.from('daily_goals').delete().eq('id', id).then(({ error }) => {
+        if (error) throw error;
+        return refreshBackend();
+      }).then(() => setFeedback({ kind: 'success', message: 'Goal deleted.' }),
+        (error) => setFeedback({ kind: 'error', message: error instanceof Error ? error.message : 'Goal could not be deleted.' }));
+      return { ok: true, message: 'Deleting goal…' };
+    }
     setState((current) => ({ ...current, goals: current.goals.filter((goal) => goal.id !== id) }));
     return result(true, 'Goal deleted.');
-  }, [result]);
+  }, [refreshBackend, result]);
 
   const getStudentNotes = useCallback((studentId: string) => state.notes
     .filter((note) => note.studentId === studentId)
@@ -497,6 +560,13 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
   const saveNote = useCallback((input: { id?: string; studentId: string; title: string; content: string }) => {
     if (!input.title.trim()) return result(false, 'Give the note a title before saving.');
     if (!input.studentId) return result(false, 'No student record is linked to this account, so the note cannot be saved.');
+    if (isSupabaseConfigured) {
+      void saveStudentNote({ id: input.id, institutionId: profile?.institutionId ?? '', studentId: input.studentId, title: input.title, content: input.content })
+        .then(refreshBackend)
+        .then(() => setFeedback({ kind: 'success', message: input.id ? 'Note updated.' : 'Note saved.' }),
+          (error) => setFeedback({ kind: 'error', message: error instanceof Error ? error.message : 'Note could not be saved.' }));
+      return { ok: true, message: 'Saving note…' };
+    }
     const now = new Date().toISOString();
     if (input.id) {
       const existing = state.notes.find((note) => note.id === input.id);
@@ -506,13 +576,21 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     }
     setState((current) => bump({ ...current, notes: [...current.notes, { id: nextId('note'), studentId: input.studentId, title: input.title.trim(), content: input.content, createdAt: now, updatedAt: now }] }));
     return result(true, 'Note saved.');
-  }, [bump, nextId, result, state.notes]);
+  }, [bump, nextId, profile?.institutionId, refreshBackend, result, state.notes]);
 
   const deleteNote = useCallback((id: string) => {
     if (!state.notes.some((note) => note.id === id)) return result(false, 'That note no longer exists.');
+    if (isSupabaseConfigured) {
+      void supabase.from('student_notes').delete().eq('id', id).then(({ error }) => {
+        if (error) throw error;
+        return refreshBackend();
+      }).then(() => setFeedback({ kind: 'success', message: 'Note deleted.' }),
+        (error) => setFeedback({ kind: 'error', message: error instanceof Error ? error.message : 'Note could not be deleted.' }));
+      return { ok: true, message: 'Deleting note…' };
+    }
     setState((current) => ({ ...current, notes: current.notes.filter((note) => note.id !== id) }));
     return result(true, 'Note deleted.');
-  }, [result, state.notes]);
+  }, [refreshBackend, result, state.notes]);
 
   const addEvent = useCallback((input: { title: string; date: string; type: 'class' | 'exam' | 'event' | 'holiday' | 'meeting'; batch?: string }) => {
     if (!input.title.trim() || !input.date) return result(false, 'Event title and date are required.');
@@ -646,8 +724,18 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     return result(true, 'Branch theme updated.');
   }, [result]);
 
+  const resetData = useCallback(() => {
+    if (isSupabaseConfigured) {
+      void refreshBackend();
+      setFeedback({ kind: 'info', message: 'Refreshing data from Supabase…' });
+      return;
+    }
+    setState(cloneSeed());
+    setFeedback({ kind: 'success', message: 'Demo data reset.' });
+  }, [refreshBackend]);
+
   const value = useMemo<LmsDataContextValue>(() => ({
-    state, feedback, setFeedback, clearFeedback: () => setFeedback(null), resetDemoData: () => { setState(cloneSeed()); setFeedback({ kind: 'success', message: 'Demo data reset.' }); },
+    state, feedback, setFeedback, clearFeedback: () => setFeedback(null), resetDemoData: resetData,
     getStudentSummary, getStudentAssignments, getStudentFees, getStudentExams, getStudentResources, getStudentPortalInsights, getOnlineAttendanceForSession, searchRecords, syncClassSession,
     addStudent, createAssignment, saveSubmission, gradeSubmission, markAttendance, recordPayment, addResource, scheduleExam, scheduleClass, updateClassSessionStatus, recordOnlineJoin, recordOnlineLeave, updateStudentProfile, saveGoal, deleteGoal, addEvent, toggleResourceBookmark,
     getStudentNotes, saveNote, deleteNote,
@@ -655,7 +743,7 @@ export function LmsDataProvider({ children }: { children: ReactNode }) {
     markNotificationRead: (id) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.id === id ? { ...item, read: true } : item) })),
     markAllNotificationsRead: (userId) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.userId === userId ? { ...item, read: true } : item) })),
     createRoleFromRequest, rejectRoleRequest, createWorkflow, updateWorkflow, updateIntegration, updateBranchTheme
-  }), [addBetaProgram, addEvent, addGlobalCampaign, addResource, addRoadmapFeature, addStudent, createAssignment, deleteGoal, deleteNote, feedback, getOnlineAttendanceForSession, getStudentAssignments, getStudentExams, getStudentFees, getStudentNotes, getStudentPortalInsights, getStudentResources, getStudentSummary, gradeSubmission, markAttendance, recordOnlineJoin, recordOnlineLeave, recordPayment, resolveExecutiveDecision, saveGoal, saveNote, saveSubmission, scheduleClass, scheduleExam, searchRecords, state, syncClassSession, toggleResourceBookmark, updateBetaProgram, updateClassSessionStatus, updateGlobalCampaign, updateRoadmapFeature, updateStudentProfile, createRoleFromRequest, rejectRoleRequest, createWorkflow, updateWorkflow, updateIntegration, updateBranchTheme]);
+  }), [addBetaProgram, addEvent, addGlobalCampaign, addResource, addRoadmapFeature, addStudent, createAssignment, deleteGoal, deleteNote, feedback, getOnlineAttendanceForSession, getStudentAssignments, getStudentExams, getStudentFees, getStudentNotes, getStudentPortalInsights, getStudentResources, getStudentSummary, gradeSubmission, markAttendance, recordOnlineJoin, recordOnlineLeave, recordPayment, resetData, resolveExecutiveDecision, saveGoal, saveNote, saveSubmission, scheduleClass, scheduleExam, searchRecords, state, syncClassSession, toggleResourceBookmark, updateBetaProgram, updateClassSessionStatus, updateGlobalCampaign, updateRoadmapFeature, updateStudentProfile, createRoleFromRequest, rejectRoleRequest, createWorkflow, updateWorkflow, updateIntegration, updateBranchTheme]);
 
   return <LmsDataContext.Provider value={value}>{children}</LmsDataContext.Provider>;
 }

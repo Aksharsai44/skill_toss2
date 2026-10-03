@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Video, CreditCard, MessageCircle, Calendar, Award, Fingerprint,
   Users, TrendingUp, Zap, ArrowRight, Building2,
-  GraduationCap, BookOpen, Brain, Cloud, Bell, ChevronRight,
+  GraduationCap, BookOpen, Cloud, Bell, ChevronRight,
 } from 'lucide-react';
 import { ROLES } from '@/lib/types';
 import { cn } from '@/lib/cn';

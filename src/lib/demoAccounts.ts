@@ -3,28 +3,24 @@ import type { UserProfile } from '@/lib/types';
 /**
  * Single source of truth for the local demo identities.
  *
- * These accounts are deliberately fake: the `@skilltoss.demo` addresses are not routable
- * and `DEMO_PASSWORD` is a throwaway string. Never place real institution credentials, a
- * Supabase service-role key, or any production secret in this file.
+ * These are local Django fixture addresses under the reserved `.test` domain. Never place real
+ * institution credentials, passwords, or any production secret in this file.
  *
- * The Supabase Auth development users described in `supabase/README.md` are a separate
- * concern. Their passwords are chosen in the Supabase Dashboard and intentionally kept out
- * of the repository, so this module never claims to know them.
+ * Django development users are provisioned by `python manage.py provision_test_users` with a
+ * runtime-supplied password. This display module never grants access or supplies authority.
  */
-export const DEMO_PASSWORD = 'demo123';
-
 export type DemoAccount = {
   /** Button label shown in Demo Quick Select. */
   label: string;
   email: string;
-  /** Local fallback profile resolved by `signIn` while demo sign-in is enabled for the build. */
+  /** Display data for the local quick-fill button; authorization never reads this value. */
   profile: UserProfile;
 };
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   {
     label: 'Product Admin',
-    email: 'productadmin@skilltoss.demo',
+    email: 'productadmin@skilltoss.test',
     profile: {
       id: 'demo-product-admin-id',
       fullName: 'Aarav Mehta',
@@ -35,7 +31,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     label: 'Super Admin',
-    email: 'superadmin@skilltoss.demo',
+    email: 'superadmin@skilltoss.test',
     profile: {
       id: 'demo-super-admin-id',
       fullName: 'Priya Nair',
@@ -46,7 +42,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     label: 'Admin',
-    email: 'admin@skilltoss.demo',
+    email: 'admin@skilltoss.test',
     profile: {
       id: 'demo-admin-id',
       fullName: 'Rahul Sharma',
@@ -57,7 +53,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     label: 'Teacher',
-    email: 'teacher@skilltoss.demo',
+    email: 'teacher@skilltoss.test',
     profile: {
       id: 'demo-teacher-id',
       fullName: 'Sneha Kapoor',
@@ -68,7 +64,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     label: 'Student',
-    email: 'student@skilltoss.demo',
+    email: 'student@skilltoss.test',
     profile: {
       id: 'demo-student-id',
       fullName: 'Arjun Verma',
@@ -79,7 +75,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     label: 'Parent',
-    email: 'parent@skilltoss.demo',
+    email: 'parent@skilltoss.test',
     profile: {
       id: 'demo-parent-id',
       fullName: 'Rajesh Verma',
@@ -90,51 +86,18 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
 ];
 
-/** Local fallback profiles keyed by lowercase email, consumed by `AuthProvider.signIn`. */
-export const DEMO_PROFILES: Record<string, UserProfile> = Object.fromEntries(
-  DEMO_ACCOUNTS.map((account) => [account.email.toLowerCase(), account.profile]),
-);
-
 /**
- * Demo sign-in is on for every `npm run dev` session, and off in a production build unless
- * `VITE_ENABLE_DEMO_LOGIN=true` is set for that build.
+ * Demo quick-fill is shown only in Vite development sessions. It supplies an email and a
+ * development email to the shared form; the password is never bundled. Django still has to authenticate the user and
+ * `/api/auth/me/` still supplies the role.
  *
- * Both operands are build-time literals — Vite inlines `import.meta.env.DEV` as `false` and the
- * unset flag as `undefined` — so an ordinary production build folds this to a constant `false`
- * (verified in `dist/`: the minified binding is `!1`) and drops every guarded branch, including
- * Demo Quick Select and the `signIn` fallback. `DEMO_PASSWORD` has no surviving reference and
- * leaves the bundle with them.
+ * `import.meta.env.DEV` is a build-time literal. Vite replaces it with `false` for production,
+ * allowing Rollup to remove the guarded quick-select and local sign-in branches.
  *
- * Keep both operands build-time literals. An earlier revision also OR-ed in
- * `!isSupabaseConfigured`, which is a runtime term, so the expression stayed live and shipped
- * the guarded branches and `DEMO_PASSWORD` into `dist/` to be skipped at runtime instead of
- * being absent.
- *
- * `DEMO_ACCOUNTS`/`DEMO_PROFILES` are still emitted regardless: the `Object.fromEntries(...)`
- * call below is top-level, so Rollup cannot prove it side-effect-free and retains the table even
- * with no live reader. That leaves six fake names and unroutable addresses in the bundle, which
- * the same seed identities in `mockData.ts` ship anyway — no secret is involved, so it is not
- * worth restructuring for.
- *
- * A placeholder Supabase configuration deliberately does not enable demo sign-in. That state
- * means a broken deployment, and minting local sessions would mask the misconfiguration rather
- * than surface it; local development already qualifies through `DEV`.
+ * `DEMO_ACCOUNTS` is also used as local fixture display data. The addresses are non-routable and
+ * the password is test-only; no production credential or privileged key is stored here.
  */
-export const isDemoLoginEnabled = import.meta.env.DEV
-  || import.meta.env.VITE_ENABLE_DEMO_LOGIN === 'true';
+export const isDemoLoginEnabled = import.meta.env.DEV;
 
-/** Whether Demo Quick Select renders. It only ever prefills the sign-in form. */
+/** Whether Demo Quick Select renders. It only ever prefills the shared sign-in form. */
 export const isDemoQuickSelectEnabled = isDemoLoginEnabled;
-
-/**
- * Whether `signIn` may resolve a local demo profile after Supabase Auth rejects the
- * credentials. Same condition as Quick Select on purpose: the six demo identities are not
- * provisioned in Supabase Auth, so showing the buttons without this guarantees a failed
- * sign-in.
- *
- * A real Supabase sign-in is always attempted first, so a provisioned account with the
- * correct password resolves its own database profile and this never shadows it. While demo
- * sign-in is on, the six `@skilltoss.demo` addresses accept any password — which is why it is
- * confined to dev builds and an explicit opt-in flag.
- */
-export const isDemoSignInFallbackEnabled = isDemoLoginEnabled;

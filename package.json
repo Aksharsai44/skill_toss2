@@ -8,7 +8,14 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "seed:staging": "node scripts/seed-staging.mjs",
+    "verify:auth:local": "node scripts/verify-local-auth.mjs",
+    "verify:seed:auth": "node scripts/verify-seeded-auth.mjs",
+    "verify:staging:security": "node scripts/verify-staging-security.mjs",
+    "verify:staging:provisioning": "node scripts/verify-staging-user-provisioning.mjs",
+    "verify:django-auth": "node scripts/verify-django-auth-browser.mjs",
+    "verify:django-academics": "node scripts/verify-django-academic-browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

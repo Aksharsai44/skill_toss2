@@ -6,7 +6,7 @@ import {
   CalendarOff, CalendarDays, Plug, Award, Calendar, Video, PlayCircle, CheckSquare,
   ClipboardList, FileQuestion, FolderOpen, MessagesSquare, UserCircle, NotebookPen,
   BookOpen, Sparkles, LogOut, Menu, X, Search, Bell, ChevronDown, Settings,
-  LifeBuoy, Building, ShieldCheck, Leaf, Lightbulb, Megaphone, Database, Clock, Map
+  LifeBuoy, Building, ShieldCheck, Leaf, Lightbulb, Megaphone, Database, Clock, Map, UserPlus
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
@@ -19,13 +19,14 @@ import { useNotificationPreferences } from '@/lib/notificationPreferences';
 import { emphasize, enter, openPopup } from '@/lib/motion';
 import { Modal } from '@/components/ui/Modal';
 import { StatusBadge } from '@/components/ui/Badge';
+import { ChangePasswordForm } from '@/components/ChangePasswordForm';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Building2, Tags, ToggleLeft, Palette, Inbox, Network, TrendingUp,
   Target, FileBarChart, GraduationCap, Users, Layers, CreditCard, Wallet, Fingerprint,
   CalendarOff, CalendarDays, Plug, Award, Calendar, Video, PlayCircle, CheckSquare,
   ClipboardList, FileQuestion, FolderOpen, MessagesSquare, UserCircle, NotebookPen,
-  BookOpen, Sparkles, Settings, LifeBuoy, Building, ShieldCheck,
+  BookOpen, Sparkles, Settings, LifeBuoy, Building, ShieldCheck, UserPlus,
   Leaf, Lightbulb, Megaphone, Database, Clock, Map,
 };
 
@@ -427,6 +428,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               <p className="font-mono text-xs text-ink-700 mt-0.5 truncate">{profile.id}</p>
             </div>
           </div>
+          <div className="border-t border-ink-100 pt-4">
+            <h4 className="font-semibold text-ink-900">Change password</h4>
+            <p className="mb-4 mt-1 text-sm text-ink-600">Confirm your current password, then choose a new one. SkillToss sends it only to the Django account service.</p>
+            <ChangePasswordForm />
+          </div>
           <div className="pt-3 border-t border-ink-100 flex justify-end">
             <button onClick={() => setShowAccountModal(false)} className="btn-secondary text-sm">Close</button>
           </div>
@@ -435,4 +441,3 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

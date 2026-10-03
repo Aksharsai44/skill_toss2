@@ -2,8 +2,8 @@ import { createContext, useContext } from 'react';
 import type {
   AttendanceStatus, EventItem, LmsAssignment, LmsClassSession, LmsExam, LmsGoal, LmsNote, LmsResource, LmsState, LmsStudent,
   LmsSubmission, OnlineAttendanceSession, Role, SubmissionAttachment,
-  LmsBetaProgram, LmsRoadmapFeature, LmsExecutiveDecision, LmsGlobalCampaign,
-  LmsCustomRole, LmsRoleRequest, LmsAuditLog, LmsWorkflowRule, LmsIntegration, LmsBranchTheme
+  LmsBetaProgram, LmsRoadmapFeature, LmsGlobalCampaign,
+  LmsWorkflowRule, LmsIntegration, LmsBranchTheme
 } from '@/lib/types';
 
 export type ActionResult = { ok: true; message: string } | { ok: false; message: string };

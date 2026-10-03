@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Leaf, Monitor, Zap, TreePine, AlertTriangle, Lightbulb, TrendingUp, BarChart2,
+  AlertTriangle, Lightbulb, TrendingUp, BarChart2,
   Megaphone, Users, Send, Target, Search, XCircle, Database, Plus, Check
 } from 'lucide-react';
 import { PageHeader, Card, CardHeader } from '@/components/ui/Layout';
@@ -10,7 +10,7 @@ import { StatusBadge, Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useLmsData } from '@/lib/lmsDataContext';
-import { FileText, Shield, UserX, Settings2, Palette, ShieldAlert } from 'lucide-react';
+import { FileText, UserX, Settings2, Palette, ShieldAlert } from 'lucide-react';
 
 export function AuditLogs() {
   const { state } = useLmsData();
@@ -154,7 +154,7 @@ export function InterBranchTransfer() {
 }
 
 export function ExecutiveDecisionCenter() {
-  const { state, setFeedback, resolveExecutiveDecision } = useLmsData();
+  const { state, resolveExecutiveDecision } = useLmsData();
   const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   const openDecisions = state.executiveDecisions.filter(d => d.status === 'open');

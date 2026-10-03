@@ -24,6 +24,7 @@ import { NOTIFICATION_PREFERENCES, useNotificationPreferences } from '@/lib/noti
 import type { LmsNote, LmsNotification, SubmissionAttachment } from '@/lib/types';
 import { getAttachment, removeAttachment } from '@/lib/attachmentStorage';
 import { MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS, ACCEPTED_ATTACHMENT_EXTENSIONS, formatAttachmentSize as formatSharedAttachmentSize, attachmentExtension as sharedAttachmentExtension, attachmentIdFor as sharedAttachmentIdFor } from '@/lib/attachmentConfig';
+import { ChangePasswordForm } from '@/components/ChangePasswordForm';
 
 const formatFileSize = formatSharedAttachmentSize;
 const extensionFor = sharedAttachmentExtension;
@@ -1691,7 +1692,8 @@ export function StudentSettings() {
         </Card>
         <Card className="p-5">
           <h2 className="font-semibold text-ink-900">Account</h2>
-          <p className="mt-2 text-sm leading-6 text-ink-600">Password changes are managed by the configured authentication provider.</p>
+          <p className="mb-4 mt-2 text-sm leading-6 text-ink-600">Change your Django account password. Success signs out every existing session and requires a fresh login.</p>
+          <ChangePasswordForm />
         </Card>
       </div>
     </div>
